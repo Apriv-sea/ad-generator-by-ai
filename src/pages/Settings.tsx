@@ -42,7 +42,7 @@ const Settings = () => {
       }
 
       const { data, error } = await supabase
-        .from('api_keys' as any)
+        .from('api_keys')
         .select('*')
         .eq('user_id', userId);
 

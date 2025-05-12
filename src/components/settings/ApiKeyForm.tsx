@@ -48,7 +48,7 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
       
       // Check if we already have a key for this service
       const { data: existingKeys } = await supabase
-        .from('api_keys' as any)
+        .from('api_keys')
         .select('*')
         .eq('user_id', userId)
         .eq('service', service);
@@ -56,25 +56,25 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
       if (!isUpdateMode && existingKeys && existingKeys.length > 0) {
         // Update existing key
         await supabase
-          .from('api_keys' as any)
-          .update({ api_key: key } as any)
+          .from('api_keys')
+          .update({ api_key: key })
           .eq('user_id', userId)
           .eq('service', service);
       } else if (isUpdateMode) {
         // Update specific key
         await supabase
-          .from('api_keys' as any)
-          .update({ api_key: key } as any)
+          .from('api_keys')
+          .update({ api_key: key })
           .eq('id', apiKey.id);
       } else {
         // Insert new key
         await supabase
-          .from('api_keys' as any)
+          .from('api_keys')
           .insert({
             service: service,
             api_key: key,
             user_id: userId
-          } as any);
+          });
       }
       
       toast.success(`Clé API ${isUpdateMode ? 'mise à jour' : 'enregistrée'} avec succès`);

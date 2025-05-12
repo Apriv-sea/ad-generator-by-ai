@@ -68,14 +68,7 @@ const Clients = () => {
     }
     
     try {
-      const clientData = {
-        name: newClient.name,
-        businessContext: newClient.businessContext || "",
-        specifics: newClient.specifics || "",
-        editorialGuidelines: newClient.editorialGuidelines || ""
-      };
-      
-      const clientId = await clientService.addClient(clientData);
+      const clientId = await clientService.addClient(newClient);
       if (clientId) {
         // Create a new client object with the generated ID
         const addedClient: Client = {
@@ -110,10 +103,9 @@ const Clients = () => {
     
     try {
       // Extract necessary fields for update
-      const { id, name, businessContext, specifics, editorialGuidelines } = editingClient;
-      const updates = { name, businessContext, specifics, editorialGuidelines };
+      const { id } = editingClient;
       
-      const success = await clientService.updateClient(id, updates);
+      const success = await clientService.updateClient(id, editingClient);
       if (success) {
         setClients(clients.map(c => c.id === editingClient.id ? editingClient : c));
         setIsEditDialogOpen(false);
@@ -128,7 +120,7 @@ const Clients = () => {
   // Function to delete a client
   const handleDeleteClient = async (clientId: string, name: string) => {
     try {
-      const success = await clientService.deleteClient(clientId, name);
+      const success = await clientService.deleteClient(clientId);
       if (success) {
         setClients(clients.filter(c => c.id !== clientId));
         toast.success("Client supprimé avec succès");
