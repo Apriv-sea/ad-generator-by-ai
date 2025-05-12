@@ -36,7 +36,6 @@ const AuthCallback = () => {
             const hashParams = new URLSearchParams(window.location.hash.substring(1));
             const accessToken = hashParams.get('access_token');
             const refreshToken = hashParams.get('refresh_token');
-            const expiresIn = hashParams.get('expires_in');
             
             if (accessToken) {
               console.log("Access token found in URL hash");
@@ -48,17 +47,29 @@ const AuthCallback = () => {
               });
               
               if (error) {
+                console.error("Error setting session:", error);
                 throw error;
               }
               
               if (data.session) {
                 console.log("Session successfully set from hash parameters");
-                toast.success("Connexion réussie!");
                 
                 // Store user preferences if needed
                 if (data.session.user?.app_metadata?.provider === 'google') {
                   localStorage.setItem("google_connected", "true");
+                  
+                  // Store basic Google access information for future use
+                  const userData = {
+                    provider: 'google',
+                    accessToken: accessToken,
+                    email: data.session.user.email,
+                    name: data.session.user?.user_metadata?.full_name || data.session.user.email
+                  };
+                  
+                  localStorage.setItem("google_user", JSON.stringify(userData));
                 }
+                
+                toast.success("Connexion réussie!");
                 
                 // Redirect to dashboard after successful authentication
                 setStatus("Authentification réussie! Redirection...");
@@ -77,6 +88,11 @@ const AuthCallback = () => {
         
         if (session) {
           console.log("Existing session found");
+          
+          if (session.user?.app_metadata?.provider === 'google') {
+            localStorage.setItem("google_connected", "true");
+          }
+          
           toast.success("Connexion réussie!");
           setTimeout(() => navigate("/dashboard"), 1000);
           return;

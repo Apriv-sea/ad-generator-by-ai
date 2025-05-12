@@ -34,6 +34,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Process the user to extract additional metadata like name and picture
         const processedUser = session?.user ? processUserMetadata(session.user) : null;
         setUser(processedUser);
+        
+        // Update Google connection status in localStorage based on auth events
+        if (event === 'SIGNED_IN' && session?.user?.app_metadata?.provider === 'google') {
+          localStorage.setItem('google_connected', 'true');
+        } else if (event === 'SIGNED_OUT') {
+          localStorage.removeItem('google_connected');
+          localStorage.removeItem('google_user');
+          localStorage.removeItem('google_sheets_access');
+          localStorage.removeItem('google_drive_access');
+        }
       }
     );
 
@@ -44,6 +54,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Process the user to extract additional metadata like name and picture
       const processedUser = session?.user ? processUserMetadata(session.user) : null;
       setUser(processedUser);
+      
+      // Initialize Google connection status if not set already
+      if (session?.user?.app_metadata?.provider === 'google' && !localStorage.getItem('google_connected')) {
+        localStorage.setItem('google_connected', 'true');
+      }
+      
       setIsLoading(false);
     }).catch(error => {
       console.error("Error checking session:", error);
