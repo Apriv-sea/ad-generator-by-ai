@@ -2,11 +2,13 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Save, FilePlus } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Save, FilePlus } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, Campaign, AdGroup, Client, googleSheetsService } from "@/services/googleSheetsService";
 import ClientInfoCard from "./campaign/ClientInfoCard";
 import CampaignForm from "./campaign/CampaignForm";
+import CampaignTable from "./campaign/CampaignTable";
 import ModelSelector from "./campaign/ModelSelector";
 import LoadingState from "./campaign/LoadingState";
 
@@ -21,6 +23,7 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>("gpt-4");
+  const [viewMode, setViewMode] = useState<"form" | "table">("table");
 
   useEffect(() => {
     if (sheet) {
@@ -364,28 +367,39 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
         <CardContent className="pt-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Campagnes et Groupes d'Annonces</h2>
-            <Button onClick={addCampaign} size="sm">
-              <Plus className="h-4 w-4 mr-1" />
-              Ajouter une Campagne
-            </Button>
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "form" | "table")} className="ml-4">
+              <TabsList>
+                <TabsTrigger value="table">Vue Tableau</TabsTrigger>
+                <TabsTrigger value="form">Vue Formulaire</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
           
           <div className="space-y-6">
-            {campaigns.map((campaign, campaignIndex) => (
-              <CampaignForm
-                key={`campaign-${campaignIndex}`}
-                campaign={campaign}
-                onCampaignNameChange={(name) => updateCampaignName(campaignIndex, name)}
-                onCampaignContextChange={(context) => updateCampaignContext(campaignIndex, context)}
-                onAdGroupNameChange={(adGroupIndex, name) => updateAdGroupName(campaignIndex, adGroupIndex, name)}
-                onAdGroupContextChange={(adGroupIndex, context) => updateAdGroupContext(campaignIndex, adGroupIndex, context)}
-                onKeywordChange={(adGroupIndex, keywordIndex, value) => updateKeyword(campaignIndex, adGroupIndex, keywordIndex, value)}
-                onAddAdGroup={() => addAdGroup(campaignIndex)}
-                onRemoveAdGroup={(adGroupIndex) => removeAdGroup(campaignIndex, adGroupIndex)}
-                onRemoveCampaign={() => removeCampaign(campaignIndex)}
-                removable={campaigns.length > 1}
-              />
-            ))}
+            {viewMode === "table" ? (
+              <CampaignTable campaigns={campaigns} setCampaigns={setCampaigns} />
+            ) : (
+              <>
+                {campaigns.map((campaign, campaignIndex) => (
+                  <CampaignForm
+                    key={`campaign-${campaignIndex}`}
+                    campaign={campaign}
+                    onCampaignNameChange={(name) => updateCampaignName(campaignIndex, name)}
+                    onCampaignContextChange={(context) => updateCampaignContext(campaignIndex, context)}
+                    onAdGroupNameChange={(adGroupIndex, name) => updateAdGroupName(campaignIndex, adGroupIndex, name)}
+                    onAdGroupContextChange={(adGroupIndex, context) => updateAdGroupContext(campaignIndex, adGroupIndex, context)}
+                    onKeywordChange={(adGroupIndex, keywordIndex, value) => updateKeyword(campaignIndex, adGroupIndex, keywordIndex, value)}
+                    onAddAdGroup={() => addAdGroup(campaignIndex)}
+                    onRemoveAdGroup={(adGroupIndex) => removeAdGroup(campaignIndex, adGroupIndex)}
+                    onRemoveCampaign={() => removeCampaign(campaignIndex)}
+                    removable={campaigns.length > 1}
+                  />
+                ))}
+                <Button onClick={addCampaign} size="sm" className="ml-auto block">
+                  Ajouter une Campagne
+                </Button>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
