@@ -1,18 +1,19 @@
 
-import { Sheet, Client, Campaign, AdGroup, GenerationPrompt } from "./types";
+import { type Sheet, type Client, type Campaign, type AdGroup, type GenerationPrompt } from "./types";
 import { sheetService } from "./sheetService";
 import { clientService } from "./clientService";
 import { contentGenerationService } from "./contentGenerationService";
 import { getClients } from "./clientService";
 
-export { 
+export type { 
   Sheet, 
   Client, 
   Campaign, 
   AdGroup, 
-  GenerationPrompt,
-  getClients
+  GenerationPrompt 
 };
+
+export { getClients };
 
 // Export the combined service
 export const googleSheetsService = {
