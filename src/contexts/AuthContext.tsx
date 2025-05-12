@@ -54,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         "https://www.googleapis.com/auth/spreadsheets"
       ].join(" ");
       
+      // Modification des paramètres: suppression de access_type=offline car incompatible avec response_type=token
       const params = {
         client_id: clientId,
         redirect_uri: redirectUri,
@@ -61,8 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         scope: scope,
         include_granted_scopes: "true",
         state: "pass-through-value",
-        prompt: "consent", // Forcer l'affichage de l'écran de consentement
-        access_type: "offline"
+        prompt: "consent" // Forcer l'affichage de l'écran de consentement
       };
       
       const authUrl = `${googleAuthUrl}?${new URLSearchParams(params).toString()}`;
