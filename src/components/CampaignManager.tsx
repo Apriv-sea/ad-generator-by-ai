@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash, Save, FilePlus, PlusCircle, Pencil } from "lucide-react";
+import { Plus, Trash, Save, FilePlus, PlusCircle, Pencil, Info } from "lucide-react";
 import { toast } from "sonner";
-import { Sheet, Campaign, AdGroup, googleSheetsService } from "@/services/googleSheetsService";
+import { Sheet, Campaign, AdGroup, Client, googleSheetsService } from "@/services/googleSheetsService";
 
 interface CampaignManagerProps {
   sheet: Sheet | null;
@@ -16,14 +16,16 @@ interface CampaignManagerProps {
 
 const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComplete }) => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [clientContext, setClientContext] = useState<string>("");
+  const [clientInfo, setClientInfo] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>("gpt-4");
+  const [showClientInfo, setShowClientInfo] = useState(false);
 
   useEffect(() => {
     if (sheet) {
       loadInitialData();
+      loadClientInfo();
     }
   }, [sheet]);
 
@@ -89,6 +91,17 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
       setCampaigns([createEmptyCampaign()]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadClientInfo = async () => {
+    if (!sheet) return;
+    
+    try {
+      const client = await googleSheetsService.getClientInfo(sheet.id);
+      setClientInfo(client);
+    } catch (error) {
+      console.error("Erreur lors du chargement des informations client:", error);
     }
   };
 
@@ -234,12 +247,17 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
       return;
     }
 
-    // Validation des données
-    if (!clientContext.trim()) {
-      toast.error("Veuillez fournir un contexte pour le client");
+    if (!clientInfo || !clientInfo.businessContext) {
+      toast.error("Impossible de récupérer le contexte client. Veuillez vérifier les informations du client.");
       return;
     }
 
+    // Utiliser le contexte client déjà disponible
+    const clientContext = clientInfo.businessContext + 
+      (clientInfo.specifics ? ` ${clientInfo.specifics}` : '') + 
+      (clientInfo.editorialGuidelines ? ` Style éditorial: ${clientInfo.editorialGuidelines}` : '');
+
+    // Validation des données
     for (const campaign of campaigns) {
       if (!campaign.name.trim() || !campaign.context.trim()) {
         toast.error(`La campagne "${campaign.name || '(sans nom)'}" doit avoir un nom et un contexte`);
@@ -320,6 +338,10 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
     }
   };
 
+  const toggleClientInfo = () => {
+    setShowClientInfo(!showClientInfo);
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -352,24 +374,44 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>Contexte Client</CardTitle>
-          <CardDescription>
-            Fournissez des informations sur le client pour améliorer la génération de contenu
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label htmlFor="clientContext">Contexte du client</Label>
-            <Textarea
-              id="clientContext"
-              placeholder="Décrivez l'activité du client, son marché, ses valeurs, sa cible..."
-              value={clientContext}
-              onChange={(e) => setClientContext(e.target.value)}
-              className="min-h-32"
-            />
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Informations du client</CardTitle>
+            <CardDescription>
+              Contexte client utilisé pour la génération de contenu
+            </CardDescription>
           </div>
-        </CardContent>
+          <Button variant="outline" size="sm" onClick={toggleClientInfo}>
+            <Info className="h-4 w-4 mr-2" />
+            {showClientInfo ? "Masquer les détails" : "Voir les détails"}
+          </Button>
+        </CardHeader>
+        {showClientInfo && (
+          <CardContent>
+            {clientInfo ? (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium">Client</h3>
+                  <p className="text-base">{clientInfo.name}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium">Contexte métier</h3>
+                  <p className="text-sm text-muted-foreground">{clientInfo.businessContext || "Non défini"}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium">Spécificités</h3>
+                  <p className="text-sm text-muted-foreground">{clientInfo.specifics || "Non défini"}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium">Charte éditoriale</h3>
+                  <p className="text-sm text-muted-foreground">{clientInfo.editorialGuidelines || "Non défini"}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Aucune information client disponible</p>
+            )}
+          </CardContent>
+        )}
       </Card>
 
       <Card>
@@ -535,7 +577,7 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
         </Button>
         <Button
           onClick={generateContent}
-          disabled={isSaving}
+          disabled={isSaving || !clientInfo}
         >
           {isSaving ? (
             <>

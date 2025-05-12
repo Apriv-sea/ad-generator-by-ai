@@ -14,7 +14,7 @@ import {
 interface ClientSelectorProps {
   clients: Client[];
   selectedClient: string | null;
-  onClientSelect: (clientId: string) => void;
+  onClientSelect: (clientId: string, client?: Client) => void; // Modifié pour optionnellement retourner le client complet
   isLoading?: boolean;
   className?: string;
 }
@@ -54,7 +54,10 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
     <div className={className}>
       <Select
         value={selectedClient || ""}
-        onValueChange={(value) => onClientSelect(value)}
+        onValueChange={(value) => {
+          const selectedClientObj = clients.find(client => client.id === value);
+          onClientSelect(value, selectedClientObj);
+        }}
       >
         <SelectTrigger>
           <SelectValue placeholder="Sélectionnez un client" />

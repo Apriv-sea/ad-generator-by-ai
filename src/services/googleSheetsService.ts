@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 export interface Sheet {
@@ -6,11 +5,16 @@ export interface Sheet {
   name: string;
   url: string;
   lastModified: string;
+  clientId?: string;
+  clientContext?: string;
 }
 
 export interface Client {
   id: string;
   name: string;
+  businessContext?: string;
+  specifics?: string;
+  editorialGuidelines?: string;
 }
 
 export interface Campaign {
@@ -35,7 +39,7 @@ export interface GenerationPrompt {
 
 export const googleSheetsService = {
   // Créer une nouvelle feuille Google Sheets avec le template spécifique
-  createSheet: async (title: string): Promise<Sheet | null> => {
+  createSheet: async (title: string, client: Client | null = null): Promise<Sheet | null> => {
     try {
       const accessToken = getUserAccessToken();
       if (!accessToken) return null;
@@ -81,6 +85,15 @@ export const googleSheetsService = {
                   columnCount: headers.length
                 }
               }
+            },
+            {
+              properties: {
+                title: "Informations client",
+                gridProperties: {
+                  rowCount: 10,
+                  columnCount: 2
+                }
+              }
             }
           ]
         })
@@ -110,6 +123,33 @@ export const googleSheetsService = {
           })
         }
       );
+
+      // Enregistrer les informations du client dans l'onglet "Informations client"
+      if (client) {
+        const clientInfo = [
+          ["ID Client", client.id],
+          ["Nom Client", client.name],
+          ["Contexte métier", client.businessContext || ""],
+          ["Spécificités", client.specifics || ""],
+          ["Charte éditoriale", client.editorialGuidelines || ""]
+        ];
+
+        await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${data.spreadsheetId}/values/Informations%20client!A1:B5?valueInputOption=USER_ENTERED`,
+          {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              range: "Informations client!A1:B5",
+              majorDimension: "ROWS",
+              values: clientInfo
+            })
+          }
+        );
+      }
 
       // Formatage des en-têtes en gras
       await fetch(
@@ -166,7 +206,9 @@ export const googleSheetsService = {
         id: data.spreadsheetId,
         name: data.properties.title,
         url: `https://docs.google.com/spreadsheets/d/${data.spreadsheetId}`,
-        lastModified: new Date().toISOString()
+        lastModified: new Date().toISOString(),
+        clientId: client?.id,
+        clientContext: client?.businessContext
       };
     } catch (error) {
       console.error("Erreur lors de la création de la feuille:", error);
@@ -277,6 +319,54 @@ export const googleSheetsService = {
     }
   },
 
+  // Récupérer les informations du client associées à une feuille
+  getClientInfo: async (sheetId: string): Promise<Client | null> => {
+    try {
+      const accessToken = getUserAccessToken();
+      if (!accessToken) return null;
+
+      const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Informations%20client!A1:B5`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Erreur lors de la récupération des informations du client");
+        return null;
+      }
+
+      const data = await response.json();
+      
+      if (!data.values || data.values.length < 2) {
+        return null;
+      }
+
+      // Construire l'objet client à partir des données de la feuille
+      const clientInfo: Record<string, string> = {};
+      data.values.forEach((row: string[]) => {
+        if (row.length >= 2) {
+          const key = row[0].toLowerCase().replace(/ /g, '_');
+          clientInfo[key] = row[1];
+        }
+      });
+
+      return {
+        id: clientInfo['id_client'] || '',
+        name: clientInfo['nom_client'] || '',
+        businessContext: clientInfo['contexte_métier'] || '',
+        specifics: clientInfo['spécificités'] || '',
+        editorialGuidelines: clientInfo['charte_éditoriale'] || ''
+      };
+    } catch (error) {
+      console.error("Erreur lors de la récupération des informations du client:", error);
+      return null;
+    }
+  },
+
   // Générer du contenu via un LLM (simulation pour l'instant)
   generateContent: async (prompt: GenerationPrompt): Promise<{titles: string[], descriptions: string[]} | null> => {
     try {
@@ -322,9 +412,27 @@ export const googleSheetsService = {
 // Liste temporaire de clients (à remplacer par une vraie API)
 export const getClients = async (): Promise<Client[]> => {
   return [
-    { id: '1', name: 'ABC Company' },
-    { id: '2', name: 'XYZ Corporation' },
-    { id: '3', name: 'Tech Solutions' },
+    { 
+      id: '1', 
+      name: 'ABC Company', 
+      businessContext: 'Entreprise spécialisée dans la vente de matériel informatique pour professionnels. Présente depuis 15 ans sur le marché avec une forte implantation régionale.',
+      specifics: 'Service après-vente réactif, délais de livraison courts, expertise technique reconnue',
+      editorialGuidelines: 'Ton professionnel, technique mais accessible. Éviter le jargon trop complexe.'
+    },
+    { 
+      id: '2', 
+      name: 'XYZ Corporation', 
+      businessContext: 'Cabinet de conseil en stratégie digitale pour PME en phase de transformation numérique.',
+      specifics: 'Approche sur mesure, accompagnement personnalisé, expertise en cybersécurité',
+      editorialGuidelines: 'Ton confiant et expert, utiliser des exemples concrets, éviter les anglicismes.'
+    },
+    { 
+      id: '3', 
+      name: 'Tech Solutions', 
+      businessContext: 'Startup proposant des solutions SaaS pour l\'automatisation des tâches administratives.',
+      specifics: 'Interface intuitive, intégration avec les outils existants, économie de temps prouvée',
+      editorialGuidelines: 'Ton dynamique et innovant, mettre en avant les gains de productivité, utiliser un vocabulaire moderne.'
+    },
   ];
 };
 

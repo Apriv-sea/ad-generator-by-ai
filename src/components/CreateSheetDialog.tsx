@@ -26,6 +26,7 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
   const [isCreating, setIsCreating] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
+  const [selectedClientData, setSelectedClientData] = useState<Client | null>(null);
   const [isLoadingClients, setIsLoadingClients] = useState(false);
 
   useEffect(() => {
@@ -41,6 +42,7 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
       setClients(clientsList);
       if (clientsList.length > 0) {
         setSelectedClient(clientsList[0].id);
+        setSelectedClientData(clientsList[0]);
         
         // Mettre à jour le nom de la feuille en fonction du client sélectionné
         const selectedClientName = clientsList[0].name;
@@ -54,8 +56,11 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
     }
   };
 
-  const handleClientSelect = (clientId: string) => {
+  const handleClientSelect = (clientId: string, client?: Client) => {
     setSelectedClient(clientId);
+    if (client) {
+      setSelectedClientData(client);
+    }
     
     // Mettre à jour le nom de la feuille en fonction du client sélectionné
     const selectedClientName = clients.find(client => client.id === clientId)?.name;
@@ -77,7 +82,8 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
 
     setIsCreating(true);
     try {
-      const newSheet = await googleSheetsService.createSheet(sheetName);
+      // Passer les informations du client pour les stocker dans la feuille
+      const newSheet = await googleSheetsService.createSheet(sheetName, selectedClientData);
       if (newSheet) {
         toast.success(`Feuille "${sheetName}" créée avec succès!`);
         setIsOpen(false);
@@ -86,7 +92,9 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
         const firstClient = clients.length > 0 ? clients[0].id : null;
         setSelectedClient(firstClient);
         if (firstClient) {
-          const clientName = clients.find(client => client.id === firstClient)?.name;
+          const client = clients.find(client => client.id === firstClient);
+          setSelectedClientData(client || null);
+          const clientName = client?.name;
           setSheetName(`Campagne - ${clientName}`);
         } else {
           setSheetName("Campagne publicitaire");
