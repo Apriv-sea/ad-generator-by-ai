@@ -1,39 +1,28 @@
 
+// src/components/settings/ApiKeyForm.tsx
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserId } from "@/services/utils/supabaseUtils";
-import { ApiKey } from "@/types/supabase-extensions";
 
 interface ApiKeyFormProps {
-  service: string;
-  onApiKeySaved: () => void;
-  apiKey?: ApiKey;
-  readOnly?: boolean;
+  onSave: () => void;
 }
 
-const ApiKeyForm: React.FC<ApiKeyFormProps> = ({ 
-  service,
-  onApiKeySaved,
-  apiKey,
-  readOnly = false
-}) => {
-  const [key, setKey] = useState(apiKey?.api_key || "");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
+const ApiKeyForm: React.FC<ApiKeyFormProps> = ({ onSave }) => {
+  const [service, setService] = useState<string>("openai");
+  const [apiKey, setApiKey] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   
-  const displayedKey = isVisible ? key : key.replace(/./g, "•");
-  
-  const isUpdateMode = !!apiKey;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!key.trim()) {
-      toast.error("Veuillez entrer une clé API");
+    if (!service || !apiKey) {
+      toast.error("Veuillez remplir tous les champs");
       return;
     }
     
@@ -42,132 +31,94 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
     try {
       const userId = await getCurrentUserId();
       if (!userId) {
-        toast.error("Vous devez être connecté pour enregistrer une clé API");
+        toast.error("Vous devez être connecté pour effectuer cette action");
         return;
       }
       
-      // Check if we already have a key for this service
-      const { data: existingKeys } = await supabase
-        .from('api_keys')
-        .select('*')
+      // Vérifier si une clé existe déjà pour ce service
+      // Utilisation d'assertion de type pour interagir avec Supabase
+      const { data: existingKey, error: fetchError } = await supabase
+        .from('api_keys' as any)
+        .select('id')
         .eq('user_id', userId)
-        .eq('service', service);
+        .eq('service', service)
+        .single();
       
-      if (!isUpdateMode && existingKeys && existingKeys.length > 0) {
-        // Update existing key
-        await supabase
-          .from('api_keys')
-          .update({ api_key: key })
-          .eq('user_id', userId)
-          .eq('service', service);
-      } else if (isUpdateMode) {
-        // Update specific key
-        await supabase
-          .from('api_keys')
-          .update({ api_key: key })
-          .eq('id', apiKey.id);
-      } else {
-        // Insert new key
-        await supabase
-          .from('api_keys')
-          .insert({
-            service: service,
-            api_key: key,
-            user_id: userId
-          });
+      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = "no rows returned" (c'est OK si aucune clé n'existe)
+        throw fetchError;
       }
       
-      toast.success(`Clé API ${isUpdateMode ? 'mise à jour' : 'enregistrée'} avec succès`);
-      onApiKeySaved();
+      if (existingKey) {
+        // Mettre à jour la clé existante
+        // Utilisation d'assertion de type pour interagir avec Supabase
+        const { error: updateError } = await supabase
+          .from('api_keys' as any)
+          .update({ api_key: apiKey })
+          .eq('id', existingKey.id)
+          .eq('user_id', userId);
+          
+        if (updateError) throw updateError;
+        
+        toast.success(`Clé API pour ${service} mise à jour avec succès`);
+      } else {
+        // Insérer une nouvelle clé
+        // Utilisation d'assertion de type pour interagir avec Supabase
+        const { error: insertError } = await supabase
+          .from('api_keys' as any)
+          .insert({ service, api_key: apiKey, user_id: userId });
+          
+        if (insertError) throw insertError;
+        
+        toast.success(`Clé API pour ${service} ajoutée avec succès`);
+      }
+      
+      // Réinitialiser le formulaire
+      setApiKey("");
+      onSave();
     } catch (error) {
       console.error("Erreur lors de l'enregistrement de la clé API:", error);
-      toast.error("Une erreur est survenue lors de l'enregistrement de la clé API");
+      toast.error("Erreur lors de l'enregistrement de la clé API");
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  // Add placeholder and help text based on service
-  const getServiceInfo = () => {
-    switch (service) {
-      case 'openai':
-        return {
-          placeholder: "sk-...",
-          helpText: "Commençant par 'sk-'. Trouvez votre clé sur",
-          helpLink: "https://platform.openai.com/account/api-keys"
-        };
-      case 'anthropic':
-        return {
-          placeholder: "sk_ant-...",
-          helpText: "Commençant par 'sk_ant-'. Trouvez votre clé sur",
-          helpLink: "https://console.anthropic.com/settings/keys"
-        };
-      case 'google':
-        return {
-          placeholder: "AI...",
-          helpText: "Trouvez votre clé sur",
-          helpLink: "https://aistudio.google.com/app/apikey"
-        };
-      default:
-        return {
-          placeholder: "Entrez votre clé API",
-          helpText: "",
-          helpLink: ""
-        };
-    }
-  };
-
-  const { placeholder, helpText, helpLink } = getServiceInfo();
   
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid gap-2">
-        <Label htmlFor={`${service}-key`}>
-          {readOnly ? "Clé API" : `Entrez votre clé API ${isUpdateMode ? '(mise à jour)' : ''}`}
-        </Label>
-        <div className="flex gap-2">
-          <div className="relative flex-grow">
-            <Input
-              id={`${service}-key`}
-              value={displayedKey}
-              onChange={(e) => setKey(e.target.value)}
-              type="text"
-              placeholder={placeholder}
-              disabled={isSubmitting || readOnly}
-            />
-            {key && (
-              <Button 
-                type="button"
-                variant="ghost" 
-                size="sm" 
-                className="absolute right-1 top-1/2 transform -translate-y-1/2"
-                onClick={() => setIsVisible(!isVisible)}
-              >
-                {isVisible ? "Masquer" : "Afficher"}
-              </Button>
-            )}
-          </div>
-          {!readOnly && (
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Enregistrement..." : isUpdateMode ? "Mettre à jour" : "Enregistrer"}
-            </Button>
-          )}
-        </div>
-        
-        {helpText && helpLink && (
-          <p className="text-sm text-muted-foreground mt-1">
-            {helpText}{" "}
-            <a 
-              href={helpLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              {helpLink}
-            </a>
-          </p>
-        )}
+      <div className="space-y-2">
+        <Label htmlFor="service">Service</Label>
+        <Select value={service} onValueChange={setService}>
+          <SelectTrigger id="service">
+            <SelectValue placeholder="Sélectionner un service" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="openai">OpenAI (GPT-4, GPT-3.5)</SelectItem>
+            <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+            <SelectItem value="gemini">Google Gemini</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          Sélectionnez le service d'IA pour lequel vous souhaitez configurer une clé API
+        </p>
       </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="api-key">Clé API</Label>
+        <Input 
+          id="api-key" 
+          value={apiKey} 
+          onChange={(e) => setApiKey(e.target.value)} 
+          placeholder="sk-..." 
+          className="font-mono"
+        />
+        <p className="text-xs text-muted-foreground">
+          Votre clé API est stockée de manière sécurisée et n'est utilisée que pour les requêtes à l'API
+        </p>
+      </div>
+      
+      <Button type="submit" className="w-full" disabled={isSubmitting}>
+        {isSubmitting ? "Enregistrement..." : "Enregistrer la clé API"}
+      </Button>
     </form>
   );
 };

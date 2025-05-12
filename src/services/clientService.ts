@@ -1,19 +1,14 @@
 
-import { Client } from "./types/client";
-import { addClient, updateClient, deleteClient } from "./clientMutation";
+// Update src/services/clientService.ts pour corriger les imports
 import { getClients, getClientById, getClientInfo } from "./clientQuery";
+import { Client } from "./types/client";
 
-// Re-export getClients for backward compatibility
-export { getClients };
-
-// Export the unified client service
-export const clientService = {
-  // Query operations
+// Export du module modifié
+export {
+  getClients,
   getClientById,
   getClientInfo,
-
-  // Mutation operations
-  addClient,
-  updateClient,
-  deleteClient
+  // addClient est maintenant importé depuis clientMutation
+  // updateClient est maintenant importé depuis clientMutation
+  // deleteClient est maintenant importé depuis clientMutation
 };

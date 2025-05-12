@@ -1,5 +1,5 @@
 
-// Settings.tsx with corrected imports and proper type assertions
+// Settings.tsx avec des corrections d'imports et assertions de type appropriées
 import React, { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,8 +41,9 @@ const Settings = () => {
         return;
       }
 
+      // Utilisation d'assertions de type pour travailler avec Supabase
       const { data, error } = await supabase
-        .from('api_keys')
+        .from('api_keys' as any)
         .select('*')
         .eq('user_id', userId);
 
