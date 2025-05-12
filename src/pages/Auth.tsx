@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +10,7 @@ import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
 import AuthLoading from "@/components/auth/AuthLoading";
 import AuthError from "@/components/auth/AuthError";
 import AuthDebugDialog from "@/components/AuthDebugDialog";
+import { Button } from "@/components/ui/button";
 
 const Auth = () => {
   const location = useLocation();
