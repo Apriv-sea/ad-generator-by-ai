@@ -11,9 +11,9 @@ export const getClients = async (): Promise<ClientResponse> => {
     const userId = await getCurrentUserId();
     if (!userId) return { data: null, error: new Error("User not authenticated") };
     
-    // Utilisation d'assertions de type pour interagir avec Supabase
+    // Type-safe approach for Supabase client
     const { data, error } = await supabase
-      .from('clients' as any)
+      .from('clients')
       .select('*')
       .eq('user_id', userId)
       .order('name', { ascending: true });
@@ -33,9 +33,9 @@ export const getClientById = async (clientId: string): Promise<SingleClientRespo
     const userId = await getCurrentUserId();
     if (!userId) return { data: null, error: new Error("User not authenticated") };
     
-    // Utilisation d'assertions de type pour interagir avec Supabase
+    // Type-safe approach for Supabase client
     const { data, error } = await supabase
-      .from('clients' as any)
+      .from('clients')
       .select('*')
       .eq('id', clientId)
       .eq('user_id', userId)

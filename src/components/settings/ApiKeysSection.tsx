@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,9 +43,8 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({ apiKeys, isLoading, onA
       }
       
       // Supprimer la clé API
-      // Utilisation d'assertion de type pour interagir avec Supabase
       const { error } = await supabase
-        .from('api_keys' as any)
+        .from('api_keys')
         .delete()
         .match({ id: keyId, user_id: userId });
       

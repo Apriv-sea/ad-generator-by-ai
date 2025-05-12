@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Client } from "@/services/types";
-import { getClients, clientService } from "@/services/clientService";
+import { getClients } from "@/services/clientQuery";
+import { addClient, updateClient, deleteClient } from "@/services/clientService";
 import ClientsList from "@/components/clients/ClientsList";
 import AddClientDialog from "@/components/clients/AddClientDialog";
 import EditClientDialog from "@/components/clients/EditClientDialog";
@@ -68,7 +69,7 @@ const Clients = () => {
     }
     
     try {
-      const clientId = await clientService.addClient(newClient);
+      const clientId = await addClient(newClient);
       if (clientId) {
         // Create a new client object with the generated ID
         const addedClient: Client = {
@@ -105,7 +106,7 @@ const Clients = () => {
       // Extract necessary fields for update
       const { id } = editingClient;
       
-      const success = await clientService.updateClient(id, editingClient);
+      const success = await updateClient(id, editingClient);
       if (success) {
         setClients(clients.map(c => c.id === editingClient.id ? editingClient : c));
         setIsEditDialogOpen(false);
@@ -120,7 +121,7 @@ const Clients = () => {
   // Function to delete a client
   const handleDeleteClient = async (clientId: string, name: string) => {
     try {
-      const success = await clientService.deleteClient(clientId);
+      const success = await deleteClient(clientId);
       if (success) {
         setClients(clients.filter(c => c.id !== clientId));
         toast.success("Client supprimé avec succès");

@@ -1,5 +1,4 @@
 
-// Settings.tsx avec des corrections d'imports et assertions de type appropriées
 import React, { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,9 +40,8 @@ const Settings = () => {
         return;
       }
 
-      // Utilisation d'assertions de type pour travailler avec Supabase
       const { data, error } = await supabase
-        .from('api_keys' as any)
+        .from('api_keys')
         .select('*')
         .eq('user_id', userId);
 
@@ -51,7 +49,7 @@ const Settings = () => {
         console.error("Erreur lors du chargement des clés API:", error);
       } else if (data) {
         // Map the API keys to our expected format
-        const formattedKeys = data.map((key: any) => ({
+        const formattedKeys = data.map((key) => ({
           id: key.id,
           user_id: key.user_id,
           service: key.service,

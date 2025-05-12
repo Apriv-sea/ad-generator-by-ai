@@ -11,9 +11,8 @@ export const addClient = async (client: Partial<Client>): Promise<string | null>
     const userId = await getCurrentUserId();
     if (!userId) return null;
     
-    // Utilisation d'assertion de type pour interagir avec Supabase
     const { data, error } = await supabase
-      .from('clients' as any)
+      .from('clients')
       .insert({
         name: client.name || '',
         business_context: client.businessContext || '',
@@ -23,13 +22,12 @@ export const addClient = async (client: Partial<Client>): Promise<string | null>
       })
       .select();
     
-    if (error || !data || !data[0]) {
+    if (error || !data || data.length === 0) {
       console.error("Error creating client:", error);
       return null;
     }
     
-    // Utilisation d'assertion de type pour accéder à l'id
-    return (data[0] as any).id;
+    return data[0].id;
   } catch (error) {
     console.error("Exception lors de la création du client:", error);
     return null;
@@ -47,9 +45,8 @@ export const updateClient = async (
     const userId = await getCurrentUserId();
     if (!userId) return false;
     
-    // Utilisation d'assertion de type pour interagir avec Supabase
     const { data: clientCheck } = await supabase
-      .from('clients' as any)
+      .from('clients')
       .select('id')
       .eq('id', clientId)
       .eq('user_id', userId)
@@ -59,16 +56,15 @@ export const updateClient = async (
       return false;
     }
     
-    // Utilisation d'assertion de type pour interagir avec Supabase
     const { error } = await supabase
-      .from('clients' as any)
+      .from('clients')
       .update({
         name: updates.name,
         business_context: updates.businessContext,
         specifics: updates.specifics,
         editorial_guidelines: updates.editorialGuidelines,
         updated_at: new Date()
-      } as any)
+      })
       .eq('id', clientId)
       .eq('user_id', userId);
     
@@ -82,14 +78,13 @@ export const updateClient = async (
 /**
  * Delete a client
  */
-export const deleteClient = async (clientId: string, name?: string): Promise<boolean> => {
+export const deleteClient = async (clientId: string): Promise<boolean> => {
   try {
     const userId = await getCurrentUserId();
     if (!userId) return false;
     
-    // Utilisation d'assertion de type pour interagir avec Supabase
     const { data: clientCheck } = await supabase
-      .from('clients' as any)
+      .from('clients')
       .select('id')
       .eq('id', clientId)
       .eq('user_id', userId)
@@ -99,9 +94,8 @@ export const deleteClient = async (clientId: string, name?: string): Promise<boo
       return false;
     }
     
-    // Utilisation d'assertion de type pour interagir avec Supabase
     const { error } = await supabase
-      .from('clients' as any)
+      .from('clients')
       .delete()
       .eq('id', clientId)
       .eq('user_id', userId);

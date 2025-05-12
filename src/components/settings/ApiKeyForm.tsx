@@ -1,5 +1,4 @@
 
-// src/components/settings/ApiKeyForm.tsx
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -36,9 +35,8 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({ onSave }) => {
       }
       
       // Vérifier si une clé existe déjà pour ce service
-      // Utilisation d'assertion de type pour interagir avec Supabase
       const { data: existingKey, error: fetchError } = await supabase
-        .from('api_keys' as any)
+        .from('api_keys')
         .select('id')
         .eq('user_id', userId)
         .eq('service', service)
@@ -50,9 +48,8 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({ onSave }) => {
       
       if (existingKey) {
         // Mettre à jour la clé existante
-        // Utilisation d'assertion de type pour interagir avec Supabase
         const { error: updateError } = await supabase
-          .from('api_keys' as any)
+          .from('api_keys')
           .update({ api_key: apiKey })
           .eq('id', existingKey.id)
           .eq('user_id', userId);
@@ -62,9 +59,8 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({ onSave }) => {
         toast.success(`Clé API pour ${service} mise à jour avec succès`);
       } else {
         // Insérer une nouvelle clé
-        // Utilisation d'assertion de type pour interagir avec Supabase
         const { error: insertError } = await supabase
-          .from('api_keys' as any)
+          .from('api_keys')
           .insert({ service, api_key: apiKey, user_id: userId });
           
         if (insertError) throw insertError;
