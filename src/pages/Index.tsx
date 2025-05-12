@@ -22,6 +22,9 @@ const Index = () => {
           <p className="mb-4">
             L'Ad Content Generator vous permet de générer automatiquement des titres et descriptions publicitaires optimisés pour vos campagnes SEA, en se basant sur les informations de vos clients et les mots-clés pertinents.
           </p>
+          <p className="mb-4">
+            <strong>Un point fort majeur :</strong> Vous avez la liberté d'utiliser le modèle de langage (LLM) de votre choix (OpenAI, Anthropic, Google Gemini). Pour cela, vous devrez vous munir au préalable des clés API correspondantes que vous pourrez configurer dans les paramètres. Cette flexibilité vous permet de générer des annonces ultra-pertinentes pour votre compte Google Ads selon vos préférences et besoins spécifiques.
+          </p>
           <p>
             <strong>Pourquoi nous demandons l'accès à votre compte Google :</strong> L'outil s'intègre directement avec Google Drive et Google Sheets pour récupérer vos données client et y écrire les annonces générées. Toutes les opérations sont transparentes et ne concernent que les documents que vous autorisez explicitement.
           </p>
