@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash, Save, FilePlus, PlusCircle, Pencil, Info } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Plus, Save, FilePlus } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, Campaign, AdGroup, Client, googleSheetsService } from "@/services/googleSheetsService";
+import ClientInfoCard from "./campaign/ClientInfoCard";
+import CampaignForm from "./campaign/CampaignForm";
+import ModelSelector from "./campaign/ModelSelector";
+import LoadingState from "./campaign/LoadingState";
 
 interface CampaignManagerProps {
   sheet: Sheet | null;
@@ -20,7 +21,6 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>("gpt-4");
-  const [showClientInfo, setShowClientInfo] = useState(false);
 
   useEffect(() => {
     if (sheet) {
@@ -338,23 +338,8 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
     }
   };
 
-  const toggleClientInfo = () => {
-    setShowClientInfo(!showClientInfo);
-  };
-
   if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex justify-center py-8">
-            <div className="text-center">
-              <p className="mb-2">Chargement des données de la campagne...</p>
-              <div className="animate-spin h-8 w-8 border-4 border-primary rounded-full border-t-transparent mx-auto"></div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <LoadingState />;
   }
 
   if (!sheet) {
@@ -373,198 +358,42 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Informations du client</CardTitle>
-            <CardDescription>
-              Contexte client utilisé pour la génération de contenu
-            </CardDescription>
-          </div>
-          <Button variant="outline" size="sm" onClick={toggleClientInfo}>
-            <Info className="h-4 w-4 mr-2" />
-            {showClientInfo ? "Masquer les détails" : "Voir les détails"}
-          </Button>
-        </CardHeader>
-        {showClientInfo && (
-          <CardContent>
-            {clientInfo ? (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium">Client</h3>
-                  <p className="text-base">{clientInfo.name}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium">Contexte métier</h3>
-                  <p className="text-sm text-muted-foreground">{clientInfo.businessContext || "Non défini"}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium">Spécificités</h3>
-                  <p className="text-sm text-muted-foreground">{clientInfo.specifics || "Non défini"}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium">Charte éditoriale</h3>
-                  <p className="text-sm text-muted-foreground">{clientInfo.editorialGuidelines || "Non défini"}</p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Aucune information client disponible</p>
-            )}
-          </CardContent>
-        )}
-      </Card>
+      <ClientInfoCard clientInfo={clientInfo} />
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Campagnes et Groupes d'Annonces</CardTitle>
-            <CardDescription>
-              Définissez les campagnes, groupes d'annonces et mots-clés pour la génération
-            </CardDescription>
+        <CardContent className="pt-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Campagnes et Groupes d'Annonces</h2>
+            <Button onClick={addCampaign} size="sm">
+              <Plus className="h-4 w-4 mr-1" />
+              Ajouter une Campagne
+            </Button>
           </div>
-          <Button onClick={addCampaign} size="sm">
-            <Plus className="h-4 w-4 mr-1" />
-            Ajouter une Campagne
-          </Button>
-        </CardHeader>
-        <CardContent>
+          
           <div className="space-y-6">
             {campaigns.map((campaign, campaignIndex) => (
-              <div 
+              <CampaignForm
                 key={`campaign-${campaignIndex}`}
-                className="border rounded-lg p-4 space-y-4"
-              >
-                <div className="flex flex-row justify-between items-start">
-                  <div className="flex-grow space-y-3">
-                    <div>
-                      <Label htmlFor={`campaign-name-${campaignIndex}`}>Nom de la Campagne</Label>
-                      <Input
-                        id={`campaign-name-${campaignIndex}`}
-                        value={campaign.name}
-                        onChange={(e) => updateCampaignName(campaignIndex, e.target.value)}
-                        placeholder="Nom de la campagne"
-                        className="mt-1"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor={`campaign-context-${campaignIndex}`}>Contexte de la Campagne</Label>
-                      <Textarea
-                        id={`campaign-context-${campaignIndex}`}
-                        value={campaign.context}
-                        onChange={(e) => updateCampaignContext(campaignIndex, e.target.value)}
-                        placeholder="Objectif, positionnement et public cible de cette campagne..."
-                        className="mt-1 min-h-20"
-                      />
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => removeCampaign(campaignIndex)}
-                    className="ml-2"
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                <div className="pl-3 border-l-2 space-y-4">
-                  {campaign.adGroups.map((adGroup, adGroupIndex) => (
-                    <div 
-                      key={`adgroup-${campaignIndex}-${adGroupIndex}`}
-                      className="border border-dashed rounded-md p-3 space-y-3"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-grow">
-                          <Label htmlFor={`adgroup-name-${campaignIndex}-${adGroupIndex}`}>
-                            Nom du Groupe d'Annonces
-                          </Label>
-                          <Input
-                            id={`adgroup-name-${campaignIndex}-${adGroupIndex}`}
-                            value={adGroup.name}
-                            onChange={(e) => updateAdGroupName(campaignIndex, adGroupIndex, e.target.value)}
-                            placeholder="Nom du groupe d'annonces"
-                            className="mt-1"
-                          />
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => removeAdGroup(campaignIndex, adGroupIndex)}
-                          className="ml-2"
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor={`adgroup-context-${campaignIndex}-${adGroupIndex}`}>
-                          Contexte du Groupe d'Annonces
-                        </Label>
-                        <Textarea
-                          id={`adgroup-context-${campaignIndex}-${adGroupIndex}`}
-                          value={adGroup.context}
-                          onChange={(e) => updateAdGroupContext(campaignIndex, adGroupIndex, e.target.value)}
-                          placeholder="Spécificités de ce groupe, offres particulières..."
-                          className="mt-1 min-h-16"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label>Top 3 mots-clés</Label>
-                        <div className="grid grid-cols-3 gap-2 mt-1">
-                          {[0, 1, 2].map((keywordIndex) => (
-                            <Input
-                              key={`keyword-${campaignIndex}-${adGroupIndex}-${keywordIndex}`}
-                              value={adGroup.keywords[keywordIndex] || ""}
-                              onChange={(e) => updateKeyword(campaignIndex, adGroupIndex, keywordIndex, e.target.value)}
-                              placeholder={`Mot-clé ${keywordIndex + 1}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => addAdGroup(campaignIndex)}
-                    className="w-full"
-                  >
-                    <PlusCircle className="h-4 w-4 mr-1" />
-                    Ajouter un Groupe d'Annonces
-                  </Button>
-                </div>
-              </div>
+                campaign={campaign}
+                onCampaignNameChange={(name) => updateCampaignName(campaignIndex, name)}
+                onCampaignContextChange={(context) => updateCampaignContext(campaignIndex, context)}
+                onAdGroupNameChange={(adGroupIndex, name) => updateAdGroupName(campaignIndex, adGroupIndex, name)}
+                onAdGroupContextChange={(adGroupIndex, context) => updateAdGroupContext(campaignIndex, adGroupIndex, context)}
+                onKeywordChange={(adGroupIndex, keywordIndex, value) => updateKeyword(campaignIndex, adGroupIndex, keywordIndex, value)}
+                onAddAdGroup={() => addAdGroup(campaignIndex)}
+                onRemoveAdGroup={(adGroupIndex) => removeAdGroup(campaignIndex, adGroupIndex)}
+                onRemoveCampaign={() => removeCampaign(campaignIndex)}
+                removable={campaigns.length > 1}
+              />
             ))}
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Modèle d'IA</CardTitle>
-          <CardDescription>
-            Sélectionnez le modèle à utiliser pour la génération de contenu
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {["gpt-4", "gpt-3.5-turbo", "gemini-pro"].map((model) => (
-              <Button
-                key={model}
-                variant={selectedModel === model ? "default" : "outline"}
-                onClick={() => setSelectedModel(model)}
-                className="justify-start"
-              >
-                {model}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <ModelSelector 
+        selectedModel={selectedModel} 
+        onModelSelect={setSelectedModel} 
+      />
 
       <div className="flex justify-end space-x-4">
         <Button
