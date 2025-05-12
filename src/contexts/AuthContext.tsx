@@ -214,6 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const googleLogin = async () => {
     try {
+      console.log("Initiating Google OAuth login");
       // Configuration pour Google OAuth via Supabase
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -224,6 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       
       if (error) throw error;
+      console.log("Google OAuth initiation successful");
     } catch (error: any) {
       console.error("Erreur lors de la connexion avec Google:", error);
       toast.error("Erreur lors de la connexion à Google. Veuillez réessayer.");
