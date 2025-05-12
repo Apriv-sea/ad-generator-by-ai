@@ -13,8 +13,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { getClients, googleSheetsService, Client } from "@/services/googleSheetsService";
+import { googleSheetsService, Client } from "@/services/googleSheetsService";
 import ClientSelector from "./ClientSelector";
+import { getClients } from "@/services/clientQuery";
 
 interface CreateSheetDialogProps {
   onSheetCreated: () => void;
@@ -38,15 +39,17 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
   const loadClients = async () => {
     setIsLoadingClients(true);
     try {
-      const clientsList = await getClients();
-      setClients(clientsList);
-      if (clientsList.length > 0) {
-        setSelectedClient(clientsList[0].id);
-        setSelectedClientData(clientsList[0]);
-        
-        // Mettre à jour le nom de la feuille en fonction du client sélectionné
-        const selectedClientName = clientsList[0].name;
-        setSheetName(`Campagne - ${selectedClientName}`);
+      const response = await getClients();
+      if (response.data) {
+        setClients(response.data as unknown as Client[]);
+        if (response.data.length > 0) {
+          setSelectedClient(response.data[0].id);
+          setSelectedClientData(response.data[0] as unknown as Client);
+          
+          // Mettre à jour le nom de la feuille en fonction du client sélectionné
+          const selectedClientName = response.data[0].name;
+          setSheetName(`Campagne - ${selectedClientName}`);
+        }
       }
     } catch (error) {
       console.error("Erreur lors du chargement des clients:", error);

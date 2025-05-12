@@ -12,7 +12,7 @@ export const getClients = async (): Promise<ClientResponse> => {
     if (!userId) return { data: null, error: new Error("User not authenticated") };
     
     const { data, error } = await supabase
-      .from('clients')
+      .from('clients' as any)
       .select('*')
       .eq('user_id', userId)
       .order('name', { ascending: true });
@@ -33,7 +33,7 @@ export const getClientById = async (clientId: string): Promise<SingleClientRespo
     if (!userId) return { data: null, error: new Error("User not authenticated") };
     
     const { data, error } = await supabase
-      .from('clients')
+      .from('clients' as any)
       .select('*')
       .eq('id', clientId)
       .eq('user_id', userId)

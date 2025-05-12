@@ -38,7 +38,7 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
       
       // Check if key already exists for this service
       const { data: existingKey, error: fetchError } = await supabase
-        .from('api_keys')
+        .from('api_keys' as any)
         .select('*')
         .eq('service', service)
         .eq('user_id', userId);
@@ -55,19 +55,19 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
       if (existingKey && existingKey.length > 0) {
         // Update existing key
         result = await supabase
-          .from('api_keys')
+          .from('api_keys' as any)
           .update({ api_key: apiKey })
           .eq('service', service)
           .eq('user_id', userId);
       } else {
         // Insert new key
         result = await supabase
-          .from('api_keys')
+          .from('api_keys' as any)
           .insert({
             service: service,
             api_key: apiKey,
             user_id: userId
-          });
+          } as any);
       }
       
       if (result.error) {

@@ -44,7 +44,7 @@ const Settings = () => {
   const loadApiKeys = async () => {
     try {
       const { data, error } = await supabase
-        .from('api_keys')
+        .from('api_keys' as any)
         .select('service, api_key');
         
       if (error) {
@@ -53,7 +53,7 @@ const Settings = () => {
       }
       
       if (data) {
-        data.forEach((item) => {
+        data.forEach((item: any) => {
           switch (item.service) {
             case 'openai':
               setOpenaiKey(item.api_key);

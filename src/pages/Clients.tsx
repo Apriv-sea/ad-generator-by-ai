@@ -53,8 +53,10 @@ const Clients = () => {
   const loadClients = async () => {
     setIsLoading(true);
     try {
-      const loadedClients = await getClients();
-      setClients(loadedClients);
+      const response = await getClients();
+      if (response.data) {
+        setClients(response.data as unknown as Client[]);
+      }
     } catch (error) {
       console.error("Erreur lors du chargement des clients:", error);
       toast.error("Impossible de charger les clients");
@@ -71,8 +73,16 @@ const Clients = () => {
     }
     
     try {
-      const addedClient = await clientService.addClient(newClient);
-      if (addedClient) {
+      const clientId = await clientService.addClient(newClient);
+      if (clientId) {
+        // Créer un nouvel objet client avec l'ID généré
+        const addedClient: Client = {
+          id: clientId,
+          name: newClient.name,
+          businessContext: newClient.businessContext,
+          specifics: newClient.specifics,
+          editorialGuidelines: newClient.editorialGuidelines,
+        };
         setClients([...clients, addedClient]);
         setNewClient({
           name: "",
@@ -97,7 +107,11 @@ const Clients = () => {
     }
     
     try {
-      const success = await clientService.updateClient(editingClient);
+      // Extraire les champs nécessaires pour la mise à jour
+      const { id, name, businessContext, specifics, editorialGuidelines } = editingClient;
+      const updates = { name, businessContext, specifics, editorialGuidelines };
+      
+      const success = await clientService.updateClient(id, updates);
       if (success) {
         setClients(clients.map(c => c.id === editingClient.id ? editingClient : c));
         setIsEditDialogOpen(false);
@@ -110,9 +124,9 @@ const Clients = () => {
   };
   
   // Fonction pour supprimer un client
-  const handleDeleteClient = async (clientId: string) => {
+  const handleDeleteClient = async (clientId: string, name: string) => {
     try {
-      const success = await clientService.deleteClient(clientId);
+      const success = await clientService.deleteClient(clientId, name);
       if (success) {
         setClients(clients.filter(c => c.id !== clientId));
         toast.success("Client supprimé avec succès");

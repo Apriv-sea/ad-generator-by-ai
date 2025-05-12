@@ -15,7 +15,7 @@ export const addClient = async (
     if (!userId) return null;
     
     const { data, error } = await supabase
-      .from('clients')
+      .from('clients' as any)
       .insert({
         name: client.name,
         business_context: client.businessContext || "",
@@ -32,7 +32,7 @@ export const addClient = async (
     }
     
     toast.success(`Client ${client.name} ajouté avec succès`);
-    return data.id;
+    return data?.id || null;
   } catch (error) {
     console.error("Exception lors de l'ajout du client:", error);
     toast.error("Une erreur est survenue lors de l'ajout du client");
@@ -49,7 +49,7 @@ export const updateClient = async (
 ): Promise<boolean> => {
   try {
     const { error } = await supabase
-      .from('clients')
+      .from('clients' as any)
       .update({
         name: updates.name,
         business_context: updates.businessContext || "",
@@ -79,7 +79,7 @@ export const updateClient = async (
 export const deleteClient = async (id: string, name: string): Promise<boolean> => {
   try {
     const { error } = await supabase
-      .from('clients')
+      .from('clients' as any)
       .delete()
       .eq('id', id);
     
