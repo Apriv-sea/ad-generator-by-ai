@@ -41,9 +41,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const googleAuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
     const redirectUri = window.location.origin + "/auth/callback";
     
-    // Il vous faudra obtenir un client_id en créant un projet dans la console Google Cloud
-    // https://console.developers.google.com/
-    const clientId = "VOTRE_CLIENT_ID";
+    // Client ID fourni par l'utilisateur
+    const clientId = "135447600769-22vd8jk726t5f8gp58robppv0v8eeme7.apps.googleusercontent.com";
     
     const scope = [
       "https://www.googleapis.com/auth/userinfo.email",
