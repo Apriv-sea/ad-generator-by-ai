@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ReloadIcon } from "@radix-ui/react-icons";
+import { Loader } from "lucide-react";
 
 const Auth = () => {
   const location = useLocation();
@@ -154,7 +154,7 @@ const Auth = () => {
             
             {processingAuth || isLoading ? (
               <div className="flex flex-col items-center justify-center py-8">
-                <ReloadIcon className="h-8 w-8 animate-spin text-primary mb-4" />
+                <Loader className="h-8 w-8 animate-spin text-primary mb-4" />
                 <p>Traitement de l'authentification...</p>
               </div>
             ) : (
@@ -282,3 +282,4 @@ const Auth = () => {
 };
 
 export default Auth;
+
