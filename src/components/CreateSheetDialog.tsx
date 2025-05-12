@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { googleSheetsService } from "@/services/googleSheetsService";
+import { getClients, googleSheetsService, Client } from "@/services/googleSheetsService";
+import ClientSelector from "./ClientSelector";
 
 interface CreateSheetDialogProps {
   onSheetCreated: () => void;
@@ -23,10 +24,54 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
   const [isOpen, setIsOpen] = useState(false);
   const [sheetName, setSheetName] = useState("Campagne publicitaire");
   const [isCreating, setIsCreating] = useState(false);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClient, setSelectedClient] = useState<string | null>(null);
+  const [isLoadingClients, setIsLoadingClients] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadClients();
+    }
+  }, [isOpen]);
+
+  const loadClients = async () => {
+    setIsLoadingClients(true);
+    try {
+      const clientsList = await getClients();
+      setClients(clientsList);
+      if (clientsList.length > 0) {
+        setSelectedClient(clientsList[0].id);
+        
+        // Mettre à jour le nom de la feuille en fonction du client sélectionné
+        const selectedClientName = clientsList[0].name;
+        setSheetName(`Campagne - ${selectedClientName}`);
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des clients:", error);
+      toast.error("Impossible de charger la liste des clients.");
+    } finally {
+      setIsLoadingClients(false);
+    }
+  };
+
+  const handleClientSelect = (clientId: string) => {
+    setSelectedClient(clientId);
+    
+    // Mettre à jour le nom de la feuille en fonction du client sélectionné
+    const selectedClientName = clients.find(client => client.id === clientId)?.name;
+    if (selectedClientName) {
+      setSheetName(`Campagne - ${selectedClientName}`);
+    }
+  };
 
   const handleCreateSheet = async () => {
     if (!sheetName.trim()) {
       toast.error("Veuillez entrer un nom pour la feuille.");
+      return;
+    }
+
+    if (!selectedClient) {
+      toast.error("Veuillez sélectionner un client.");
       return;
     }
 
@@ -36,7 +81,17 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
       if (newSheet) {
         toast.success(`Feuille "${sheetName}" créée avec succès!`);
         setIsOpen(false);
-        setSheetName("Campagne publicitaire");
+        
+        // Réinitialiser le formulaire
+        const firstClient = clients.length > 0 ? clients[0].id : null;
+        setSelectedClient(firstClient);
+        if (firstClient) {
+          const clientName = clients.find(client => client.id === firstClient)?.name;
+          setSheetName(`Campagne - ${clientName}`);
+        } else {
+          setSheetName("Campagne publicitaire");
+        }
+        
         onSheetCreated();
       }
     } catch (error) {
@@ -56,10 +111,23 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
         <DialogHeader>
           <DialogTitle>Créer une nouvelle feuille Google Sheets</DialogTitle>
           <DialogDescription>
-            Entrez un nom pour votre nouvelle feuille de calcul
+            Sélectionnez un client et personnalisez le nom de la feuille
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="client" className="text-right">
+              Client
+            </Label>
+            <div className="col-span-3">
+              <ClientSelector
+                clients={clients}
+                selectedClient={selectedClient}
+                onClientSelect={handleClientSelect}
+                isLoading={isLoadingClients}
+              />
+            </div>
+          </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
               Nom
@@ -82,7 +150,7 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
           </Button>
           <Button 
             onClick={handleCreateSheet}
-            disabled={isCreating}
+            disabled={isCreating || !selectedClient}
           >
             {isCreating ? (
               <>
