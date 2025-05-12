@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,9 +10,10 @@ import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
   // Rediriger vers la page d'authentification si l'utilisateur n'est pas connecté
@@ -32,19 +34,47 @@ const Settings = () => {
   
   // Load saved API keys and connection status on component mount
   useEffect(() => {
-    const savedOpenaiKey = localStorage.getItem("openai_api_key");
-    const savedAnthropicKey = localStorage.getItem("anthropic_api_key");
-    const savedGoogleKey = localStorage.getItem("google_api_key");
+    if (isAuthenticated) {
+      loadApiKeys();
+    }
+    
     const googleSheetsAccess = localStorage.getItem("google_sheets_access") === "true";
     const googleDriveAccess = localStorage.getItem("google_drive_access") === "true";
     
-    if (savedOpenaiKey) setOpenaiKey(savedOpenaiKey);
-    if (savedAnthropicKey) setAnthropicKey(savedAnthropicKey);
-    if (savedGoogleKey) setGoogleKey(savedGoogleKey);
-    
     setSheetsAccess(googleSheetsAccess);
     setDriveAccess(googleDriveAccess);
-  }, []);
+  }, [isAuthenticated]);
+  
+  const loadApiKeys = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('api_keys')
+        .select('service, api_key');
+        
+      if (error) {
+        console.error("Erreur lors du chargement des clés API:", error);
+        return;
+      }
+      
+      if (data) {
+        data.forEach(item => {
+          switch (item.service) {
+            case 'openai':
+              setOpenaiKey(item.api_key);
+              break;
+            case 'anthropic':
+              setAnthropicKey(item.api_key);
+              break;
+            case 'google':
+              setGoogleKey(item.api_key);
+              break;
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Exception lors du chargement des clés API:", error);
+    }
+  };
   
   const toggleSheetsAccess = () => {
     const newValue = !sheetsAccess;
@@ -71,17 +101,56 @@ const Settings = () => {
   };
   
   // Save API Key functions
-  const saveApiKey = (service: string, key: string) => {
+  const saveApiKey = async (service: string, key: string) => {
     if (!key.trim()) {
       toast.error(`La clé API ${service} ne peut pas être vide.`);
       return;
     }
     
-    localStorage.setItem(`${service.toLowerCase()}_api_key`, key);
-    toast.success(`Clé API ${service} sauvegardée avec succès!`);
-    
-    // Simuler une validation de la clé
-    validateApiKey(service, key);
+    try {
+      // Vérifier si une clé existe déjà pour ce service
+      const { data, error: selectError } = await supabase
+        .from('api_keys')
+        .select('id')
+        .eq('service', service);
+        
+      if (selectError) {
+        console.error(`Erreur lors de la vérification de la clé API ${service}:`, selectError);
+        toast.error(`Erreur lors de la sauvegarde de la clé API ${service}`);
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        // Mise à jour d'une clé existante
+        const { error: updateError } = await supabase
+          .from('api_keys')
+          .update({ api_key: key })
+          .eq('service', service);
+          
+        if (updateError) {
+          console.error(`Erreur lors de la mise à jour de la clé API ${service}:`, updateError);
+          toast.error(`Erreur lors de la sauvegarde de la clé API ${service}`);
+          return;
+        }
+      } else {
+        // Insertion d'une nouvelle clé
+        const { error: insertError } = await supabase
+          .from('api_keys')
+          .insert({ service, api_key: key });
+          
+        if (insertError) {
+          console.error(`Erreur lors de l'ajout de la clé API ${service}:`, insertError);
+          toast.error(`Erreur lors de la sauvegarde de la clé API ${service}`);
+          return;
+        }
+      }
+      
+      toast.success(`Clé API ${service} sauvegardée avec succès!`);
+      validateApiKey(service, key);
+    } catch (error) {
+      console.error(`Exception lors de la sauvegarde de la clé API ${service}:`, error);
+      toast.error(`Une erreur s'est produite lors de la sauvegarde de la clé API ${service}`);
+    }
   };
   
   const validateApiKey = (service: string, key: string) => {
@@ -93,6 +162,11 @@ const Settings = () => {
     setTimeout(() => {
       toast.success(`Clé API ${service} validée avec succès!`);
     }, 1500);
+  };
+  
+  const handleLogout = async () => {
+    await logout();
+    navigate('/auth');
   };
   
   if (!isAuthenticated) {
@@ -121,6 +195,9 @@ const Settings = () => {
                     <p className="font-medium">Compte Google connecté</p>
                     <p className="text-sm text-muted-foreground">{user?.email}</p>
                   </div>
+                  <Button variant="outline" onClick={handleLogout}>
+                    Se déconnecter
+                  </Button>
                 </div>
                 
                 <div className="space-y-2">

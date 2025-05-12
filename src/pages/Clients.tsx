@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,19 +8,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
-
-// Type pour les clients
-interface Client {
-  id: string;
-  name: string;
-  businessContext: string;
-  specifics: string;
-  editorialGuidelines: string;
-}
+import { useAuth } from "@/contexts/AuthContext";
+import { Client } from "@/services/types";
+import { getClients, clientService } from "@/services/clientService";
+import { Loader2, Edit, Trash } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useNavigate } from "react-router-dom";
 
 const Clients = () => {
-  // État pour les clients (simulé pour l'instant)
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  
+  // État pour les clients
   const [clients, setClients] = useState<Client[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   // État pour le nouveau client
   const [newClient, setNewClient] = useState<Omit<Client, 'id'>>({
@@ -30,28 +31,112 @@ const Clients = () => {
     editorialGuidelines: "",
   });
   
+  // État pour l'édition d'un client
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
+  
+  // Rediriger vers la page de connexion si non authentifié
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+    }
+  }, [isAuthenticated, navigate]);
+  
+  // Charger les clients au chargement de la page
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadClients();
+    }
+  }, [isAuthenticated]);
+  
+  const loadClients = async () => {
+    setIsLoading(true);
+    try {
+      const loadedClients = await getClients();
+      setClients(loadedClients);
+    } catch (error) {
+      console.error("Erreur lors du chargement des clients:", error);
+      toast.error("Impossible de charger les clients");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   // Fonction pour ajouter un nouveau client
-  const handleAddClient = () => {
+  const handleAddClient = async () => {
     if (!newClient.name) {
       toast.error("Le nom du client est requis");
       return;
     }
     
-    const client: Client = {
-      id: Date.now().toString(),
-      ...newClient,
-    };
-    
-    setClients([...clients, client]);
-    setNewClient({
-      name: "",
-      businessContext: "",
-      specifics: "",
-      editorialGuidelines: "",
-    });
-    
-    toast.success("Client ajouté avec succès");
+    try {
+      const addedClient = await clientService.addClient(newClient);
+      if (addedClient) {
+        setClients([...clients, addedClient]);
+        setNewClient({
+          name: "",
+          businessContext: "",
+          specifics: "",
+          editorialGuidelines: "",
+        });
+        setIsNewDialogOpen(false);
+        toast.success("Client ajouté avec succès");
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'ajout du client:", error);
+      toast.error("Impossible d'ajouter le client");
+    }
   };
+  
+  // Fonction pour mettre à jour un client
+  const handleUpdateClient = async () => {
+    if (!editingClient || !editingClient.name) {
+      toast.error("Le nom du client est requis");
+      return;
+    }
+    
+    try {
+      const success = await clientService.updateClient(editingClient);
+      if (success) {
+        setClients(clients.map(c => c.id === editingClient.id ? editingClient : c));
+        setIsEditDialogOpen(false);
+        toast.success("Client mis à jour avec succès");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du client:", error);
+      toast.error("Impossible de mettre à jour le client");
+    }
+  };
+  
+  // Fonction pour supprimer un client
+  const handleDeleteClient = async (clientId: string) => {
+    try {
+      const success = await clientService.deleteClient(clientId);
+      if (success) {
+        setClients(clients.filter(c => c.id !== clientId));
+        toast.success("Client supprimé avec succès");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la suppression du client:", error);
+      toast.error("Impossible de supprimer le client");
+    }
+  };
+  
+  // Fonction pour ouvrir le dialogue d'édition
+  const openEditDialog = (client: Client) => {
+    setEditingClient({...client});
+    setIsEditDialogOpen(true);
+  };
+  
+  // Fonction pour naviguer vers les campagnes du client
+  const navigateToCampaigns = (clientId: string) => {
+    navigate(`/campaigns?client=${clientId}`);
+  };
+
+  if (!isAuthenticated) {
+    return null; // Ne rien afficher pendant la redirection
+  }
 
   return (
     <>
@@ -60,7 +145,7 @@ const Clients = () => {
         <h1 className="text-3xl font-bold mb-6">Mes clients</h1>
         
         <div className="flex justify-end mb-4">
-          <Dialog>
+          <Dialog open={isNewDialogOpen} onOpenChange={setIsNewDialogOpen}>
             <DialogTrigger asChild>
               <Button>Ajouter un client</Button>
             </DialogTrigger>
@@ -115,13 +200,19 @@ const Clients = () => {
               </div>
               
               <DialogFooter>
+                <Button variant="outline" onClick={() => setIsNewDialogOpen(false)}>Annuler</Button>
                 <Button onClick={handleAddClient}>Ajouter</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
         
-        {clients.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Chargement des clients...</span>
+          </div>
+        ) : clients.length === 0 ? (
           <Card className="text-center p-8">
             <CardContent>
               <p className="mb-4">Vous n'avez pas encore de clients.</p>
@@ -134,22 +225,46 @@ const Clients = () => {
               <Card key={client.id} className="shadow-md hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <CardTitle>{client.name}</CardTitle>
-                  <CardDescription>Client #{client.id.substring(0, 6)}</CardDescription>
+                  <CardDescription>ID: {client.id.substring(0, 8)}...</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {client.businessContext && (
                     <div className="mb-2">
                       <p className="font-semibold">Contexte métier:</p>
-                      <p className="text-sm">{client.businessContext.substring(0, 100)}...</p>
+                      <p className="text-sm">{client.businessContext.length > 100 
+                        ? `${client.businessContext.substring(0, 100)}...` 
+                        : client.businessContext}</p>
                     </div>
                   )}
                   <div className="mt-4 flex space-x-2">
-                    <Button variant="outline" onClick={() => console.log("Éditer", client.id)}>
+                    <Button variant="outline" onClick={() => openEditDialog(client)}>
+                      <Edit className="h-4 w-4 mr-2" />
                       Éditer
                     </Button>
-                    <Button onClick={() => console.log("Campagnes", client.id)}>
+                    <Button onClick={() => navigateToCampaigns(client.id)}>
                       Voir les campagnes
                     </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="icon">
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Cette action supprimera définitivement le client "{client.name}" et toutes ses campagnes associées.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteClient(client.id)}>
+                            Supprimer
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </CardContent>
               </Card>
@@ -157,6 +272,63 @@ const Clients = () => {
           </div>
         )}
       </div>
+      
+      {/* Dialogue d'édition */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Modifier le client</DialogTitle>
+            <DialogDescription>
+              Modifiez les informations du client
+            </DialogDescription>
+          </DialogHeader>
+          
+          {editingClient && (
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-client-name">Nom du client</Label>
+                <Input
+                  id="edit-client-name"
+                  value={editingClient.name}
+                  onChange={(e) => setEditingClient({...editingClient, name: e.target.value})}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-business-context">Contexte métier</Label>
+                <Textarea
+                  id="edit-business-context"
+                  value={editingClient.businessContext}
+                  onChange={(e) => setEditingClient({...editingClient, businessContext: e.target.value})}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-specifics">Spécificités</Label>
+                <Textarea
+                  id="edit-specifics"
+                  value={editingClient.specifics}
+                  onChange={(e) => setEditingClient({...editingClient, specifics: e.target.value})}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-guidelines">Charte éditoriale</Label>
+                <Textarea
+                  id="edit-guidelines"
+                  value={editingClient.editorialGuidelines}
+                  onChange={(e) => setEditingClient({...editingClient, editorialGuidelines: e.target.value})}
+                />
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Annuler</Button>
+            <Button onClick={handleUpdateClient}>Enregistrer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

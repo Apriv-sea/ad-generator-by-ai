@@ -1,36 +1,147 @@
 
 import { Client } from "./types";
-import { getUserAccessToken } from "./utilities";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// Liste temporaire de clients (à remplacer par une vraie API)
 export const getClients = async (): Promise<Client[]> => {
-  return [
-    { 
-      id: '1', 
-      name: 'ABC Company', 
-      businessContext: 'Entreprise spécialisée dans la vente de matériel informatique pour professionnels. Présente depuis 15 ans sur le marché avec une forte implantation régionale.',
-      specifics: 'Service après-vente réactif, délais de livraison courts, expertise technique reconnue',
-      editorialGuidelines: 'Ton professionnel, technique mais accessible. Éviter le jargon trop complexe.'
-    },
-    { 
-      id: '2', 
-      name: 'XYZ Corporation', 
-      businessContext: 'Cabinet de conseil en stratégie digitale pour PME en phase de transformation numérique.',
-      specifics: 'Approche sur mesure, accompagnement personnalisé, expertise en cybersécurité',
-      editorialGuidelines: 'Ton confiant et expert, utiliser des exemples concrets, éviter les anglicismes.'
-    },
-    { 
-      id: '3', 
-      name: 'Tech Solutions', 
-      businessContext: 'Startup proposant des solutions SaaS pour l\'automatisation des tâches administratives.',
-      specifics: 'Interface intuitive, intégration avec les outils existants, économie de temps prouvée',
-      editorialGuidelines: 'Ton dynamique et innovant, mettre en avant les gains de productivité, utiliser un vocabulaire moderne.'
-    },
-  ];
+  try {
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .order('name');
+
+    if (error) {
+      console.error("Erreur lors de la récupération des clients:", error);
+      toast.error("Impossible de récupérer la liste des clients");
+      return [];
+    }
+
+    return data.map(client => ({
+      id: client.id,
+      name: client.name,
+      businessContext: client.business_context || '',
+      specifics: client.specifics || '',
+      editorialGuidelines: client.editorial_guidelines || ''
+    }));
+  } catch (error) {
+    console.error("Exception lors de la récupération des clients:", error);
+    toast.error("Une erreur s'est produite lors de la récupération des clients");
+    return [];
+  }
 };
 
 export const clientService = {
+  // Ajouter un nouveau client
+  addClient: async (client: Omit<Client, 'id'>): Promise<Client | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .insert({
+          name: client.name,
+          business_context: client.businessContext,
+          specifics: client.specifics,
+          editorial_guidelines: client.editorialGuidelines
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Erreur lors de l'ajout du client:", error);
+        toast.error("Impossible d'ajouter le client");
+        return null;
+      }
+
+      return {
+        id: data.id,
+        name: data.name,
+        businessContext: data.business_context || '',
+        specifics: data.specifics || '',
+        editorialGuidelines: data.editorial_guidelines || ''
+      };
+    } catch (error) {
+      console.error("Exception lors de l'ajout du client:", error);
+      toast.error("Une erreur s'est produite lors de l'ajout du client");
+      return null;
+    }
+  },
+
+  // Mettre à jour un client existant
+  updateClient: async (client: Client): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({
+          name: client.name,
+          business_context: client.businessContext,
+          specifics: client.specifics,
+          editorial_guidelines: client.editorialGuidelines,
+          updated_at: new Date()
+        })
+        .eq('id', client.id);
+
+      if (error) {
+        console.error("Erreur lors de la mise à jour du client:", error);
+        toast.error("Impossible de mettre à jour le client");
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Exception lors de la mise à jour du client:", error);
+      toast.error("Une erreur s'est produite lors de la mise à jour du client");
+      return false;
+    }
+  },
+
+  // Supprimer un client
+  deleteClient: async (clientId: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', clientId);
+
+      if (error) {
+        console.error("Erreur lors de la suppression du client:", error);
+        toast.error("Impossible de supprimer le client");
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Exception lors de la suppression du client:", error);
+      toast.error("Une erreur s'est produite lors de la suppression du client");
+      return false;
+    }
+  },
+
+  // Récupérer un client par son ID
+  getClientById: async (clientId: string): Promise<Client | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', clientId)
+        .single();
+
+      if (error) {
+        console.error("Erreur lors de la récupération du client:", error);
+        return null;
+      }
+
+      return {
+        id: data.id,
+        name: data.name,
+        businessContext: data.business_context || '',
+        specifics: data.specifics || '',
+        editorialGuidelines: data.editorial_guidelines || ''
+      };
+    } catch (error) {
+      console.error("Exception lors de la récupération du client:", error);
+      return null;
+    }
+  },
+
   // Récupérer les informations du client associées à une feuille
   getClientInfo: async (sheetId: string): Promise<Client | null> => {
     try {
@@ -77,5 +188,19 @@ export const clientService = {
       console.error("Erreur lors de la récupération des informations du client:", error);
       return null;
     }
+  }
+};
+
+// Helper pour récupérer le token d'accès Google
+const getUserAccessToken = () => {
+  const user = localStorage.getItem('google_user');
+  if (!user) return null;
+  
+  try {
+    const userData = JSON.parse(user);
+    return userData.accessToken;
+  } catch (error) {
+    console.error("Erreur lors de la récupération du token d'accès:", error);
+    return null;
   }
 };

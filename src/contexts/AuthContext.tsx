@@ -1,100 +1,119 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { toast } from "sonner";
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  picture: string;
-  accessToken: string;
-}
+import { supabase } from "@/integrations/supabase/client";
+import { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   isLoading: boolean;
-  login: () => void;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
+  googleLogin: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Vérifier l'authentification au chargement
   useEffect(() => {
-    const checkAuth = () => {
-      const savedUser = localStorage.getItem('google_user');
-      if (savedUser) {
-        setUser(JSON.parse(savedUser));
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
       }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
       setIsLoading(false);
-    };
-    
-    checkAuth();
+    }).catch(error => {
+      console.error("Error checking session:", error);
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = () => {
+  // Fonctions d'authentification
+  const login = async (email: string, password: string) => {
     try {
-      // Configuration pour Google OAuth
-      const googleAuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
-      const redirectUri = window.location.origin + "/auth/callback";
-      
-      // Client ID fourni par l'utilisateur
-      const clientId = "135447600769-22vd8jk726t5f8gp58robppv0v8eeme7.apps.googleusercontent.com";
-      
-      const scope = [
-        "https://www.googleapis.com/auth/userinfo.email",
-        "https://www.googleapis.com/auth/userinfo.profile",
-        "openid",
-        "https://www.googleapis.com/auth/drive.file",
-        "https://www.googleapis.com/auth/spreadsheets"
-      ].join(" ");
-      
-      // Modification des paramètres: suppression de access_type=offline car incompatible avec response_type=token
-      const params = {
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        response_type: "token",
-        scope: scope,
-        include_granted_scopes: "true",
-        state: "pass-through-value",
-        prompt: "consent" // Forcer l'affichage de l'écran de consentement
-      };
-      
-      const authUrl = `${googleAuthUrl}?${new URLSearchParams(params).toString()}`;
-      
-      console.log("Redirection vers:", authUrl);
-      console.log("URL de redirection configurée:", redirectUri);
-      
-      // Rediriger vers la page d'authentification Google
-      window.location.href = authUrl;
-    } catch (error) {
-      console.error("Erreur lors de la redirection vers Google:", error);
-      toast.error("Erreur lors de la connexion à Google. Veuillez réessayer.");
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      toast.success("Connexion réussie");
+    } catch (error: any) {
+      console.error("Erreur de connexion:", error);
+      toast.error(error.message || "Erreur de connexion");
+      throw error;
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('google_user');
-    localStorage.removeItem('google_connected');
-    localStorage.removeItem('google_sheets_access');
-    localStorage.removeItem('google_drive_access');
-    setUser(null);
-    window.location.href = '/';
+  const signup = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) throw error;
+      toast.success("Inscription réussie. Veuillez vérifier votre email pour confirmer votre compte.");
+    } catch (error: any) {
+      console.error("Erreur d'inscription:", error);
+      toast.error(error.message || "Erreur d'inscription");
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      localStorage.removeItem('google_user');
+      localStorage.removeItem('google_connected');
+      localStorage.removeItem('google_sheets_access');
+      localStorage.removeItem('google_drive_access');
+      toast.success("Déconnexion réussie");
+    } catch (error: any) {
+      console.error("Erreur de déconnexion:", error);
+      toast.error("Erreur lors de la déconnexion");
+    }
+  };
+
+  const googleLogin = async () => {
+    try {
+      // Configuration pour Google OAuth via Supabase
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets'
+        }
+      });
+      
+      if (error) throw error;
+    } catch (error: any) {
+      console.error("Erreur lors de la connexion avec Google:", error);
+      toast.error("Erreur lors de la connexion à Google. Veuillez réessayer.");
+    }
   };
 
   return (
     <AuthContext.Provider 
       value={{ 
-        user, 
-        isLoading, 
-        login, 
+        user,
+        session,
+        isLoading,
+        login,
+        signup,
         logout,
-        isAuthenticated: !!user 
+        googleLogin,
+        isAuthenticated: !!session
       }}
     >
       {children}
