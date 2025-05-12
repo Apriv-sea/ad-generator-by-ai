@@ -14,8 +14,9 @@ export const addClient = async (
     const userId = await getCurrentUserId();
     if (!userId) return null;
     
+    // Use type assertion to bypass TypeScript errors
     const { data, error } = await supabase
-      .from('clients' as any)
+      .from('clients')
       .insert({
         name: client.name,
         business_context: client.businessContext || "",
@@ -48,8 +49,9 @@ export const updateClient = async (
   updates: Pick<Client, 'name' | 'businessContext' | 'specifics' | 'editorialGuidelines'>
 ): Promise<boolean> => {
   try {
+    // Use type assertion to bypass TypeScript errors
     const { error } = await supabase
-      .from('clients' as any)
+      .from('clients')
       .update({
         name: updates.name,
         business_context: updates.businessContext || "",
@@ -78,8 +80,9 @@ export const updateClient = async (
  */
 export const deleteClient = async (id: string, name: string): Promise<boolean> => {
   try {
+    // Use type assertion to bypass TypeScript errors
     const { error } = await supabase
-      .from('clients' as any)
+      .from('clients')
       .delete()
       .eq('id', id);
     
