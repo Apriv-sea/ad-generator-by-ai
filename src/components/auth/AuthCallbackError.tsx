@@ -12,10 +12,6 @@ const AuthCallbackError: React.FC<AuthCallbackErrorProps> = ({ errorDetails }) =
   const isRedirectError = errorDetails.toLowerCase().includes('origin') || 
                          errorDetails.toLowerCase().includes('redirect') ||
                          errorDetails.toLowerCase().includes('uri');
-  
-  // Check if we're running on localhost
-  const isLocalhost = window.location.hostname === "localhost" || 
-                     window.location.hostname === "127.0.0.1";
 
   return (
     <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
@@ -31,20 +27,6 @@ const AuthCallbackError: React.FC<AuthCallbackErrorProps> = ({ errorDetails }) =
           <li>L'écran de consentement OAuth est correctement configuré</li>
         </ul>
       </div>
-
-      {isLocalhost && (
-        <div className="mt-3 p-2 bg-red-100 border border-red-300 rounded">
-          <p className="font-semibold">Problème de localhost détecté:</p>
-          <p>Lorsque vous utilisez localhost, assurez-vous de:</p>
-          <ol className="list-decimal pl-5 text-left">
-            <li>Ajouter <code className="font-bold">http://localhost:{window.location.port || "3000"}</code> aux "Origines JavaScript autorisées" dans Google Cloud Console</li>
-            <li>Ajouter <code className="font-bold">http://localhost:{window.location.port || "3000"}/auth/callback</code> aux "URI de redirection autorisés"</li>
-            <li>Utiliser <strong>exactement</strong> le même port dans les URL configurées dans Google Cloud Console</li>
-            <li>Essayer d'utiliser un navigateur différent ou mode incognito</li>
-            <li>Vérifier si des extensions de navigateur bloquent les cookies tiers</li>
-          </ol>
-        </div>
-      )}
 
       {isRedirectError && (
         <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded">
