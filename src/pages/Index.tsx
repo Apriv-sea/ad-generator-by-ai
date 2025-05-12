@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
@@ -17,11 +16,20 @@ const Index = () => {
   // Vérifier si l'URL contient des tokens d'authentification
   useEffect(() => {
     // Vérifier si nous sommes sur localhost et avons des tokens
-    if (window.location.hostname === 'localhost' && 
-        window.location.hash && 
-        window.location.hash.includes('access_token')) {
-      console.log("Détection de jetons d'authentification sur localhost, redirection...");
-      navigate('/localhost-redirect');
+    const checkLocalhostAuth = () => {
+      const hasHashToken = window.location.hash && window.location.hash.includes('access_token');
+      const isLocalhost = window.location.hostname === 'localhost';
+      
+      if (isLocalhost && hasHashToken) {
+        console.log("Détection de jetons d'authentification sur localhost, redirection...");
+        navigate('/localhost-redirect');
+        return true;
+      }
+      return false;
+    };
+    
+    // Si redirection vers localhost effectuée, on arrête le traitement
+    if (checkLocalhostAuth()) {
       return;
     }
     
