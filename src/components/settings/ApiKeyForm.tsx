@@ -1,5 +1,4 @@
 
-// I need to fix the ApiKeyForm.tsx file to properly type Supabase calls
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,6 +86,38 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
       setIsSubmitting(false);
     }
   };
+
+  // Add placeholder and help text based on service
+  const getServiceInfo = () => {
+    switch (service) {
+      case 'openai':
+        return {
+          placeholder: "sk-...",
+          helpText: "Commençant par 'sk-'. Trouvez votre clé sur",
+          helpLink: "https://platform.openai.com/account/api-keys"
+        };
+      case 'anthropic':
+        return {
+          placeholder: "sk_ant-...",
+          helpText: "Commençant par 'sk_ant-'. Trouvez votre clé sur",
+          helpLink: "https://console.anthropic.com/settings/keys"
+        };
+      case 'google':
+        return {
+          placeholder: "AI...",
+          helpText: "Trouvez votre clé sur",
+          helpLink: "https://aistudio.google.com/app/apikey"
+        };
+      default:
+        return {
+          placeholder: "Entrez votre clé API",
+          helpText: "",
+          helpLink: ""
+        };
+    }
+  };
+
+  const { placeholder, helpText, helpLink } = getServiceInfo();
   
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -101,7 +132,7 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
               value={displayedKey}
               onChange={(e) => setKey(e.target.value)}
               type="text"
-              placeholder={`Entrez votre clé API ${service}`}
+              placeholder={placeholder}
               disabled={isSubmitting || readOnly}
             />
             {key && (
@@ -122,6 +153,20 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
             </Button>
           )}
         </div>
+        
+        {helpText && helpLink && (
+          <p className="text-sm text-muted-foreground mt-1">
+            {helpText}{" "}
+            <a 
+              href={helpLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              {helpLink}
+            </a>
+          </p>
+        )}
       </div>
     </form>
   );

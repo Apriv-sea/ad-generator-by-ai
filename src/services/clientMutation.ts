@@ -1,101 +1,118 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Client } from "./types/client";
-import { getCurrentUserId, handleSupabaseError } from "./utils/supabaseUtils";
-import { toast } from "sonner";
+import { Client, ClientResponse } from "./types/client";
+import { getCurrentUserId } from "./utils/supabaseUtils";
 
 /**
- * Add a new client to the database
+ * Create a new client
  */
-export const addClient = async (
-  client: Pick<Client, 'name' | 'businessContext' | 'specifics' | 'editorialGuidelines'>
-): Promise<string | null> => {
+export const createClient = async (
+  name: string,
+  businessContext: string,
+  specifics: string,
+  editorialGuidelines: string
+): Promise<ClientResponse> => {
   try {
     const userId = await getCurrentUserId();
-    if (!userId) return null;
+    if (!userId) return { data: null, error: new Error("User not authenticated") };
     
-    // Use type assertion to bypass TypeScript errors
     const { data, error } = await supabase
       .from('clients' as any)
       .insert({
-        name: client.name,
-        business_context: client.businessContext || "",
-        specifics: client.specifics || "",
-        editorial_guidelines: client.editorialGuidelines || "",
+        name: name,
+        business_context: businessContext,
+        specifics: specifics,
+        editorial_guidelines: editorialGuidelines,
         user_id: userId
       } as any)
-      .select('id')
-      .single();
+      .select();
     
-    if (error) {
-      handleSupabaseError(error, "Erreur lors de l'ajout du client");
-      return null;
-    }
-    
-    toast.success(`Client ${client.name} ajouté avec succès`);
-    return data?.id || null;
+    return { data, error };
   } catch (error) {
-    console.error("Exception lors de l'ajout du client:", error);
-    toast.error("Une erreur est survenue lors de l'ajout du client");
-    return null;
+    console.error("Exception lors de la création du client:", error);
+    return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
   }
 };
 
 /**
- * Update an existing client in the database
+ * Update an existing client
  */
 export const updateClient = async (
-  id: string,
-  updates: Pick<Client, 'name' | 'businessContext' | 'specifics' | 'editorialGuidelines'>
-): Promise<boolean> => {
+  clientId: string,
+  name: string,
+  businessContext: string,
+  specifics: string,
+  editorialGuidelines: string
+): Promise<ClientResponse> => {
   try {
-    // Use type assertion to bypass TypeScript errors
-    const { error } = await supabase
-      .from('clients' as any)
-      .update({
-        name: updates.name,
-        business_context: updates.businessContext || "",
-        specifics: updates.specifics || "",
-        editorial_guidelines: updates.editorialGuidelines || "",
-        updated_at: new Date()
-      } as any)
-      .eq('id', id);
+    const userId = await getCurrentUserId();
+    if (!userId) return { data: null, error: new Error("User not authenticated") };
     
-    if (error) {
-      handleSupabaseError(error, "Erreur lors de la mise à jour du client");
-      return false;
+    // First, check if this client belongs to the user
+    const { data: clientCheck } = await supabase
+      .from('clients' as any)
+      .select('id')
+      .eq('id', clientId)
+      .eq('user_id', userId)
+      .single();
+    
+    if (!clientCheck) {
+      return { data: null, error: new Error("Client not found or access denied") };
     }
     
-    toast.success(`Client ${updates.name} mis à jour avec succès`);
-    return true;
+    const { data, error } = await supabase
+      .from('clients' as any)
+      .update({
+        name: name,
+        business_context: businessContext,
+        specifics: specifics,
+        editorial_guidelines: editorialGuidelines,
+        updated_at: new Date()
+      } as any)
+      .eq('id', clientId)
+      .eq('user_id', userId)
+      .select();
+    
+    return { data, error };
   } catch (error) {
     console.error("Exception lors de la mise à jour du client:", error);
-    toast.error("Une erreur est survenue lors de la mise à jour du client");
-    return false;
+    return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
   }
 };
 
 /**
- * Delete a client from the database
+ * Delete a client
  */
-export const deleteClient = async (id: string, name: string): Promise<boolean> => {
+export const deleteClient = async (clientId: string): Promise<{ success: boolean; error: Error | null }> => {
   try {
-    // Use type assertion to bypass TypeScript errors
+    const userId = await getCurrentUserId();
+    if (!userId) return { success: false, error: new Error("User not authenticated") };
+    
+    // First, check if this client belongs to the user
+    const { data: clientCheck } = await supabase
+      .from('clients' as any)
+      .select('id')
+      .eq('id', clientId)
+      .eq('user_id', userId)
+      .single();
+    
+    if (!clientCheck) {
+      return { success: false, error: new Error("Client not found or access denied") };
+    }
+    
     const { error } = await supabase
       .from('clients' as any)
       .delete()
-      .eq('id', id);
+      .eq('id', clientId)
+      .eq('user_id', userId);
     
     if (error) {
-      handleSupabaseError(error, "Erreur lors de la suppression du client");
-      return false;
+      return { success: false, error };
     }
     
-    toast.success(`Client ${name} supprimé avec succès`);
-    return true;
+    return { success: true, error: null };
   } catch (error) {
     console.error("Exception lors de la suppression du client:", error);
-    toast.error("Une erreur est survenue lors de la suppression du client");
-    return false;
+    return { success: false, error: error instanceof Error ? error : new Error('Unknown error') };
   }
 };

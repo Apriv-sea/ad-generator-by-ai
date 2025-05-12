@@ -1,11 +1,11 @@
 
-// I need to fix supabase calls in Settings.tsx with proper type assertions
+// Settings.tsx with corrected imports and proper type assertions
 import React, { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { GoogleOAuthSection } from "@/components/settings/GoogleOAuthSection";
-import { ApiKeysSection } from "@/components/settings/ApiKeysSection";
+import GoogleOAuthSection from "@/components/settings/GoogleOAuthSection";
+import ApiKeysSection from "@/components/settings/ApiKeysSection";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserId } from "@/services/utils/supabaseUtils";

@@ -3,18 +3,28 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ApiKeyForm from "./ApiKeyForm";
+import { ApiKey } from "@/types/supabase-extensions";
 
 interface ApiKeysSectionProps {
-  openaiKey: string;
-  anthropicKey: string;
-  googleKey: string;
+  apiKeys: ApiKey[];
+  isLoading: boolean;
+  onApiKeySaved: () => void;
 }
 
 const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
-  openaiKey,
-  anthropicKey,
-  googleKey
+  apiKeys,
+  isLoading,
+  onApiKeySaved
 }) => {
+  // Find keys by service
+  const getKeyByService = (service: string): ApiKey | undefined => {
+    return apiKeys.find(key => key.service === service);
+  };
+
+  const openaiKey = getKeyByService('openai');
+  const anthropicKey = getKeyByService('anthropic');
+  const googleKey = getKeyByService('google');
+
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
@@ -34,30 +44,24 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
           <TabsContent value="openai">
             <ApiKeyForm
               service="openai"
-              initialValue={openaiKey}
-              placeholder="sk-..."
-              helpText="Commençant par 'sk-'. Trouvez votre clé sur"
-              helpLink="https://platform.openai.com/account/api-keys"
+              apiKey={openaiKey}
+              onApiKeySaved={onApiKeySaved}
             />
           </TabsContent>
           
           <TabsContent value="anthropic">
             <ApiKeyForm
               service="anthropic"
-              initialValue={anthropicKey}
-              placeholder="sk_ant-..."
-              helpText="Commençant par 'sk_ant-'. Trouvez votre clé sur"
-              helpLink="https://console.anthropic.com/settings/keys"
+              apiKey={anthropicKey}
+              onApiKeySaved={onApiKeySaved}
             />
           </TabsContent>
           
           <TabsContent value="google">
             <ApiKeyForm
               service="google"
-              initialValue={googleKey}
-              placeholder="AI..."
-              helpText="Trouvez votre clé sur"
-              helpLink="https://aistudio.google.com/app/apikey"
+              apiKey={googleKey}
+              onApiKeySaved={onApiKeySaved}
             />
           </TabsContent>
         </Tabs>

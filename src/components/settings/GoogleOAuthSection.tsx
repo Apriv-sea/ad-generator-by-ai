@@ -1,29 +1,42 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { User } from "@supabase/supabase-js";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
-interface GoogleOAuthSectionProps {
-  user: User | null;
-  sheetsAccess: boolean;
-  driveAccess: boolean;
-  setSheetsAccess: (value: boolean) => void;
-  setDriveAccess: (value: boolean) => void;
-  handleLogout: () => Promise<void>;
-}
+const GoogleOAuthSection: React.FC = () => {
+  const { user } = useAuth();
+  const [sheetsAccess, setSheetsAccess] = useState(false);
+  const [driveAccess, setDriveAccess] = useState(false);
 
-const GoogleOAuthSection: React.FC<GoogleOAuthSectionProps> = ({
-  user,
-  sheetsAccess,
-  driveAccess,
-  setSheetsAccess,
-  setDriveAccess,
-  handleLogout
-}) => {
+  // Load preferences from localStorage on component mount
+  useEffect(() => {
+    const storedSheetsAccess = localStorage.getItem("google_sheets_access");
+    const storedDriveAccess = localStorage.getItem("google_drive_access");
+    
+    if (storedSheetsAccess) {
+      setSheetsAccess(storedSheetsAccess === "true");
+    }
+    
+    if (storedDriveAccess) {
+      setDriveAccess(storedDriveAccess === "true");
+    }
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast.success("Déconnecté avec succès");
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
+      toast.error("Erreur lors de la déconnexion");
+    }
+  };
+
   const toggleSheetsAccess = () => {
     const newValue = !sheetsAccess;
     setSheetsAccess(newValue);
@@ -49,14 +62,14 @@ const GoogleOAuthSection: React.FC<GoogleOAuthSectionProps> = ({
   };
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
+    <div className="max-w-2xl mx-auto">
+      <CardHeader className="px-0 pt-0">
         <CardTitle>Connexion Google</CardTitle>
         <CardDescription>
           Configurez l'accès à Google Drive et Google Sheets
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-0 pb-0">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -95,7 +108,7 @@ const GoogleOAuthSection: React.FC<GoogleOAuthSectionProps> = ({
           </div>
         </div>
       </CardContent>
-    </Card>
+    </div>
   );
 };
 
