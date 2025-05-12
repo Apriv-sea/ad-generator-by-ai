@@ -15,6 +15,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   googleLogin: () => Promise<void>;
+  processAuthTokens: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Fonction pour traiter les tokens dans l'URL
-  const handleTokensFromHash = async () => {
+  const processAuthTokens = async (): Promise<boolean> => {
     console.log("Checking URL for authentication tokens...");
     
     if (window.location.hash && window.location.hash.includes('access_token')) {
@@ -38,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (!accessToken) {
           console.error("Access token not found in URL hash");
-          return;
+          return false;
         }
         
         console.log("Setting session with token from URL...");
@@ -50,18 +51,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) {
           console.error("Error setting session with token:", error);
           toast.error("Erreur lors de l'authentification");
-          return;
+          return false;
         }
         
         if (data.session) {
           console.log("Session successfully established from URL token");
-          // Ne pas définir directement ici, laissons le gestionnaire d'événements onAuthStateChange s'en occuper
+          setSession(data.session);
+          setUser(processUserMetadata(data.session.user));
           
-          // Nettoyer l'URL après traitement du token
-          window.history.replaceState({}, document.title, window.location.pathname);
+          // Store user preferences
+          if (data.session.user?.app_metadata?.provider === 'google') {
+            localStorage.setItem("google_connected", "true");
+            
+            // Store Google user info
+            const userData = {
+              provider: 'google',
+              email: data.session.user.email,
+              name: data.session.user?.user_metadata?.full_name || data.session.user.email,
+              picture: data.session.user?.user_metadata?.picture || data.session.user?.user_metadata?.avatar_url
+            };
+            
+            localStorage.setItem("google_user", JSON.stringify(userData));
+          }
           
           toast.success("Connexion réussie!");
-          return true; // Indique que l'authentification a réussi
+          
+          return true;
         }
       } catch (error) {
         console.error("Error processing authentication from URL:", error);
@@ -76,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const initAuth = async () => {
       // Vérifier d'abord si des tokens sont présents dans l'URL
-      const authenticatedFromUrl = await handleTokensFromHash();
+      const authenticatedFromUrl = await processAuthTokens();
       
       // Set up auth state listener
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -225,7 +240,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signup,
         logout,
         googleLogin,
-        isAuthenticated: !!session
+        isAuthenticated: !!session,
+        processAuthTokens
       }}
     >
       {children}

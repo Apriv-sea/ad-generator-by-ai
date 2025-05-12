@@ -1,11 +1,54 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, processAuthTokens } = useAuth();
+
+  // Vérifier si l'URL contient des tokens d'authentification
+  useEffect(() => {
+    // Traiter les jetons d'authentification s'ils sont présents dans l'URL
+    const handleTokensInRoot = async () => {
+      // Vérifier si l'URL contient des jetons d'authentification
+      if (window.location.hash && window.location.hash.includes('access_token')) {
+        console.log("Jetons d'authentification détectés dans la page d'accueil");
+        
+        try {
+          const tokenProcessed = await processAuthTokens();
+          
+          if (tokenProcessed) {
+            // Nettoyer l'URL après traitement du jeton
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            // Si l'authentification a réussi, rediriger vers le tableau de bord
+            setTimeout(() => {
+              if (isAuthenticated) {
+                navigate("/dashboard");
+              }
+            }, 1000);
+          }
+        } catch (error) {
+          console.error("Erreur lors du traitement des jetons:", error);
+          toast.error("Erreur d'authentification. Veuillez réessayer.");
+        }
+      }
+    };
+
+    handleTokensInRoot();
+  }, [isAuthenticated, navigate, processAuthTokens]);
+
+  // Si l'utilisateur est déjà authentifié, rediriger vers le tableau de bord
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, navigate]);
 
   return (
     <div className="container mx-auto py-8 px-4">
