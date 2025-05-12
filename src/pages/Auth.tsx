@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate, useNavigate, useLocation } from "react-router-dom";
+import { Navigate, useNavigate, useLocation, Link } from "react-router-dom";
 import LoginForm from "@/components/auth/LoginForm";
 import SignupForm from "@/components/auth/SignupForm";
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
@@ -139,7 +139,12 @@ const Auth = () => {
           </CardContent>
           
           <CardFooter className="flex flex-col gap-4 text-center text-xs text-muted-foreground">
-            <p>En continuant, vous acceptez nos Conditions d'utilisation et notre Politique de confidentialité.</p>
+            <p>
+              En continuant, vous acceptez nos Conditions d'utilisation et notre 
+              <Link to="/privacy-policy" className="text-primary hover:underline ml-1">
+                Politique de confidentialité
+              </Link>.
+            </p>
             <AuthDebugDialog 
               trigger={<Button variant="ghost" size="sm" className="text-xs">Débogage d'authentification</Button>}
             />

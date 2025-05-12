@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -141,6 +140,11 @@ const Index = () => {
             </CardContent>
           </Card>
         </div>
+      </div>
+      <div className="mt-12 text-center text-sm text-muted-foreground">
+        <Link to="/privacy-policy" className="hover:underline">
+          Règles de confidentialité
+        </Link>
       </div>
     </div>
   );

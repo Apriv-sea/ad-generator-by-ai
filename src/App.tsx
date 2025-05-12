@@ -14,6 +14,7 @@ import Settings from "./pages/Settings";
 import Clients from "./pages/Clients";
 import Campaigns from "./pages/Campaigns";
 import HowItWorks from "./pages/HowItWorks";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/clients" element={<Clients />} />
             <Route path="/campaigns" element={<Campaigns />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
