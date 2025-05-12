@@ -2,6 +2,7 @@
 import React from "react";
 import AuthDebugDialog from "@/components/AuthDebugDialog";
 import { Button } from "@/components/ui/button";
+import GoogleAuthWarning from "./GoogleAuthWarning";
 
 interface AuthCallbackErrorProps {
   errorDetails: string;
@@ -12,6 +13,15 @@ const AuthCallbackError: React.FC<AuthCallbackErrorProps> = ({ errorDetails }) =
   const isRedirectError = errorDetails.toLowerCase().includes('origin') || 
                          errorDetails.toLowerCase().includes('redirect') ||
                          errorDetails.toLowerCase().includes('uri');
+                         
+  // Check if it's related to unverified app
+  const isUnverifiedAppError = errorDetails.toLowerCase().includes('not verified') || 
+                              errorDetails.toLowerCase().includes('validation') ||
+                              errorDetails.toLowerCase().includes('access_denied');
+
+  if (isUnverifiedAppError) {
+    return <GoogleAuthWarning />;
+  }
 
   return (
     <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +12,7 @@ import AuthLoading from "@/components/auth/AuthLoading";
 import AuthError from "@/components/auth/AuthError";
 import AuthDebugDialog from "@/components/AuthDebugDialog";
 import { Button } from "@/components/ui/button";
+import GoogleAuthWarning from "@/components/auth/GoogleAuthWarning";
 
 const Auth = () => {
   const location = useLocation();
@@ -20,6 +22,7 @@ const Auth = () => {
   const [activeTab, setActiveTab] = useState("login");
   const [processingAuth, setProcessingAuth] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [showGoogleWarning, setShowGoogleWarning] = useState(false);
   
   // Check for URL tokens on component mount
   useEffect(() => {
@@ -53,7 +56,13 @@ const Auth = () => {
           const error = params.get('error');
           const errorDesc = params.get('error_description');
           console.error(`Auth page: OAuth error - ${error}: ${errorDesc}`);
-          setAuthError(`Erreur Google OAuth: ${error}. ${errorDesc || ''}`);
+          
+          // Detect the specific Google unverified app error
+          if (errorDesc?.includes('not verified') || errorDesc?.includes('validation') || error === 'access_denied') {
+            setShowGoogleWarning(true);
+          } else {
+            setAuthError(`Erreur Google OAuth: ${error}. ${errorDesc || ''}`);
+          }
         }
       } catch (error) {
         console.error("Auth page error:", error);
@@ -71,6 +80,11 @@ const Auth = () => {
     return <Navigate to="/dashboard" />;
   }
 
+  const handleTryAgain = () => {
+    setShowGoogleWarning(false);
+    window.history.replaceState({}, document.title, window.location.pathname);
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-50">
       <div className="container max-w-md">
@@ -83,7 +97,11 @@ const Auth = () => {
           </CardHeader>
           
           <CardContent>
-            {authError && <AuthError error={authError} />}
+            {showGoogleWarning && (
+              <GoogleAuthWarning onContinue={handleTryAgain} />
+            )}
+            
+            {authError && !showGoogleWarning && <AuthError error={authError} />}
             
             {processingAuth || isLoading ? (
               <AuthLoading />
