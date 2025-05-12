@@ -38,6 +38,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Update Google connection status in localStorage based on auth events
         if (event === 'SIGNED_IN' && session?.user?.app_metadata?.provider === 'google') {
           localStorage.setItem('google_connected', 'true');
+          
+          // Store user data for Google authenticated users
+          if (!localStorage.getItem('google_user') && session.user) {
+            const userData = {
+              provider: 'google',
+              email: session.user.email,
+              name: session.user?.user_metadata?.full_name || session.user.email,
+              picture: session.user?.user_metadata?.picture || session.user?.user_metadata?.avatar_url
+            };
+            
+            localStorage.setItem("google_user", JSON.stringify(userData));
+          }
         } else if (event === 'SIGNED_OUT') {
           localStorage.removeItem('google_connected');
           localStorage.removeItem('google_user');
@@ -56,8 +68,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(processedUser);
       
       // Initialize Google connection status if not set already
-      if (session?.user?.app_metadata?.provider === 'google' && !localStorage.getItem('google_connected')) {
+      if (session?.user?.app_metadata?.provider === 'google') {
         localStorage.setItem('google_connected', 'true');
+        
+        // Ensure we have user data stored
+        if (!localStorage.getItem('google_user') && session.user) {
+          const userData = {
+            provider: 'google',
+            email: session.user.email,
+            name: session.user?.user_metadata?.full_name || session.user.email,
+            picture: session.user?.user_metadata?.picture || session.user?.user_metadata?.avatar_url
+          };
+          
+          localStorage.setItem("google_user", JSON.stringify(userData));
+        }
       }
       
       setIsLoading(false);

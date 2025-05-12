@@ -27,59 +27,65 @@ const AuthCallback = () => {
           return;
         }
 
-        // Handle hash fragment from OAuth providers (like Google)
+        // Check for access_token in URL hash or as a standalone JWT
+        let accessToken = null;
+        let refreshToken = null;
+        
+        // First check if we have a hash fragment with tokens
         if (window.location.hash) {
           console.log("Hash fragment detected, processing tokens...");
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          accessToken = hashParams.get('access_token');
+          refreshToken = hashParams.get('refresh_token');
+        } 
+        // If no access token in hash, check if the URL itself is a JWT token
+        else if (window.location.pathname.length > 20 && window.location.pathname.includes('.')) {
+          console.log("URL appears to be a JWT token, extracting...");
+          accessToken = window.location.pathname.substring(1); // Remove leading slash
+        }
+        
+        if (accessToken) {
+          console.log("Access token found, attempting to set session...");
           
           try {
-            // Extract tokens from the hash
-            const hashParams = new URLSearchParams(window.location.hash.substring(1));
-            const accessToken = hashParams.get('access_token');
-            const refreshToken = hashParams.get('refresh_token');
+            // Set the session with Supabase using the token
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || ''
+            });
             
-            if (accessToken) {
-              console.log("Access token found in URL hash");
-              
-              // Set the session with Supabase using the tokens from the hash
-              const { data, error } = await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken || ''
-              });
-              
-              if (error) {
-                console.error("Error setting session:", error);
-                throw error;
-              }
-              
-              if (data.session) {
-                console.log("Session successfully set from hash parameters");
-                
-                // Store user preferences if needed
-                if (data.session.user?.app_metadata?.provider === 'google') {
-                  localStorage.setItem("google_connected", "true");
-                  
-                  // Store basic Google access information for future use
-                  const userData = {
-                    provider: 'google',
-                    accessToken: accessToken,
-                    email: data.session.user.email,
-                    name: data.session.user?.user_metadata?.full_name || data.session.user.email
-                  };
-                  
-                  localStorage.setItem("google_user", JSON.stringify(userData));
-                }
-                
-                toast.success("Connexion réussie!");
-                
-                // Redirect to dashboard after successful authentication
-                setStatus("Authentification réussie! Redirection...");
-                setTimeout(() => navigate("/dashboard"), 1000);
-                return;
-              }
+            if (error) {
+              console.error("Error setting session:", error);
+              throw error;
             }
-          } catch (hashError) {
-            console.error("Error processing hash tokens:", hashError);
-            setErrorDetails(String(hashError));
+            
+            if (data.session) {
+              console.log("Session successfully established");
+              
+              // Store user preferences
+              if (data.session.user?.app_metadata?.provider === 'google') {
+                localStorage.setItem("google_connected", "true");
+                
+                // Store Google user info
+                const userData = {
+                  provider: 'google',
+                  accessToken: accessToken,
+                  email: data.session.user.email,
+                  name: data.session.user?.user_metadata?.full_name || data.session.user.email,
+                  picture: data.session.user?.user_metadata?.picture || data.session.user?.user_metadata?.avatar_url
+                };
+                
+                localStorage.setItem("google_user", JSON.stringify(userData));
+              }
+              
+              toast.success("Connexion réussie!");
+              setStatus("Authentification réussie! Redirection...");
+              setTimeout(() => navigate("/dashboard"), 1000);
+              return;
+            }
+          } catch (tokenError) {
+            console.error("Error processing token:", tokenError);
+            setErrorDetails(String(tokenError));
           }
         }
         
@@ -91,6 +97,16 @@ const AuthCallback = () => {
           
           if (session.user?.app_metadata?.provider === 'google') {
             localStorage.setItem("google_connected", "true");
+            
+            // Store basic user data even if we didn't get it from the token
+            const userData = {
+              provider: 'google',
+              email: session.user.email,
+              name: session.user?.user_metadata?.full_name || session.user.email,
+              picture: session.user?.user_metadata?.picture || session.user?.user_metadata?.avatar_url
+            };
+            
+            localStorage.setItem("google_user", JSON.stringify(userData));
           }
           
           toast.success("Connexion réussie!");
