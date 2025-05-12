@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import AuthDebugDialog from "@/components/AuthDebugDialog";
-import { Button } from "@/components/ui/button";
+import AuthCallbackContent from "@/components/auth/AuthCallbackContent";
+import { checkForAuthErrors, checkForToken, manuallySetSession } from "@/utils/authCallbackUtils";
 
 const AuthCallback = () => {
   const [status, setStatus] = useState<string>("Traitement de l'authentification...");
@@ -21,18 +21,17 @@ const AuthCallback = () => {
         
         // Check URL for errors
         const urlParams = new URLSearchParams(window.location.search);
-        const error = urlParams.get("error");
+        const authError = checkForAuthErrors(urlParams);
         
-        if (error) {
-          console.error("OAuth error:", error);
-          setStatus(`Erreur d'authentification: ${error}`);
-          setErrorDetails(urlParams.get("error_description") || "Aucune description disponible");
-          toast.error(`Échec de l'authentification: ${error}`);
+        if (authError) {
+          setStatus(`Erreur d'authentification: ${authError.error}`);
+          setErrorDetails(authError.errorDescription);
+          toast.error(`Échec de l'authentification: ${authError.error}`);
           setTimeout(() => navigate("/auth"), 5000);
           return;
         }
 
-        // Vérifier si la session existe déjà (cas où le token a été traité par AuthContext)
+        // Check if session exists already (case where token was processed by AuthContext)
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session) {
@@ -43,23 +42,8 @@ const AuthCallback = () => {
         }
         
         // Check for access_token in URL hash or as a standalone JWT
-        let accessToken = null;
-        let refreshToken = null;
-        
-        // First check if we have a hash fragment with tokens
-        if (window.location.hash) {
-          console.log("Hash fragment detected, processing tokens...");
-          setIsTokenFound(true);
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          accessToken = hashParams.get('access_token');
-          refreshToken = hashParams.get('refresh_token');
-        } 
-        // If no access token in hash, check if the URL itself is a JWT token
-        else if (window.location.pathname.length > 20 && window.location.pathname.includes('.')) {
-          console.log("URL appears to be a JWT token, extracting...");
-          setIsTokenFound(true);
-          accessToken = window.location.pathname.substring(1); // Remove leading slash
-        }
+        const { accessToken, refreshToken, isTokenFound: tokenFound } = checkForToken();
+        setIsTokenFound(tokenFound);
         
         if (accessToken) {
           console.log("Access token found, attempting to set session...");
@@ -73,7 +57,7 @@ const AuthCallback = () => {
               toast.success("Connexion réussie!");
               setStatus("Authentification réussie! Redirection...");
               
-              // Nettoyer l'URL
+              // Clean the URL
               window.history.replaceState({}, document.title, window.location.pathname);
               
               setTimeout(() => navigate("/dashboard"), 1000);
@@ -81,40 +65,10 @@ const AuthCallback = () => {
             }
             
             // Fallback to manual token processing if the above fails
-            const { data, error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken || ''
-            });
+            const sessionEstablished = await manuallySetSession(accessToken, refreshToken);
             
-            if (error) {
-              console.error("Error setting session:", error);
-              throw error;
-            }
-            
-            if (data.session) {
-              console.log("Session successfully established");
-              
-              // Store user preferences
-              if (data.session.user?.app_metadata?.provider === 'google') {
-                localStorage.setItem("google_connected", "true");
-                
-                // Store Google user info
-                const userData = {
-                  provider: 'google',
-                  email: data.session.user.email,
-                  name: data.session.user?.user_metadata?.full_name || data.session.user.email,
-                  picture: data.session.user?.user_metadata?.picture || data.session.user?.user_metadata?.avatar_url
-                };
-                
-                localStorage.setItem("google_user", JSON.stringify(userData));
-              }
-              
-              toast.success("Connexion réussie!");
+            if (sessionEstablished) {
               setStatus("Authentification réussie! Redirection...");
-              
-              // Nettoyer l'URL
-              window.history.replaceState({}, document.title, window.location.pathname);
-              
               setTimeout(() => navigate("/dashboard"), 1000);
               return;
             }
@@ -127,7 +81,7 @@ const AuthCallback = () => {
           setErrorDetails("Le processus d'authentification n'a pas généré de jeton valide. Vérifiez la configuration OAuth.");
         }
         
-        // Si nous arrivons ici, l'authentification a échoué
+        // If we get here, authentication failed
         if (!isTokenFound) {
           setStatus("Échec de l'authentification");
           setErrorDetails("Impossible de récupérer les informations de session");
@@ -144,7 +98,7 @@ const AuthCallback = () => {
     };
 
     handleCallback();
-  }, [navigate, processAuthTokens]);
+  }, [navigate, processAuthTokens, isTokenFound]);
 
   const manualRedirectToRoot = () => {
     // Copy token information to the root URL
@@ -157,49 +111,12 @@ const AuthCallback = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center max-w-lg p-6 bg-white rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold mb-4">{status}</h1>
-        {errorDetails && (
-          <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
-            <h2 className="font-semibold">Détails de l'erreur :</h2>
-            <p className="mt-1">{errorDetails}</p>
-            <div className="mt-3 text-xs">
-              <p>Vérifiez que :</p>
-              <ul className="list-disc pl-5 text-left">
-                <li>Votre compte est ajouté comme utilisateur de test dans Google Cloud Console</li>
-                <li>L'URL de redirection <code>{window.location.origin}/auth/callback</code> est exactement configurée comme URI autorisé dans Google Cloud Console</li>
-                <li>L'URL racine <code>{window.location.origin}</code> est également configurée comme URI autorisé</li>
-                <li>L'écran de consentement OAuth est correctement configuré</li>
-                <li>Le domaine <code>{window.location.origin}</code> est ajouté comme domaine autorisé</li>
-              </ul>
-            </div>
-          </div>
-        )}
-        
-        <div className="mt-4 animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
-        
-        <div className="mt-6 space-y-2">
-          <Button variant="outline" onClick={() => navigate("/auth")} className="mx-1">
-            Retour à la page de connexion
-          </Button>
-          
-          {isTokenFound && (
-            <Button onClick={manualRedirectToRoot} className="mx-1">
-              Rediriger vers la page d'accueil avec le jeton
-            </Button>
-          )}
-          
-          <div className="mt-4">
-            <AuthDebugDialog trigger={
-              <Button variant="link" size="sm">
-                Afficher les informations de débogage
-              </Button>
-            } />
-          </div>
-        </div>
-      </div>
-    </div>
+    <AuthCallbackContent
+      status={status}
+      errorDetails={errorDetails}
+      isTokenFound={isTokenFound}
+      manualRedirectToRoot={manualRedirectToRoot}
+    />
   );
 };
 
