@@ -8,13 +8,7 @@ export interface Sheet {
   clientContext?: string;
 }
 
-export interface Client {
-  id: string;
-  name: string;
-  businessContext?: string;
-  specifics?: string;
-  editorialGuidelines?: string;
-}
+export type { Client } from './types/client';
 
 export interface Campaign {
   name: string;

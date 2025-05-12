@@ -3,7 +3,7 @@ import { type Sheet, type Client, type Campaign, type AdGroup, type GenerationPr
 import { sheetService } from "./sheetService";
 import { clientService } from "./clientService";
 import { contentGenerationService } from "./contentGenerationService";
-import { getClients } from "./clientService";
+import { getClients } from "./clientQuery";
 
 export type { 
   Sheet, 

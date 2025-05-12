@@ -45,7 +45,10 @@ const Settings = () => {
     try {
       const { data, error } = await supabase
         .from('api_keys')
-        .select('service, api_key') as any;
+        .select('service, api_key') as unknown as { 
+          data: { service: string, api_key: string }[] | null, 
+          error: Error | null 
+        };
         
       if (error) {
         console.error("Erreur lors du chargement des clés API:", error);
@@ -53,7 +56,7 @@ const Settings = () => {
       }
       
       if (data) {
-        data.forEach((item: { service: string; api_key: string }) => {
+        data.forEach((item) => {
           switch (item.service) {
             case 'openai':
               setOpenaiKey(item.api_key);
