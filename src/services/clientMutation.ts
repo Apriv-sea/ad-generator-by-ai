@@ -56,15 +56,18 @@ export const updateClient = async (
       return false;
     }
     
+    // Create an update object with only the fields that are provided
+    const updateData: any = {};
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.businessContext !== undefined) updateData.business_context = updates.businessContext;
+    if (updates.specifics !== undefined) updateData.specifics = updates.specifics;
+    if (updates.editorialGuidelines !== undefined) updateData.editorial_guidelines = updates.editorialGuidelines;
+    // Convert Date to ISO string for database compatibility
+    updateData.updated_at = new Date().toISOString();
+    
     const { error } = await supabase
       .from('clients')
-      .update({
-        name: updates.name,
-        business_context: updates.businessContext,
-        specifics: updates.specifics,
-        editorial_guidelines: updates.editorialGuidelines,
-        updated_at: new Date()
-      })
+      .update(updateData)
       .eq('id', clientId)
       .eq('user_id', userId);
     
