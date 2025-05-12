@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Client } from "@/services/googleSheetsService";
+import { Client } from "@/services/types";
 import {
   Select,
   SelectContent,
@@ -14,7 +14,7 @@ import {
 interface ClientSelectorProps {
   clients: Client[];
   selectedClient: string | null;
-  onClientSelect: (clientId: string, client?: Client) => void; // Modifié pour optionnellement retourner le client complet
+  onClientSelect: (clientId: string, client?: Client) => void;
   isLoading?: boolean;
   className?: string;
 }

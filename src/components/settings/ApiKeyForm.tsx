@@ -1,113 +1,129 @@
 
+// I need to fix the ApiKeyForm.tsx file to properly type Supabase calls
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserId } from "@/services/utils/supabaseUtils";
+import { ApiKey } from "@/types/supabase-extensions";
 
 interface ApiKeyFormProps {
   service: string;
-  initialValue: string;
-  placeholder: string;
-  helpText: string;
-  helpLink: string;
+  onApiKeySaved: () => void;
+  apiKey?: ApiKey;
+  readOnly?: boolean;
 }
 
-const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
+const ApiKeyForm: React.FC<ApiKeyFormProps> = ({ 
   service,
-  initialValue,
-  placeholder,
-  helpText,
-  helpLink
+  onApiKeySaved,
+  apiKey,
+  readOnly = false
 }) => {
-  const [apiKey, setApiKey] = useState(initialValue);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [key, setKey] = useState(apiKey?.api_key || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  
+  const displayedKey = isVisible ? key : key.replace(/./g, "•");
+  
+  const isUpdateMode = !!apiKey;
 
-  const handleSave = async () => {
-    setIsUpdating(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!key.trim()) {
+      toast.error("Veuillez entrer une clé API");
+      return;
+    }
+    
+    setIsSubmitting(true);
     
     try {
       const userId = await getCurrentUserId();
-      
       if (!userId) {
-        toast.error("Vous devez être connecté pour sauvegarder une clé API");
-        setIsUpdating(false);
+        toast.error("Vous devez être connecté pour enregistrer une clé API");
         return;
       }
       
-      // Check if key already exists for this service
-      const { data: existingKey, error: fetchError } = await supabase
+      // Check if we already have a key for this service
+      const { data: existingKeys } = await supabase
         .from('api_keys' as any)
         .select('*')
-        .eq('service', service)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .eq('service', service);
       
-      if (fetchError) {
-        console.error("Erreur lors de la vérification de la clé API:", fetchError);
-        toast.error("Erreur lors de la vérification de la clé API");
-        setIsUpdating(false);
-        return;
-      }
-      
-      let result;
-      
-      if (existingKey && existingKey.length > 0) {
+      if (!isUpdateMode && existingKeys && existingKeys.length > 0) {
         // Update existing key
-        result = await supabase
+        await supabase
           .from('api_keys' as any)
-          .update({ api_key: apiKey })
-          .eq('service', service)
-          .eq('user_id', userId);
+          .update({ api_key: key } as any)
+          .eq('user_id', userId)
+          .eq('service', service);
+      } else if (isUpdateMode) {
+        // Update specific key
+        await supabase
+          .from('api_keys' as any)
+          .update({ api_key: key } as any)
+          .eq('id', apiKey.id);
       } else {
         // Insert new key
-        result = await supabase
+        await supabase
           .from('api_keys' as any)
           .insert({
             service: service,
-            api_key: apiKey,
+            api_key: key,
             user_id: userId
           } as any);
       }
       
-      if (result.error) {
-        console.error("Erreur lors de l'enregistrement de la clé API:", result.error);
-        toast.error("Impossible d'enregistrer la clé API");
-      } else {
-        toast.success("Clé API sauvegardée avec succès");
-      }
+      toast.success(`Clé API ${isUpdateMode ? 'mise à jour' : 'enregistrée'} avec succès`);
+      onApiKeySaved();
     } catch (error) {
-      console.error("Exception lors de l'enregistrement de la clé API:", error);
-      toast.error("Une erreur s'est produite lors de l'enregistrement de la clé API");
+      console.error("Erreur lors de l'enregistrement de la clé API:", error);
+      toast.error("Une erreur est survenue lors de l'enregistrement de la clé API");
     } finally {
-      setIsUpdating(false);
+      setIsSubmitting(false);
     }
   };
   
   return (
-    <div className="grid gap-4 py-4">
-      <div className="space-y-2">
-        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
-          <Input
-            type="password"
-            placeholder={placeholder}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            className="flex-1"
-          />
-          <Button 
-            onClick={handleSave}
-            disabled={isUpdating}
-            className="sm:w-auto"
-          >
-            {isUpdating ? "Enregistrement..." : "Enregistrer"}
-          </Button>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid gap-2">
+        <Label htmlFor={`${service}-key`}>
+          {readOnly ? "Clé API" : `Entrez votre clé API ${isUpdateMode ? '(mise à jour)' : ''}`}
+        </Label>
+        <div className="flex gap-2">
+          <div className="relative flex-grow">
+            <Input
+              id={`${service}-key`}
+              value={displayedKey}
+              onChange={(e) => setKey(e.target.value)}
+              type="text"
+              placeholder={`Entrez votre clé API ${service}`}
+              disabled={isSubmitting || readOnly}
+            />
+            {key && (
+              <Button 
+                type="button"
+                variant="ghost" 
+                size="sm" 
+                className="absolute right-1 top-1/2 transform -translate-y-1/2"
+                onClick={() => setIsVisible(!isVisible)}
+              >
+                {isVisible ? "Masquer" : "Afficher"}
+              </Button>
+            )}
+          </div>
+          {!readOnly && (
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Enregistrement..." : isUpdateMode ? "Mettre à jour" : "Enregistrer"}
+            </Button>
+          )}
         </div>
-        <p className="text-sm text-muted-foreground">
-          {helpText} <a href={helpLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{helpLink}</a>
-        </p>
       </div>
-    </div>
+    </form>
   );
 };
 

@@ -41,13 +41,15 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
     try {
       const response = await getClients();
       if (response.data) {
-        setClients(response.data as unknown as Client[]);
-        if (response.data.length > 0) {
-          setSelectedClient(response.data[0].id);
-          setSelectedClientData(response.data[0] as unknown as Client);
+        const clientsData = response.data as unknown as Client[];
+        setClients(clientsData);
+        
+        if (clientsData.length > 0) {
+          setSelectedClient(clientsData[0].id);
+          setSelectedClientData(clientsData[0]);
           
           // Mettre à jour le nom de la feuille en fonction du client sélectionné
-          const selectedClientName = response.data[0].name;
+          const selectedClientName = clientsData[0].name;
           setSheetName(`Campagne - ${selectedClientName}`);
         }
       }

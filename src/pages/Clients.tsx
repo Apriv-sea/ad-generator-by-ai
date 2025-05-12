@@ -68,7 +68,14 @@ const Clients = () => {
     }
     
     try {
-      const clientId = await clientService.addClient(newClient);
+      const clientData = {
+        name: newClient.name,
+        businessContext: newClient.businessContext || "",
+        specifics: newClient.specifics || "",
+        editorialGuidelines: newClient.editorialGuidelines || ""
+      };
+      
+      const clientId = await clientService.addClient(clientData);
       if (clientId) {
         // Create a new client object with the generated ID
         const addedClient: Client = {

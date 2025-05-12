@@ -1,86 +1,75 @@
 
+// I need to fix supabase calls in Settings.tsx with proper type assertions
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { GoogleOAuthSection } from "@/components/settings/GoogleOAuthSection";
+import { ApiKeysSection } from "@/components/settings/ApiKeysSection";
+import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import GoogleOAuthSection from "@/components/settings/GoogleOAuthSection";
-import ApiKeysSection from "@/components/settings/ApiKeysSection";
+import { getCurrentUserId } from "@/services/utils/supabaseUtils";
+import { ApiKey } from "@/types/supabase-extensions";
 
 const Settings = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [isLoadingKeys, setIsLoadingKeys] = useState(false);
 
-  // Redirect to auth page if user is not authenticated
+  // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/auth');
     }
   }, [isAuthenticated, navigate]);
 
-  // API Keys state
-  const [openaiKey, setOpenaiKey] = useState("");
-  const [anthropicKey, setAnthropicKey] = useState("");
-  const [googleKey, setGoogleKey] = useState("");
-  
-  // Google OAuth state
-  const [sheetsAccess, setSheetsAccess] = useState(false);
-  const [driveAccess, setDriveAccess] = useState(false);
-  
-  // Load saved API keys and connection status on component mount
+  // Load API keys when page loads
   useEffect(() => {
-    if (isAuthenticated) {
-      loadApiKeys();
-    }
-    
-    const googleSheetsAccess = localStorage.getItem("google_sheets_access") === "true";
-    const googleDriveAccess = localStorage.getItem("google_drive_access") === "true";
-    
-    setSheetsAccess(googleSheetsAccess);
-    setDriveAccess(googleDriveAccess);
+    if (!isAuthenticated) return;
+    loadApiKeys();
   }, [isAuthenticated]);
-  
+
+  // Load API keys from the database
   const loadApiKeys = async () => {
+    setIsLoadingKeys(true);
     try {
-      const { data, error } = await supabase
-        .from('api_keys' as any)
-        .select('service, api_key');
-        
-      if (error) {
-        console.error("Erreur lors du chargement des clés API:", error);
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        setIsLoadingKeys(false);
         return;
       }
-      
-      if (data) {
-        data.forEach((item: any) => {
-          switch (item.service) {
-            case 'openai':
-              setOpenaiKey(item.api_key);
-              break;
-            case 'anthropic':
-              setAnthropicKey(item.api_key);
-              break;
-            case 'google':
-              setGoogleKey(item.api_key);
-              break;
-          }
-        });
+
+      const { data, error } = await supabase
+        .from('api_keys' as any)
+        .select('*')
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error("Erreur lors du chargement des clés API:", error);
+      } else if (data) {
+        // Map the API keys to our expected format
+        const formattedKeys = data.map((key: any) => ({
+          id: key.id,
+          user_id: key.user_id,
+          service: key.service,
+          api_key: key.api_key,
+          created_at: key.created_at
+        }));
+        setApiKeys(formattedKeys);
       }
     } catch (error) {
       console.error("Exception lors du chargement des clés API:", error);
+    } finally {
+      setIsLoadingKeys(false);
     }
-  };
-  
-  const handleLogout = async () => {
-    await logout();
-    navigate('/auth');
   };
   
   if (!isAuthenticated) {
     return null; // Don't show anything while redirecting
   }
-  
+
   return (
     <>
       <Navigation />
@@ -88,21 +77,14 @@ const Settings = () => {
         <h1 className="text-3xl font-bold mb-6">Paramètres</h1>
         
         <div className="space-y-8">
-          {/* Google OAuth Section */}
-          <GoogleOAuthSection 
-            user={user}
-            sheetsAccess={sheetsAccess}
-            driveAccess={driveAccess}
-            setSheetsAccess={setSheetsAccess}
-            setDriveAccess={setDriveAccess}
-            handleLogout={handleLogout}
-          />
+          <Card className="p-6">
+            <GoogleOAuthSection />
+          </Card>
           
-          {/* API Keys Section */}
-          <ApiKeysSection 
-            openaiKey={openaiKey}
-            anthropicKey={anthropicKey}
-            googleKey={googleKey}
+          <ApiKeysSection
+            apiKeys={apiKeys}
+            isLoading={isLoadingKeys}
+            onApiKeySaved={loadApiKeys}
           />
         </div>
       </div>

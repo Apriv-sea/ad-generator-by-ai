@@ -13,7 +13,7 @@ export const getClients = async (): Promise<ClientResponse> => {
     
     // Use type assertion to bypass TypeScript errors
     const { data, error } = await supabase
-      .from('clients')
+      .from('clients' as any)
       .select('*')
       .eq('user_id', userId)
       .order('name', { ascending: true });
@@ -35,7 +35,7 @@ export const getClientById = async (clientId: string): Promise<SingleClientRespo
     
     // Use type assertion to bypass TypeScript errors
     const { data, error } = await supabase
-      .from('clients')
+      .from('clients' as any)
       .select('*')
       .eq('id', clientId)
       .eq('user_id', userId)
