@@ -8,10 +8,10 @@ interface AuthCallbackErrorProps {
 }
 
 const AuthCallbackError: React.FC<AuthCallbackErrorProps> = ({ errorDetails }) => {
-  // Check if the error is related to localhost connection issues
-  const isLocalhostError = errorDetails.toLowerCase().includes('localhost') || 
-                          errorDetails.toLowerCase().includes('origin') || 
-                          errorDetails.toLowerCase().includes('redirect');
+  // Check if the error is related to connection issues
+  const isRedirectError = errorDetails.toLowerCase().includes('origin') || 
+                         errorDetails.toLowerCase().includes('redirect') ||
+                         errorDetails.toLowerCase().includes('uri');
 
   return (
     <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
@@ -29,20 +29,15 @@ const AuthCallbackError: React.FC<AuthCallbackErrorProps> = ({ errorDetails }) =
         </ul>
       </div>
 
-      {isLocalhostError && (
+      {isRedirectError && (
         <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded">
-          <p className="font-semibold">Problème de connexion localhost détecté :</p>
-          <p>Si vous utilisez localhost pour le développement, assurez-vous que :</p>
+          <p className="font-semibold">Problème de redirection détecté :</p>
+          <p>Assurez-vous que :</p>
           <ul className="list-disc pl-5 text-left">
             <li>L'URL exacte <code>{window.location.origin}</code> est ajoutée aux "Origines JavaScript autorisées" dans Google Cloud Console</li>
-            <li>Les URL suivantes sont également ajoutées :
-              <ul className="list-disc pl-5 mt-1">
-                <li><code>http://localhost:5173</code></li>
-                <li><code>http://localhost:3000</code></li>
-                <li><code>http://localhost:8080</code></li>
-              </ul>
-            </li>
-            <li>Les paramètres des URL sont exactement identiques (incluant http/https et le numéro de port)</li>
+            <li>L'URL <code>{window.location.origin}/auth/callback</code> est ajoutée aux "URI de redirection autorisés"</li>
+            <li>Si vous avez activé l'option "Autoriser toutes les origines", vérifiez que cela est bien configuré</li>
+            <li>Les paramètres des URL sont exactement identiques (incluant http/https)</li>
           </ul>
           <div className="flex justify-center mt-2">
             <AuthDebugDialog trigger={

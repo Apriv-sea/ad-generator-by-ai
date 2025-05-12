@@ -8,12 +8,14 @@ import { toast } from "sonner";
 export const initiateGoogleLogin = async (): Promise<void> => {
   try {
     console.log("Initiating Google OAuth login");
-    // Configuration for Google OAuth via Supabase
+    
+    // Configuration for Google OAuth via Supabase with minimal options
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: window.location.origin + '/auth/callback',
-        scopes: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets'
+        scopes: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets',
+        skipBrowserRedirect: false // Ensure browser redirection always happens
       }
     });
     
