@@ -6,6 +6,7 @@ import { toast } from "sonner";
 const AuthCallback = () => {
   const [status, setStatus] = useState<string>("Traitement de l'authentification...");
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,6 +21,7 @@ const AuthCallback = () => {
           console.error("Erreur OAuth:", error, "Description:", errorDescription);
           setStatus(`Erreur d'authentification: ${error}`);
           setErrorDetails(errorDescription);
+          setDebugInfo(`URL complète: ${window.location.href}`);
           toast.error(`Échec de l'authentification: ${error}`);
           setTimeout(() => navigate("/auth"), 5000);
           return;
@@ -33,6 +35,7 @@ const AuthCallback = () => {
           console.error("Aucun token trouvé dans l'URL. Hash params:", window.location.hash);
           setStatus("Erreur: Aucun token d'accès trouvé");
           setErrorDetails("Vérifiez la configuration OAuth dans Google Cloud Console");
+          setDebugInfo(`URL complète: ${window.location.href}`);
           toast.error("Échec de l'authentification");
           setTimeout(() => navigate("/auth"), 5000);
           return;
@@ -50,6 +53,9 @@ const AuthCallback = () => {
         if (!userInfoResponse.ok) {
           const errorData = await userInfoResponse.text();
           console.error("Erreur API userInfo:", userInfoResponse.status, errorData);
+          setStatus(`Erreur API (${userInfoResponse.status})`);
+          setErrorDetails(errorData);
+          setDebugInfo(`URL redirection: ${window.location.origin}/auth/callback`);
           throw new Error(`Échec de la récupération des informations utilisateur: ${errorData}`);
         }
 
@@ -80,6 +86,7 @@ const AuthCallback = () => {
         console.error("Erreur d'authentification:", error);
         setStatus(`Une erreur est survenue lors de l'authentification`);
         setErrorDetails(error instanceof Error ? error.message : "Erreur inconnue");
+        setDebugInfo(`URL configurée: ${window.location.origin}/auth/callback`);
         toast.error("Échec de l'authentification");
         setTimeout(() => navigate("/auth"), 5000);
       }
@@ -96,12 +103,18 @@ const AuthCallback = () => {
           <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
             <h2 className="font-semibold">Détails de l'erreur :</h2>
             <p className="mt-1">{errorDetails}</p>
+            {debugInfo && (
+              <div className="mt-3 text-xs p-2 bg-gray-100 rounded overflow-auto max-w-full">
+                <code>{debugInfo}</code>
+              </div>
+            )}
             <div className="mt-3 text-xs">
               <p>Vérifiez que :</p>
               <ul className="list-disc pl-5 text-left">
                 <li>Votre compte est ajouté comme utilisateur de test dans Google Cloud Console</li>
+                <li>L'URL de redirection <code>{window.location.origin}/auth/callback</code> est exactement configurée comme URI autorisé dans Google Cloud Console</li>
                 <li>L'écran de consentement OAuth est correctement configuré</li>
-                <li>Le domaine est ajouté comme domaine autorisé</li>
+                <li>Le domaine <code>{window.location.origin}</code> est ajouté comme domaine autorisé</li>
               </ul>
             </div>
           </div>
