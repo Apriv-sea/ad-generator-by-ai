@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +10,7 @@ import Navigation from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { ApiKey } from "@/types/supabase-extensions";
 
 const Settings = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -47,9 +47,13 @@ const Settings = () => {
   
   const loadApiKeys = async () => {
     try {
+      // Using type assertion to handle the query
       const { data, error } = await supabase
         .from('api_keys')
-        .select('service, api_key');
+        .select('service, api_key') as unknown as { 
+          data: { service: string; api_key: string }[] | null;
+          error: Error | null;
+        };
         
       if (error) {
         console.error("Erreur lors du chargement des clés API:", error);
@@ -107,12 +111,20 @@ const Settings = () => {
       return;
     }
     
+    if (!user?.id) {
+      toast.error("Vous devez être connecté pour sauvegarder une clé API.");
+      return;
+    }
+
     try {
       // Vérifier si une clé existe déjà pour ce service
       const { data, error: selectError } = await supabase
         .from('api_keys')
         .select('id')
-        .eq('service', service);
+        .eq('service', service) as unknown as {
+          data: { id: string }[] | null;
+          error: Error | null;
+        };
         
       if (selectError) {
         console.error(`Erreur lors de la vérification de la clé API ${service}:`, selectError);
@@ -125,7 +137,7 @@ const Settings = () => {
         const { error: updateError } = await supabase
           .from('api_keys')
           .update({ api_key: key })
-          .eq('service', service);
+          .eq('service', service) as unknown as { error: Error | null };
           
         if (updateError) {
           console.error(`Erreur lors de la mise à jour de la clé API ${service}:`, updateError);
@@ -136,7 +148,11 @@ const Settings = () => {
         // Insertion d'une nouvelle clé
         const { error: insertError } = await supabase
           .from('api_keys')
-          .insert({ service, api_key: key });
+          .insert({ 
+            service, 
+            api_key: key,
+            user_id: user.id
+          }) as unknown as { error: Error | null };
           
         if (insertError) {
           console.error(`Erreur lors de l'ajout de la clé API ${service}:`, insertError);

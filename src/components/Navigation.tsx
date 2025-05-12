@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ExtendedUser } from "@/types/supabase-extensions";
 
 const Navigation = () => {
   const location = useLocation();
@@ -21,6 +22,20 @@ const Navigation = () => {
     { path: "/campaigns", label: "Campagnes" },
     { path: "/settings", label: "Paramètres" },
   ];
+
+  // Helper functions to safely access user properties
+  const getUserName = (): string => {
+    const extendedUser = user as ExtendedUser;
+    return extendedUser?.name || extendedUser?.email?.split('@')[0] || 'Utilisateur';
+  };
+  
+  const getUserInitial = (): string => {
+    return getUserName().charAt(0).toUpperCase();
+  };
+
+  const getUserAvatar = (): string | undefined => {
+    return (user as ExtendedUser)?.picture;
+  };
 
   return (
     <header className="border-b">
@@ -53,10 +68,10 @@ const Navigation = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2">
-                    <span className="hidden sm:inline">{user.name}</span>
+                    <span className="hidden sm:inline">{getUserName()}</span>
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.picture} alt={user.name} />
-                      <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                      <AvatarImage src={getUserAvatar()} alt={getUserName()} />
+                      <AvatarFallback>{getUserInitial()}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>

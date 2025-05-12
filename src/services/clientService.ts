@@ -2,19 +2,26 @@
 import { Client } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ClientRecord } from "@/types/supabase-extensions";
 
 export const getClients = async (): Promise<Client[]> => {
   try {
+    // Using type assertion to handle the query
     const { data, error } = await supabase
       .from('clients')
       .select('*')
-      .order('name');
+      .order('name') as unknown as {
+        data: ClientRecord[] | null;
+        error: Error | null;
+      };
 
     if (error) {
       console.error("Erreur lors de la récupération des clients:", error);
       toast.error("Impossible de récupérer la liste des clients");
       return [];
     }
+
+    if (!data) return [];
 
     return data.map(client => ({
       id: client.id,
@@ -34,22 +41,37 @@ export const clientService = {
   // Ajouter un nouveau client
   addClient: async (client: Omit<Client, 'id'>): Promise<Client | null> => {
     try {
+      const user = supabase.auth.getUser();
+      const userId = (await user).data.user?.id;
+
+      if (!userId) {
+        toast.error("Vous devez être connecté pour ajouter un client");
+        return null;
+      }
+
+      // Using type assertion to handle the query
       const { data, error } = await supabase
         .from('clients')
         .insert({
           name: client.name,
           business_context: client.businessContext,
           specifics: client.specifics,
-          editorial_guidelines: client.editorialGuidelines
+          editorial_guidelines: client.editorialGuidelines,
+          user_id: userId
         })
         .select()
-        .single();
+        .single() as unknown as {
+          data: ClientRecord | null;
+          error: Error | null;
+        };
 
       if (error) {
         console.error("Erreur lors de l'ajout du client:", error);
         toast.error("Impossible d'ajouter le client");
         return null;
       }
+
+      if (!data) return null;
 
       return {
         id: data.id,
@@ -68,6 +90,7 @@ export const clientService = {
   // Mettre à jour un client existant
   updateClient: async (client: Client): Promise<boolean> => {
     try {
+      // Using type assertion to handle the query
       const { error } = await supabase
         .from('clients')
         .update({
@@ -77,7 +100,7 @@ export const clientService = {
           editorial_guidelines: client.editorialGuidelines,
           updated_at: new Date()
         })
-        .eq('id', client.id);
+        .eq('id', client.id) as unknown as { error: Error | null };
 
       if (error) {
         console.error("Erreur lors de la mise à jour du client:", error);
@@ -96,10 +119,11 @@ export const clientService = {
   // Supprimer un client
   deleteClient: async (clientId: string): Promise<boolean> => {
     try {
+      // Using type assertion to handle the query
       const { error } = await supabase
         .from('clients')
         .delete()
-        .eq('id', clientId);
+        .eq('id', clientId) as unknown as { error: Error | null };
 
       if (error) {
         console.error("Erreur lors de la suppression du client:", error);
@@ -118,16 +142,22 @@ export const clientService = {
   // Récupérer un client par son ID
   getClientById: async (clientId: string): Promise<Client | null> => {
     try {
+      // Using type assertion to handle the query
       const { data, error } = await supabase
         .from('clients')
         .select('*')
         .eq('id', clientId)
-        .single();
+        .single() as unknown as {
+          data: ClientRecord | null;
+          error: Error | null;
+        };
 
       if (error) {
         console.error("Erreur lors de la récupération du client:", error);
         return null;
       }
+
+      if (!data) return null;
 
       return {
         id: data.id,

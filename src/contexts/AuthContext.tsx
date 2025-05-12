@@ -1,8 +1,9 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from '@supabase/supabase-js';
+import { processUserMetadata } from "@/utils/user-helpers";
+import { ExtendedUser } from "@/types/supabase-extensions";
 
 interface AuthContextType {
   user: User | null;
@@ -28,14 +29,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
-        setUser(session?.user ?? null);
+        // Process the user to extract additional metadata like name and picture
+        const processedUser = session?.user ? processUserMetadata(session.user) : null;
+        setUser(processedUser);
       }
     );
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      // Process the user to extract additional metadata like name and picture
+      const processedUser = session?.user ? processUserMetadata(session.user) : null;
+      setUser(processedUser);
       setIsLoading(false);
     }).catch(error => {
       console.error("Error checking session:", error);
