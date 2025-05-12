@@ -27,6 +27,16 @@ const AuthCallback = () => {
           return;
         }
 
+        // Vérifier si la session existe déjà (cas où le token a été traité par AuthContext)
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          console.log("Session already exists, redirecting to dashboard");
+          toast.success("Connexion réussie!");
+          setTimeout(() => navigate("/dashboard"), 1000);
+          return;
+        }
+        
         // Check for access_token in URL hash or as a standalone JWT
         let accessToken = null;
         let refreshToken = null;
@@ -69,7 +79,6 @@ const AuthCallback = () => {
                 // Store Google user info
                 const userData = {
                   provider: 'google',
-                  accessToken: accessToken,
                   email: data.session.user.email,
                   name: data.session.user?.user_metadata?.full_name || data.session.user.email,
                   picture: data.session.user?.user_metadata?.picture || data.session.user?.user_metadata?.avatar_url
@@ -80,6 +89,10 @@ const AuthCallback = () => {
               
               toast.success("Connexion réussie!");
               setStatus("Authentification réussie! Redirection...");
+              
+              // Nettoyer l'URL
+              window.history.replaceState({}, document.title, window.location.pathname);
+              
               setTimeout(() => navigate("/dashboard"), 1000);
               return;
             }
@@ -89,32 +102,7 @@ const AuthCallback = () => {
           }
         }
         
-        // Check for existing session as fallback
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session) {
-          console.log("Existing session found");
-          
-          if (session.user?.app_metadata?.provider === 'google') {
-            localStorage.setItem("google_connected", "true");
-            
-            // Store basic user data even if we didn't get it from the token
-            const userData = {
-              provider: 'google',
-              email: session.user.email,
-              name: session.user?.user_metadata?.full_name || session.user.email,
-              picture: session.user?.user_metadata?.picture || session.user?.user_metadata?.avatar_url
-            };
-            
-            localStorage.setItem("google_user", JSON.stringify(userData));
-          }
-          
-          toast.success("Connexion réussie!");
-          setTimeout(() => navigate("/dashboard"), 1000);
-          return;
-        }
-        
-        // If we get here, authentication failed
+        // Si nous arrivons ici, l'authentification a échoué
         setStatus("Échec de l'authentification");
         setErrorDetails("Impossible de récupérer les informations de session");
         toast.error("Échec de l'authentification");
@@ -144,6 +132,7 @@ const AuthCallback = () => {
               <ul className="list-disc pl-5 text-left">
                 <li>Votre compte est ajouté comme utilisateur de test dans Google Cloud Console</li>
                 <li>L'URL de redirection <code>{window.location.origin}/auth/callback</code> est exactement configurée comme URI autorisé dans Google Cloud Console</li>
+                <li>L'URL racine <code>{window.location.origin}</code> est également configurée comme URI autorisé</li>
                 <li>L'écran de consentement OAuth est correctement configuré</li>
                 <li>Le domaine <code>{window.location.origin}</code> est ajouté comme domaine autorisé</li>
               </ul>

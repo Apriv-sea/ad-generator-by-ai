@@ -24,22 +24,110 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Fonction pour traiter les tokens dans l'URL
+  const handleTokensFromHash = async () => {
+    console.log("Checking URL for authentication tokens...");
+    
+    if (window.location.hash && window.location.hash.includes('access_token')) {
+      console.log("Found access token in URL hash");
+      try {
+        // Extraire les paramètres de l'URL
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token') || '';
+        
+        if (!accessToken) {
+          console.error("Access token not found in URL hash");
+          return;
+        }
+        
+        console.log("Setting session with token from URL...");
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+        
+        if (error) {
+          console.error("Error setting session with token:", error);
+          toast.error("Erreur lors de l'authentification");
+          return;
+        }
+        
+        if (data.session) {
+          console.log("Session successfully established from URL token");
+          // Ne pas définir directement ici, laissons le gestionnaire d'événements onAuthStateChange s'en occuper
+          
+          // Nettoyer l'URL après traitement du token
+          window.history.replaceState({}, document.title, window.location.pathname);
+          
+          toast.success("Connexion réussie!");
+          return true; // Indique que l'authentification a réussi
+        }
+      } catch (error) {
+        console.error("Error processing authentication from URL:", error);
+      }
+    }
+    return false;
+  };
+
   // Vérifier l'authentification au chargement
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log("Auth state changed:", event);
+    let authSubscription: { unsubscribe: () => void } | null = null;
+    
+    const initAuth = async () => {
+      // Vérifier d'abord si des tokens sont présents dans l'URL
+      const authenticatedFromUrl = await handleTokensFromHash();
+      
+      // Set up auth state listener
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          console.log("Auth state changed:", event);
+          setSession(session);
+          // Process the user to extract additional metadata like name and picture
+          const processedUser = session?.user ? processUserMetadata(session.user) : null;
+          setUser(processedUser);
+          
+          // Update Google connection status in localStorage based on auth events
+          if (event === 'SIGNED_IN' && session?.user?.app_metadata?.provider === 'google') {
+            localStorage.setItem('google_connected', 'true');
+            
+            // Store user data for Google authenticated users
+            if (session.user) {
+              const userData = {
+                provider: 'google',
+                email: session.user.email,
+                name: session.user?.user_metadata?.full_name || session.user.email,
+                picture: session.user?.user_metadata?.picture || session.user?.user_metadata?.avatar_url
+              };
+              
+              localStorage.setItem("google_user", JSON.stringify(userData));
+            }
+          } else if (event === 'SIGNED_OUT') {
+            localStorage.removeItem('google_connected');
+            localStorage.removeItem('google_user');
+            localStorage.removeItem('google_sheets_access');
+            localStorage.removeItem('google_drive_access');
+          }
+        }
+      );
+      
+      authSubscription = subscription;
+      
+      // Ne vérifions la session existante que si nous ne nous sommes pas déjà authentifiés via l'URL
+      if (!authenticatedFromUrl) {
+        // THEN check for existing session
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log("Initial session check:", session ? "Session found" : "No session");
         setSession(session);
         // Process the user to extract additional metadata like name and picture
         const processedUser = session?.user ? processUserMetadata(session.user) : null;
         setUser(processedUser);
         
-        // Update Google connection status in localStorage based on auth events
-        if (event === 'SIGNED_IN' && session?.user?.app_metadata?.provider === 'google') {
+        // Initialize Google connection status if not set already
+        if (session?.user?.app_metadata?.provider === 'google') {
           localStorage.setItem('google_connected', 'true');
           
-          // Store user data for Google authenticated users
+          // Ensure we have user data stored
           if (!localStorage.getItem('google_user') && session.user) {
             const userData = {
               provider: 'google',
@@ -50,47 +138,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             
             localStorage.setItem("google_user", JSON.stringify(userData));
           }
-        } else if (event === 'SIGNED_OUT') {
-          localStorage.removeItem('google_connected');
-          localStorage.removeItem('google_user');
-          localStorage.removeItem('google_sheets_access');
-          localStorage.removeItem('google_drive_access');
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("Initial session check:", session ? "Session found" : "No session");
-      setSession(session);
-      // Process the user to extract additional metadata like name and picture
-      const processedUser = session?.user ? processUserMetadata(session.user) : null;
-      setUser(processedUser);
-      
-      // Initialize Google connection status if not set already
-      if (session?.user?.app_metadata?.provider === 'google') {
-        localStorage.setItem('google_connected', 'true');
-        
-        // Ensure we have user data stored
-        if (!localStorage.getItem('google_user') && session.user) {
-          const userData = {
-            provider: 'google',
-            email: session.user.email,
-            name: session.user?.user_metadata?.full_name || session.user.email,
-            picture: session.user?.user_metadata?.picture || session.user?.user_metadata?.avatar_url
-          };
-          
-          localStorage.setItem("google_user", JSON.stringify(userData));
         }
       }
       
       setIsLoading(false);
-    }).catch(error => {
-      console.error("Error checking session:", error);
+    };
+
+    initAuth().catch(error => {
+      console.error("Error initializing authentication:", error);
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
+    };
   }, []);
 
   // Fonctions d'authentification
