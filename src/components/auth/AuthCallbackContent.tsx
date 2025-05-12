@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import AuthDebugDialog from "@/components/AuthDebugDialog";
 import AuthError from "@/components/auth/AuthError";
 import AuthLoading from "@/components/auth/AuthLoading";
+import AuthCallbackError from "@/components/auth/AuthCallbackError";
 
 interface AuthCallbackContentProps {
   status: string;
