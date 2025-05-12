@@ -12,11 +12,13 @@ const GoogleOAuthSection: React.FC = () => {
   const { user } = useAuth();
   const [sheetsAccess, setSheetsAccess] = useState(false);
   const [driveAccess, setDriveAccess] = useState(false);
+  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
 
   // Load preferences from localStorage on component mount
   useEffect(() => {
     const storedSheetsAccess = localStorage.getItem("google_sheets_access");
     const storedDriveAccess = localStorage.getItem("google_drive_access");
+    const googleConnected = localStorage.getItem("google_connected");
     
     if (storedSheetsAccess) {
       setSheetsAccess(storedSheetsAccess === "true");
@@ -25,11 +27,19 @@ const GoogleOAuthSection: React.FC = () => {
     if (storedDriveAccess) {
       setDriveAccess(storedDriveAccess === "true");
     }
-  }, []);
+    
+    if (googleConnected === "true" && user?.app_metadata?.provider === "google") {
+      setIsGoogleConnected(true);
+    }
+  }, [user]);
 
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
+      // Clear Google-related preferences
+      localStorage.removeItem("google_connected");
+      localStorage.removeItem("google_sheets_access");
+      localStorage.removeItem("google_drive_access");
       toast.success("Déconnecté avec succès");
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
@@ -61,6 +71,8 @@ const GoogleOAuthSection: React.FC = () => {
     }
   };
 
+  const isGoogleUser = user?.app_metadata?.provider === "google";
+
   return (
     <div className="max-w-2xl mx-auto">
       <CardHeader className="px-0 pt-0">
@@ -73,7 +85,7 @@ const GoogleOAuthSection: React.FC = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">Compte Google connecté</p>
+              <p className="font-medium">Compte Google {isGoogleUser ? "connecté" : ""}</p>
               <p className="text-sm text-muted-foreground">{user?.email}</p>
             </div>
             <Button variant="outline" onClick={handleLogout}>
@@ -81,31 +93,33 @@ const GoogleOAuthSection: React.FC = () => {
             </Button>
           </div>
           
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="sheets-access">Google Sheets</Label>
-                <p className="text-sm text-muted-foreground">Accès pour lire/écrire dans vos feuilles de calcul</p>
+          {isGoogleUser && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="sheets-access">Google Sheets</Label>
+                  <p className="text-sm text-muted-foreground">Accès pour lire/écrire dans vos feuilles de calcul</p>
+                </div>
+                <Switch 
+                  id="sheets-access" 
+                  checked={sheetsAccess}
+                  onCheckedChange={toggleSheetsAccess}
+                />
               </div>
-              <Switch 
-                id="sheets-access" 
-                checked={sheetsAccess}
-                onCheckedChange={toggleSheetsAccess}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="drive-access">Google Drive</Label>
-                <p className="text-sm text-muted-foreground">Accès pour gérer vos documents</p>
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="drive-access">Google Drive</Label>
+                  <p className="text-sm text-muted-foreground">Accès pour gérer vos documents</p>
+                </div>
+                <Switch 
+                  id="drive-access" 
+                  checked={driveAccess}
+                  onCheckedChange={toggleDriveAccess}
+                />
               </div>
-              <Switch 
-                id="drive-access" 
-                checked={driveAccess}
-                onCheckedChange={toggleDriveAccess}
-              />
             </div>
-          </div>
+          )}
         </div>
       </CardContent>
     </div>
