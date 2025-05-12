@@ -10,6 +10,18 @@ const AuthCallback = () => {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        // Vérifier si l'URL contient une erreur
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get("error");
+        
+        if (error) {
+          console.error("Erreur OAuth:", error);
+          setStatus(`Erreur d'authentification: ${error}`);
+          toast.error(`Échec de l'authentification: ${error}`);
+          setTimeout(() => navigate("/auth"), 2000);
+          return;
+        }
+        
         // Extraire les paramètres de l'URL fragment (après le #)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get("access_token");
@@ -21,6 +33,8 @@ const AuthCallback = () => {
           return;
         }
 
+        console.log("Token d'accès récupéré, longueur:", accessToken.length);
+        
         // Récupérer les informations de l'utilisateur avec le token
         const userInfoResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
           headers: {
@@ -29,10 +43,12 @@ const AuthCallback = () => {
         });
 
         if (!userInfoResponse.ok) {
-          throw new Error("Échec de la récupération des informations utilisateur");
+          const errorData = await userInfoResponse.text();
+          throw new Error(`Échec de la récupération des informations utilisateur: ${errorData}`);
         }
 
         const userData = await userInfoResponse.json();
+        console.log("Informations utilisateur récupérées:", userData);
 
         // Créer l'objet utilisateur
         const user = {
@@ -56,7 +72,7 @@ const AuthCallback = () => {
         setTimeout(() => navigate("/dashboard"), 1000);
       } catch (error) {
         console.error("Erreur d'authentification:", error);
-        setStatus("Une erreur est survenue lors de l'authentification");
+        setStatus(`Une erreur est survenue lors de l'authentification: ${error instanceof Error ? error.message : "Erreur inconnue"}`);
         toast.error("Échec de l'authentification");
         setTimeout(() => navigate("/auth"), 2000);
       }

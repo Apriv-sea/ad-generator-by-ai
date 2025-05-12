@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const Auth = () => {
   const { login, isAuthenticated } = useAuth();
@@ -16,6 +17,15 @@ const Auth = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  const handleLogin = () => {
+    try {
+      login();
+    } catch (error) {
+      console.error("Erreur lors de la connexion:", error);
+      toast.error("Une erreur s'est produite lors de la tentative de connexion");
+    }
+  };
+
   return (
     <div className="container mx-auto py-12 flex items-center justify-center min-h-[80vh]">
       <Card className="w-full max-w-md">
@@ -27,7 +37,7 @@ const Auth = () => {
         </CardHeader>
         <CardContent>
           <Button 
-            onClick={login}
+            onClick={handleLogin}
             className="w-full flex items-center justify-center gap-2"
           >
             <svg width="20" height="20" viewBox="0 0 24 24">

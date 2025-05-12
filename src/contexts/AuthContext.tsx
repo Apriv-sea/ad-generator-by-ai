@@ -1,5 +1,6 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
+import { toast } from "sonner";
 
 interface User {
   id: string;
@@ -37,33 +38,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = () => {
-    // Configuration pour Google OAuth
-    const googleAuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
-    const redirectUri = window.location.origin + "/auth/callback";
-    
-    // Client ID fourni par l'utilisateur
-    const clientId = "135447600769-22vd8jk726t5f8gp58robppv0v8eeme7.apps.googleusercontent.com";
-    
-    const scope = [
-      "https://www.googleapis.com/auth/userinfo.email",
-      "https://www.googleapis.com/auth/userinfo.profile",
-      "https://www.googleapis.com/auth/drive.file",
-      "https://www.googleapis.com/auth/spreadsheets"
-    ].join(" ");
-    
-    const params = {
-      client_id: clientId,
-      redirect_uri: redirectUri,
-      response_type: "token",
-      scope: scope,
-      include_granted_scopes: "true",
-      state: "pass-through-value"
-    };
-    
-    const authUrl = `${googleAuthUrl}?${new URLSearchParams(params).toString()}`;
-    
-    // Rediriger vers la page d'authentification Google
-    window.location.href = authUrl;
+    try {
+      // Configuration pour Google OAuth
+      const googleAuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+      const redirectUri = window.location.origin + "/auth/callback";
+      
+      // Client ID fourni par l'utilisateur
+      const clientId = "135447600769-22vd8jk726t5f8gp58robppv0v8eeme7.apps.googleusercontent.com";
+      
+      const scope = [
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "openid",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/spreadsheets"
+      ].join(" ");
+      
+      const params = {
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        response_type: "token",
+        scope: scope,
+        include_granted_scopes: "true",
+        state: "pass-through-value",
+        prompt: "consent",
+        access_type: "offline"
+      };
+      
+      const authUrl = `${googleAuthUrl}?${new URLSearchParams(params).toString()}`;
+      
+      console.log("Redirection vers:", authUrl);
+      
+      // Rediriger vers la page d'authentification Google
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error("Erreur lors de la redirection vers Google:", error);
+      toast.error("Erreur lors de la connexion à Google. Veuillez réessayer.");
+    }
   };
 
   const logout = () => {
