@@ -28,6 +28,9 @@ const AuthDebugDialog: React.FC<AuthDebugDialogProps> = ({ trigger }) => {
       pathname: window.location.pathname,
       search: window.location.search,
       origin: window.location.origin,
+      protocol: window.location.protocol,
+      host: window.location.host,
+      port: window.location.port || "default",
     };
     
     // Check localStorage
@@ -59,11 +62,11 @@ const AuthDebugDialog: React.FC<AuthDebugDialogProps> = ({ trigger }) => {
         <DialogHeader>
           <DialogTitle>Informations de débogage d'authentification</DialogTitle>
           <DialogDescription>
-            Ces informations peuvent aider à résoudre les problèmes d'authentification.
+            Ces informations peuvent aider à résoudre les problèmes d'authentification, notamment les erreurs de localhost.
           </DialogDescription>
         </DialogHeader>
         
-        <Button onClick={collectDebugInfo} className="mb-4">
+        <Button onClick={collectDebugInfo} className="mb-4 bg-blue-600 hover:bg-blue-700">
           Collecter les informations de débogage
         </Button>
         
