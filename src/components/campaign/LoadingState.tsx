@@ -6,7 +6,9 @@ interface LoadingStateProps {
   message?: string;
 }
 
-const LoadingState: React.FC<LoadingStateProps> = ({ message = "Chargement des données de la campagne..." }) => {
+const LoadingState: React.FC<LoadingStateProps> = ({ 
+  message = "Chargement des données de la campagne..." 
+}) => {
   return (
     <Card>
       <CardContent className="pt-6">

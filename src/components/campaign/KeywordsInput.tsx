@@ -8,6 +8,12 @@ interface KeywordsInputProps {
   onChange: (index: number, value: string) => void;
 }
 
+/**
+ * Component for inputting and editing keywords.
+ * 
+ * @param keywords - Array of keywords strings to display
+ * @param onChange - Callback function when a keyword changes
+ */
 const KeywordsInput: React.FC<KeywordsInputProps> = ({ keywords, onChange }) => {
   return (
     <div>
@@ -19,6 +25,7 @@ const KeywordsInput: React.FC<KeywordsInputProps> = ({ keywords, onChange }) => 
             value={keywords[keywordIndex] || ""}
             onChange={(e) => onChange(keywordIndex, e.target.value)}
             placeholder={`Mot-clé ${keywordIndex + 1}`}
+            aria-label={`Mot-clé ${keywordIndex + 1}`}
           />
         ))}
       </div>
