@@ -1,13 +1,51 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { Sheet, googleSheetsService } from "@/services/googleSheetsService";
+import SheetsList from "@/components/SheetsList";
+import CreateSheetDialog from "@/components/CreateSheetDialog";
 
 const Campaigns = () => {
+  const { isAuthenticated, user } = useAuth();
+  const [sheets, setSheets] = useState<Sheet[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedSheet, setSelectedSheet] = useState<Sheet | null>(null);
+
+  const fetchSheets = async () => {
+    if (!isAuthenticated) {
+      toast.error("Veuillez vous connecter pour accéder à vos feuilles Google Sheets");
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const sheetsList = await googleSheetsService.listSheets();
+      setSheets(sheetsList);
+    } catch (error) {
+      console.error("Erreur lors de la récupération des feuilles:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchSheets();
+    }
+  }, [isAuthenticated]);
+
+  const handleSelectSheet = (sheet: Sheet) => {
+    setSelectedSheet(sheet);
+    localStorage.setItem('selected_sheet', JSON.stringify(sheet));
+    toast.success(`Feuille "${sheet.name}" sélectionnée avec succès!`);
+  };
+
   const handleCreateSheet = () => {
-    toast.info("Cette fonctionnalité sera implémentée avec l'intégration Google Sheets.");
+    fetchSheets();
   };
 
   return (
@@ -24,30 +62,35 @@ const Campaigns = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col md:flex-row gap-4">
-            <Button onClick={handleCreateSheet}>Créer une nouvelle feuille</Button>
-            <Button variant="outline" onClick={handleCreateSheet}>
-              Sélectionner une feuille existante
+            <CreateSheetDialog onSheetCreated={handleCreateSheet} />
+            <Button 
+              variant="outline" 
+              onClick={fetchSheets}
+              disabled={isLoading}
+            >
+              {isLoading ? "Chargement..." : "Rafraîchir la liste"}
             </Button>
           </CardContent>
         </Card>
         
-        <div className="bg-muted/50 border rounded-lg p-8 text-center">
-          <h3 className="text-xl font-semibold mb-3">Aucune campagne active</h3>
-          <p className="mb-6">
-            Vous n'avez pas encore connecté de feuille Google Sheets.
-            <br />
-            Créez une nouvelle feuille ou connectez-vous à une feuille existante pour commencer.
-          </p>
-          <div className="flex flex-col md:flex-row justify-center gap-4">
-            <Button onClick={handleCreateSheet}>Créer une nouvelle feuille</Button>
-            <Button variant="outline" onClick={handleCreateSheet}>
-              Sélectionner une feuille existante
-            </Button>
+        {!isAuthenticated ? (
+          <div className="bg-muted/50 border rounded-lg p-8 text-center">
+            <h3 className="text-xl font-semibold mb-3">Connexion requise</h3>
+            <p className="mb-6">
+              Veuillez vous connecter avec votre compte Google pour accéder à vos feuilles.
+            </p>
           </div>
-        </div>
+        ) : (
+          <SheetsList 
+            sheets={sheets} 
+            onSelectSheet={handleSelectSheet} 
+            isLoading={isLoading} 
+          />
+        )}
       </div>
     </>
   );
 };
 
 export default Campaigns;
+
