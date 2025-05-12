@@ -15,6 +15,7 @@ import Clients from "./pages/Clients";
 import Campaigns from "./pages/Campaigns";
 import HowItWorks from "./pages/HowItWorks";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import LocalhostRedirect from "./pages/LocalhostRedirect";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/campaigns" element={<Campaigns />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/localhost-redirect" element={<LocalhostRedirect />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
