@@ -3,11 +3,16 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import AuthDebugDialog from "@/components/AuthDebugDialog";
+import { Button } from "@/components/ui/button";
 
 const AuthCallback = () => {
   const [status, setStatus] = useState<string>("Traitement de l'authentification...");
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
+  const [isTokenFound, setIsTokenFound] = useState<boolean>(false);
   const navigate = useNavigate();
+  const { processAuthTokens } = useAuth();
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -44,6 +49,7 @@ const AuthCallback = () => {
         // First check if we have a hash fragment with tokens
         if (window.location.hash) {
           console.log("Hash fragment detected, processing tokens...");
+          setIsTokenFound(true);
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           accessToken = hashParams.get('access_token');
           refreshToken = hashParams.get('refresh_token');
@@ -51,6 +57,7 @@ const AuthCallback = () => {
         // If no access token in hash, check if the URL itself is a JWT token
         else if (window.location.pathname.length > 20 && window.location.pathname.includes('.')) {
           console.log("URL appears to be a JWT token, extracting...");
+          setIsTokenFound(true);
           accessToken = window.location.pathname.substring(1); // Remove leading slash
         }
         
@@ -58,7 +65,22 @@ const AuthCallback = () => {
           console.log("Access token found, attempting to set session...");
           
           try {
-            // Set the session with Supabase using the token
+            // Try to process token using the centralized function first
+            const tokenProcessed = await processAuthTokens();
+            
+            if (tokenProcessed) {
+              console.log("Token processed successfully through AuthContext");
+              toast.success("Connexion réussie!");
+              setStatus("Authentification réussie! Redirection...");
+              
+              // Nettoyer l'URL
+              window.history.replaceState({}, document.title, window.location.pathname);
+              
+              setTimeout(() => navigate("/dashboard"), 1000);
+              return;
+            }
+            
+            // Fallback to manual token processing if the above fails
             const { data, error } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken || ''
@@ -100,13 +122,18 @@ const AuthCallback = () => {
             console.error("Error processing token:", tokenError);
             setErrorDetails(String(tokenError));
           }
+        } else {
+          setStatus("Aucun jeton d'authentification trouvé dans l'URL");
+          setErrorDetails("Le processus d'authentification n'a pas généré de jeton valide. Vérifiez la configuration OAuth.");
         }
         
         // Si nous arrivons ici, l'authentification a échoué
-        setStatus("Échec de l'authentification");
-        setErrorDetails("Impossible de récupérer les informations de session");
-        toast.error("Échec de l'authentification");
-        setTimeout(() => navigate("/auth"), 5000);
+        if (!isTokenFound) {
+          setStatus("Échec de l'authentification");
+          setErrorDetails("Impossible de récupérer les informations de session");
+          toast.error("Échec de l'authentification");
+          setTimeout(() => navigate("/auth"), 5000);
+        }
       } catch (error) {
         console.error("Authentication error:", error);
         setStatus("Une erreur est survenue");
@@ -117,7 +144,17 @@ const AuthCallback = () => {
     };
 
     handleCallback();
-  }, [navigate]);
+  }, [navigate, processAuthTokens]);
+
+  const manualRedirectToRoot = () => {
+    // Copy token information to the root URL
+    if (window.location.hash && window.location.hash.includes('access_token')) {
+      const rootUrl = window.location.origin + '/' + window.location.hash;
+      window.location.href = rootUrl;
+    } else {
+      navigate("/");
+    }
+  };
 
   return (
     <div className="flex items-center justify-center min-h-screen">
@@ -139,7 +176,28 @@ const AuthCallback = () => {
             </div>
           </div>
         )}
+        
         <div className="mt-4 animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+        
+        <div className="mt-6 space-y-2">
+          <Button variant="outline" onClick={() => navigate("/auth")} className="mx-1">
+            Retour à la page de connexion
+          </Button>
+          
+          {isTokenFound && (
+            <Button onClick={manualRedirectToRoot} className="mx-1">
+              Rediriger vers la page d'accueil avec le jeton
+            </Button>
+          )}
+          
+          <div className="mt-4">
+            <AuthDebugDialog trigger={
+              <Button variant="link" size="sm">
+                Afficher les informations de débogage
+              </Button>
+            } />
+          </div>
+        </div>
       </div>
     </div>
   );
