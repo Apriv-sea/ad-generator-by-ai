@@ -41,7 +41,7 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
         .from('api_keys')
         .select('*')
         .eq('service', service)
-        .eq('user_id', userId) as unknown as { data: any[] | null, error: Error | null };
+        .eq('user_id', userId);
       
       if (fetchError) {
         console.error("Erreur lors de la vérification de la clé API:", fetchError);
@@ -58,7 +58,7 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
           .from('api_keys')
           .update({ api_key: apiKey })
           .eq('service', service)
-          .eq('user_id', userId) as unknown as { error: Error | null };
+          .eq('user_id', userId);
       } else {
         // Insert new key
         result = await supabase
@@ -67,7 +67,7 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
             service: service,
             api_key: apiKey,
             user_id: userId
-          }) as unknown as { error: Error | null };
+          });
       }
       
       if (result.error) {

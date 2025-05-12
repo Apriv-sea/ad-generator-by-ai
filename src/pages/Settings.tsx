@@ -45,10 +45,7 @@ const Settings = () => {
     try {
       const { data, error } = await supabase
         .from('api_keys')
-        .select('service, api_key') as unknown as { 
-          data: { service: string, api_key: string }[] | null, 
-          error: Error | null 
-        };
+        .select('service, api_key');
         
       if (error) {
         console.error("Erreur lors du chargement des clés API:", error);
