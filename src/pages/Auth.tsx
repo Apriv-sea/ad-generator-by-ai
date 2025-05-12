@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader } from "lucide-react";
+import AuthDebugDialog from "@/components/AuthDebugDialog";
 
 const Auth = () => {
   const location = useLocation();
@@ -266,8 +267,11 @@ const Auth = () => {
             )}
           </CardContent>
           
-          <CardFooter className="text-center text-xs text-muted-foreground">
-            En continuant, vous acceptez nos Conditions d'utilisation et notre Politique de confidentialité.
+          <CardFooter className="flex flex-col gap-4 text-center text-xs text-muted-foreground">
+            <p>En continuant, vous acceptez nos Conditions d'utilisation et notre Politique de confidentialité.</p>
+            <AuthDebugDialog 
+              trigger={<Button variant="ghost" size="sm" className="text-xs">Débogage d'authentification</Button>}
+            />
           </CardFooter>
         </Card>
         
@@ -282,4 +286,3 @@ const Auth = () => {
 };
 
 export default Auth;
-

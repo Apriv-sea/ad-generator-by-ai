@@ -1,15 +1,18 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import AuthDebugDialog from "@/components/AuthDebugDialog";
 
 const Index = () => {
   const navigate = useNavigate();
   const { isAuthenticated, processAuthTokens } = useAuth();
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [processingAuth, setProcessingAuth] = useState<boolean>(false);
 
   // Vérifier si l'URL contient des tokens d'authentification
   useEffect(() => {
@@ -18,11 +21,13 @@ const Index = () => {
       // Vérifier si l'URL contient des jetons d'authentification
       if (window.location.hash && window.location.hash.includes('access_token')) {
         console.log("Jetons d'authentification détectés dans la page d'accueil");
+        setProcessingAuth(true);
         
         try {
           const tokenProcessed = await processAuthTokens();
           
           if (tokenProcessed) {
+            toast.success("Authentification réussie!");
             // Nettoyer l'URL après traitement du jeton
             window.history.replaceState({}, document.title, window.location.pathname);
             
@@ -32,11 +37,23 @@ const Index = () => {
                 navigate("/dashboard");
               }
             }, 1000);
+          } else {
+            console.error("Échec du traitement du jeton");
+            setAuthError("Échec du traitement du jeton d'authentification.");
           }
         } catch (error) {
           console.error("Erreur lors du traitement des jetons:", error);
-          toast.error("Erreur d'authentification. Veuillez réessayer.");
+          setAuthError(`Erreur d'authentification: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+          setProcessingAuth(false);
         }
+      } else if (location.search && location.search.includes('error')) {
+        // Extract error from query params
+        const params = new URLSearchParams(location.search);
+        const error = params.get('error');
+        const errorDesc = params.get('error_description');
+        console.error(`Erreur OAuth: ${error}: ${errorDesc}`);
+        setAuthError(`Erreur Google OAuth: ${error}. ${errorDesc || ''}`);
       }
     };
 
@@ -45,10 +62,10 @@ const Index = () => {
 
   // Si l'utilisateur est déjà authentifié, rediriger vers le tableau de bord
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !processingAuth) {
       navigate("/dashboard");
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, processingAuth]);
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -57,6 +74,19 @@ const Index = () => {
         <p className="text-xl text-center mb-10">
           Générez des titres et descriptions publicitaires efficaces en intégrant Google Sheets et l'IA
         </p>
+        
+        {authError && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription className="whitespace-pre-wrap">
+              {authError}
+              <div className="mt-2">
+                <AuthDebugDialog
+                  trigger={<Button variant="outline" size="sm">Afficher les informations de débogage</Button>}
+                />
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
         
         <div className="bg-slate-50 p-6 rounded-lg mb-10 shadow-sm">
           <p className="mb-4 text-center">
