@@ -61,13 +61,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         scope: scope,
         include_granted_scopes: "true",
         state: "pass-through-value",
-        prompt: "consent",
+        prompt: "consent", // Forcer l'affichage de l'écran de consentement
         access_type: "offline"
       };
       
       const authUrl = `${googleAuthUrl}?${new URLSearchParams(params).toString()}`;
       
       console.log("Redirection vers:", authUrl);
+      console.log("URL de redirection configurée:", redirectUri);
       
       // Rediriger vers la page d'authentification Google
       window.location.href = authUrl;
