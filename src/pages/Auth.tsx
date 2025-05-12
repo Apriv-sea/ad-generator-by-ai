@@ -2,14 +2,19 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const Auth = () => {
-  const handleGoogleLogin = () => {
-    // Cette fonction sera implémentée plus tard avec l'authentification Google OAuth
-    console.log("Authentification Google à implémenter");
-    // Redirection temporaire vers le dashboard pour tester
-    window.location.href = "/dashboard";
-  };
+  const { login, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  // Si l'utilisateur est déjà authentifié, le rediriger vers le tableau de bord
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, navigate]);
 
   return (
     <div className="container mx-auto py-12 flex items-center justify-center min-h-[80vh]">
@@ -22,7 +27,7 @@ const Auth = () => {
         </CardHeader>
         <CardContent>
           <Button 
-            onClick={handleGoogleLogin} 
+            onClick={login}
             className="w-full flex items-center justify-center gap-2"
           >
             <svg width="20" height="20" viewBox="0 0 24 24">
