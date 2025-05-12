@@ -9,13 +9,20 @@ export const initiateGoogleLogin = async (): Promise<void> => {
   try {
     console.log("Initiating Google OAuth login");
     
-    // Configuration for Google OAuth via Supabase with minimal options
+    // Get the current URL origin for redirect
+    const redirectUrl = window.location.origin + '/auth/callback';
+    console.log("Using redirect URL:", redirectUrl);
+    
+    // Configuration for Google OAuth via Supabase with debugging
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin + '/auth/callback',
+        redirectTo: redirectUrl,
         scopes: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets',
-        skipBrowserRedirect: false // Ensure browser redirection always happens
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent'
+        }
       }
     });
     

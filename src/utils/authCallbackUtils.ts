@@ -21,11 +21,17 @@ export const checkForToken = () => {
   
   // First check if we have a hash fragment with tokens
   if (window.location.hash) {
-    console.log("Hash fragment detected, processing tokens...");
+    console.log("Hash fragment detected in URL:", window.location.hash.substring(0, 20) + "...");
     isTokenFound = true;
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     accessToken = hashParams.get('access_token');
     refreshToken = hashParams.get('refresh_token');
+    
+    if (accessToken) {
+      console.log("Access token found in hash");
+    } else {
+      console.log("No access token in hash despite hash being present");
+    }
   } 
   // If no access token in hash, check if the URL itself is a JWT token
   else if (window.location.pathname.length > 20 && window.location.pathname.includes('.')) {
@@ -40,6 +46,8 @@ export const checkForToken = () => {
 // Handle manual token setting when processAuthTokens fails
 export const manuallySetSession = async (accessToken: string, refreshToken: string | null) => {
   try {
+    console.log("Attempting to manually set session with token");
+    
     const { data, error } = await supabase.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken || ''
@@ -51,7 +59,7 @@ export const manuallySetSession = async (accessToken: string, refreshToken: stri
     }
     
     if (data.session) {
-      console.log("Session successfully established");
+      console.log("Session successfully established manually");
       
       // Store user preferences
       if (data.session.user?.app_metadata?.provider === 'google') {
