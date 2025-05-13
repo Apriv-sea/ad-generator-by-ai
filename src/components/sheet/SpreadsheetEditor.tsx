@@ -24,19 +24,47 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
   const hotTableRef = useRef<any>(null);
   const [isDirty, setIsDirty] = useState(false);
 
+  // Mettre à jour les données du tableau lorsque les données externes changent
   useEffect(() => {
-    setTableData(data || []);
+    if (data && data.length > 0) {
+      setTableData(data);
+      setIsDirty(false);
+    } else {
+      // Si aucune donnée n'est fournie, créer une grille vide avec les en-têtes
+      const defaultHeaders = [
+        "Nom de la campagne",
+        "Nom du groupe d'annonces",
+        "Top 3 mots-clés",
+        "Titre 1",
+        "Titre 2",
+        "Titre 3",
+        "Description 1",
+        "Description 2",
+      ];
+      
+      const emptyRows = Array(10).fill(Array(defaultHeaders.length).fill(''));
+      const newData = [defaultHeaders, ...emptyRows];
+      setTableData(newData);
+    }
   }, [data]);
 
   const handleSave = () => {
-    if (!hotTableRef.current) return;
+    if (!hotTableRef.current) {
+      toast.error("Impossible d'accéder au tableur");
+      return;
+    }
     
-    const instance = hotTableRef.current.hotInstance;
-    const currentData = instance.getData();
-    
-    onSave(currentData);
-    setIsDirty(false);
-    toast.success("Données sauvegardées avec succès");
+    try {
+      const instance = hotTableRef.current.hotInstance;
+      const currentData = instance.getData();
+      
+      onSave(currentData);
+      setIsDirty(false);
+      toast.success("Données sauvegardées avec succès");
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde:", error);
+      toast.error("Erreur lors de la sauvegarde du tableur");
+    }
   };
 
   const handleAfterChange = () => {
@@ -46,7 +74,7 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
   return (
     <Card className="overflow-hidden">
       <div className="bg-muted p-2 flex justify-between items-center">
-        <h3 className="font-medium text-sm">Éditeur de feuille</h3>
+        <h3 className="font-medium">Éditeur de feuille</h3>
         <Button 
           size="sm" 
           onClick={handleSave} 
@@ -56,8 +84,8 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
           Enregistrer
         </Button>
       </div>
-      <CardContent className="p-0 overflow-x-auto">
-        <div style={{ height: '500px', width: '100%' }}>
+      <CardContent className="p-0">
+        <div className="h-[600px] w-full overflow-hidden">
           <HotTable
             ref={hotTableRef}
             data={tableData}
@@ -67,7 +95,7 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
             height="100%"
             licenseKey="non-commercial-and-evaluation"
             stretchH="all"
-            autoColumnSize={true}
+            autoColumnSize={false}
             manualColumnResize={true}
             manualRowResize={true}
             contextMenu={!readOnly}
@@ -76,6 +104,9 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
             afterChange={handleAfterChange}
             columnSorting={true}
             filters={true}
+            dropdownMenu={true}
+            renderer="html"
+            className="htCustomStyles"
           />
         </div>
       </CardContent>

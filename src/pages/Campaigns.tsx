@@ -145,14 +145,12 @@ const Campaigns = () => {
                       })}
                     </p>
                   </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setActiveTab("sheets")}
-                    >
-                      Retour aux Feuilles
-                    </Button>
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setActiveTab("sheets")}
+                  >
+                    Retour aux Feuilles
+                  </Button>
                 </div>
                 
                 <CampaignManager 
