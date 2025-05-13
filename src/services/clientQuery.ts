@@ -18,6 +18,19 @@ export const getClients = async (): Promise<ClientResponse> => {
       .eq('user_id', userId)
       .order('name', { ascending: true });
     
+    if (data) {
+      // Map snake_case database fields to camelCase JS properties
+      const mappedData = data.map(client => ({
+        id: client.id,
+        name: client.name,
+        businessContext: client.business_context,
+        specifics: client.specifics,
+        editorialGuidelines: client.editorial_guidelines,
+        // Include any other fields needed
+      }));
+      return { data: mappedData as any, error };
+    }
+    
     return { data, error };
   } catch (error) {
     console.error("Exception lors de la récupération des clients:", error);
@@ -41,6 +54,19 @@ export const getClientById = async (clientId: string): Promise<SingleClientRespo
       .eq('user_id', userId)
       .single();
     
+    if (data) {
+      // Map snake_case database fields to camelCase JS properties
+      const mappedData = {
+        id: data.id,
+        name: data.name,
+        businessContext: data.business_context,
+        specifics: data.specifics,
+        editorialGuidelines: data.editorial_guidelines,
+        // Include any other fields needed
+      };
+      return { data: mappedData as any, error };
+    }
+    
     return { data, error };
   } catch (error) {
     console.error("Exception lors de la récupération du client:", error);
@@ -62,7 +88,7 @@ export const getClientInfo = async (clientId: string): Promise<Pick<Client, 'id'
     return {
       id: data.id,
       name: data.name,
-      businessContext: data.business_context || undefined
+      businessContext: data.businessContext || undefined
     };
   } catch (error) {
     console.error("Exception lors de la récupération des infos client:", error);

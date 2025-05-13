@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Client, ClientResponse } from "./types/client";
 import { getCurrentUserId } from "./utils/supabaseUtils";
