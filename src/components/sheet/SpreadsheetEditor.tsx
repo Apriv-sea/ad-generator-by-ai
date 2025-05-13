@@ -1,15 +1,11 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { HotTable } from "@handsontable/react";
-import { registerAllModules } from "handsontable/registry";
 import "handsontable/dist/handsontable.full.min.css";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
-
-// Enregistrer tous les modules Handsontable
-registerAllModules();
 
 interface SpreadsheetEditorProps {
   data: any[][];
