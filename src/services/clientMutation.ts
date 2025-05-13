@@ -12,6 +12,12 @@ export const addClient = async (client: Partial<Client>): Promise<string | null>
     const userId = await getCurrentUserId();
     if (!userId) return null;
     
+    // Ensure client has a name
+    if (!client.name) {
+      console.error("Client name is required");
+      return null;
+    }
+    
     // Convert client object to database format
     const clientRecord = mapClientToClientRecord(client);
     

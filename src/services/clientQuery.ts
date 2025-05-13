@@ -1,8 +1,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Client, ClientResponse, SingleClientResponse } from "./types/client";
-import { ClientRecord } from "@/types/supabase-extensions";
 import { mapClientRecordToClient } from "./mappers/clientMapper";
+import { ClientRecord } from "@/types/supabase-extensions";
 
 /**
  * Get all clients for the current user
@@ -111,12 +111,14 @@ export const getClientShortInfo = async (): Promise<Client[]> => {
       return [];
     }
     
-    // Map the data to Client objects using the mapper
+    // Map the data to Client objects using the mapper function
     return data.map(record => mapClientRecordToClient({
-      ...record,
+      id: record.id,
+      name: record.name,
+      business_context: record.business_context,
       specifics: null,
       editorial_guidelines: null,
-      user_id: '', // These fields aren't used in the result but needed for type safety
+      user_id: '', // These fields are required for the ClientRecord type
       created_at: '',
       updated_at: ''
     } as ClientRecord));

@@ -10,11 +10,11 @@ export interface Client {
 }
 
 export interface ClientResponse {
-  data: ClientRecord[] | null;
+  data: Client[] | null;
   error: Error | null;
 }
 
 export interface SingleClientResponse {
-  data: ClientRecord | null;
+  data: Client | null;
   error: Error | null;
 }
