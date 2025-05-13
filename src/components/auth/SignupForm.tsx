@@ -54,8 +54,8 @@ const SignupForm: React.FC<SignupFormProps> = ({ setActiveTab }) => {
         captchaContainer.innerHTML = '';
         
         // Chargement du captcha Supabase
-        const { data, error } = await supabase.auth.mfa.challengeAndVerify({ 
-          factorType: 'captcha' 
+        const { data, error } = await supabase.auth.mfa.challenge({ 
+          factorType: 'totp' 
         });
         
         if (error) {
@@ -63,8 +63,9 @@ const SignupForm: React.FC<SignupFormProps> = ({ setActiveTab }) => {
           throw error;
         }
         
-        if (data.token) {
-          setCaptchaToken(data.token);
+        if (data) {
+          // Store the session token for verification
+          setCaptchaToken(data.id);
         }
       } catch (error) {
         console.error("Erreur lors du chargement du captcha:", error);
