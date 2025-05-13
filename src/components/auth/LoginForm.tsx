@@ -1,72 +1,152 @@
 
 import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { Mail, Lock, AtSign } from "lucide-react";
+import { Link } from "react-router-dom";
+
+// Schema de validation pour le login
+const loginSchema = z.object({
+  email: z.string().email({ message: "Email invalide" }),
+  password: z.string().min(1, { message: "Le mot de passe est requis" })
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 const LoginForm = () => {
-  const { login } = useAuth();
+  const { login, emailLogin } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [processingAuth, setProcessingAuth] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isEmailAuthLoading, setIsEmailAuthLoading] = useState(false);
+  
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: ""
+    },
+  });
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !password) {
-      toast.error("Veuillez remplir tous les champs");
-      return;
-    }
-    
+  const onSubmit = async (values: LoginFormValues) => {
     try {
-      setProcessingAuth(true);
-      await login(email, password);
+      setIsLoading(true);
+      await login(values.email, values.password);
+      toast.success("Connexion réussie");
       navigate("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur de connexion:", error);
+      toast.error(error.message || "Erreur de connexion");
     } finally {
-      setProcessingAuth(false);
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmailAuth = async () => {
+    try {
+      setIsEmailAuthLoading(true);
+      await emailLogin();
+    } catch (error) {
+      console.error("Erreur d'authentification par email:", error);
+    } finally {
+      setIsEmailAuthLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleLogin} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          placeholder="votre@email.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-      </div>
+    <div className="space-y-6">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-2">
+                  <AtSign className="h-4 w-4" />
+                  Email
+                </FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="votre@email.com" 
+                    {...field} 
+                    className="bg-white"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex justify-between items-center">
+                  <FormLabel className="flex items-center gap-2">
+                    <Lock className="h-4 w-4" />
+                    Mot de passe
+                  </FormLabel>
+                  <Link to="#" className="text-xs text-primary hover:underline">
+                    Mot de passe oublié?
+                  </Link>
+                </div>
+                <FormControl>
+                  <Input 
+                    type="password" 
+                    {...field} 
+                    className="bg-white"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                Connexion...
+              </span>
+            ) : "Se connecter"}
+          </Button>
+        </form>
+      </Form>
       
-      <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <Label htmlFor="password">Mot de passe</Label>
-          <a href="#" className="text-xs text-primary hover:underline">
-            Mot de passe oublié ?
-          </a>
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200"></div>
         </div>
-        <Input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-white px-2 text-muted-foreground">
+            Ou continuer avec
+          </span>
+        </div>
       </div>
       
-      <Button type="submit" className="w-full" disabled={processingAuth}>
-        Se connecter
+      <Button 
+        type="button" 
+        variant="outline" 
+        onClick={handleEmailAuth}
+        disabled={isEmailAuthLoading} 
+        className="w-full flex gap-2 items-center justify-center"
+      >
+        <Mail className="h-4 w-4" />
+        {isEmailAuthLoading ? "Chargement..." : "Connexion par email"}
       </Button>
-    </form>
+    </div>
   );
 };
 

@@ -1,23 +1,21 @@
 
 import React, { useState, useEffect } from "react";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
-import { Navigate, useNavigate, useLocation, Link } from "react-router-dom";
-import LoginForm from "@/components/auth/LoginForm";
-import SignupForm from "@/components/auth/SignupForm";
-import EmailLoginButton from "@/components/auth/GoogleLoginButton";
+import { Button } from "@/components/ui/button";
 import AuthLoading from "@/components/auth/AuthLoading";
 import AuthError from "@/components/auth/AuthError";
-import AuthDebugDialog from "@/components/AuthDebugDialog";
-import { Button } from "@/components/ui/button";
+import LoginForm from "@/components/auth/LoginForm";
+import SignupForm from "@/components/auth/SignupForm";
 import EmailAuthWarning from "@/components/auth/GoogleAuthWarning";
+import { Link } from "react-router-dom";
 
 const Auth = () => {
   const location = useLocation();
-  const { user, isAuthenticated, processAuthTokens, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { isAuthenticated, processAuthTokens, isLoading } = useAuth();
   
   const [activeTab, setActiveTab] = useState("login");
   const [processingAuth, setProcessingAuth] = useState(false);
@@ -39,7 +37,6 @@ const Auth = () => {
           const tokenProcessed = await processAuthTokens();
           if (tokenProcessed) {
             console.log("Auth page: Token processed successfully");
-            toast.success("Authentification réussie!");
             
             // Clean the URL
             window.history.replaceState({}, document.title, window.location.pathname);
@@ -55,7 +52,7 @@ const Auth = () => {
           const params = new URLSearchParams(location.search);
           const error = params.get('error');
           const errorDesc = params.get('error_description');
-          console.error(`Auth page: OAuth error - ${error}: ${errorDesc}`);
+          console.error(`Auth page: Auth error - ${error}: ${errorDesc}`);
           
           // Detect specific authentication errors
           if (errorDesc?.includes('not verified') || errorDesc?.includes('validation') || error === 'access_denied') {
@@ -75,7 +72,7 @@ const Auth = () => {
     checkUrlForTokens();
   }, [location, processAuthTokens, navigate]);
   
-  // Rediriger si déjà connecté
+  // Redirect if already authenticated
   if (isAuthenticated && !processingAuth) {
     return <Navigate to="/dashboard" />;
   }
@@ -86,76 +83,64 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-50">
-      <div className="container max-w-md">
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">Ad Content Generator</CardTitle>
-            <CardDescription className="text-center">
-              Connectez-vous pour accéder à vos campagnes publicitaires
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-purple-50 to-indigo-50 p-4">
+      <div className="w-full max-w-md">
+        <Card className="border-0 shadow-lg overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-purple-600 to-blue-500 text-white p-6">
+            <CardTitle className="text-2xl font-bold text-center mb-1">Ad Content Generator</CardTitle>
+            <CardDescription className="text-white/80 text-center">
+              Connectez-vous pour gérer vos campagnes publicitaires
             </CardDescription>
           </CardHeader>
           
-          <CardContent>
+          <CardContent className="p-6 pt-8">
             {showAuthWarning && (
               <EmailAuthWarning onContinue={handleTryAgain} />
             )}
             
-            {authError && !showAuthWarning && <AuthError error={authError} />}
+            {authError && !showAuthWarning && (
+              <AuthError error={authError} />
+            )}
             
             {processingAuth || isLoading ? (
               <AuthLoading />
             ) : (
-              <>
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid grid-cols-2 mb-4">
-                    <TabsTrigger value="login">Connexion</TabsTrigger>
-                    <TabsTrigger value="signup">Inscription</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="login">
-                    <LoginForm />
-                  </TabsContent>
-                  
-                  <TabsContent value="signup">
-                    <SignupForm setActiveTab={setActiveTab} />
-                  </TabsContent>
-                </Tabs>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid grid-cols-2 mb-6">
+                  <TabsTrigger value="login" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                    Connexion
+                  </TabsTrigger>
+                  <TabsTrigger value="signup" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                    Inscription
+                  </TabsTrigger>
+                </TabsList>
                 
-                <div className="relative my-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t"></div>
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      Ou continuer avec
-                    </span>
-                  </div>
-                </div>
+                <TabsContent value="login">
+                  <LoginForm />
+                </TabsContent>
                 
-                <EmailLoginButton />
-              </>
+                <TabsContent value="signup">
+                  <SignupForm setActiveTab={setActiveTab} />
+                </TabsContent>
+              </Tabs>
             )}
           </CardContent>
           
-          <CardFooter className="flex flex-col gap-4 text-center text-xs text-muted-foreground">
-            <p>
-              En continuant, vous acceptez nos Conditions d'utilisation et notre 
-              <Link to="/privacy-policy" className="text-primary hover:underline ml-1">
+          <CardFooter className="flex flex-col gap-4 border-t p-6 bg-gray-50">
+            <p className="text-center text-xs text-muted-foreground">
+              En continuant, vous acceptez nos Conditions d'utilisation et notre{" "}
+              <Link to="/privacy-policy" className="text-primary hover:underline font-medium">
                 Politique de confidentialité
-              </Link>.
+              </Link>
             </p>
-            <AuthDebugDialog 
-              trigger={<Button variant="ghost" size="sm" className="text-xs">Débogage d'authentification</Button>}
-            />
+            
+            <p className="text-xs text-center text-muted-foreground">
+              <Link to="/" className="text-primary hover:underline">
+                Retour à l'accueil
+              </Link>
+            </p>
           </CardFooter>
         </Card>
-        
-        <div className="mt-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            Retourner à la <a href="/" className="text-primary hover:underline">page d'accueil</a>
-          </p>
-        </div>
       </div>
     </div>
   );

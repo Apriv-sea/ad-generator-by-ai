@@ -1,10 +1,28 @@
 
 import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { AtSign, Lock, UserPlus } from "lucide-react";
+
+// Schema de validation pour l'inscription
+const signupSchema = z.object({
+  email: z.string().email({ message: "Email invalide" }),
+  password: z.string().min(6, { 
+    message: "Le mot de passe doit contenir au moins 6 caractères" 
+  }),
+  confirmPassword: z.string().min(1, { message: "La confirmation du mot de passe est requise" })
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Les mots de passe ne correspondent pas",
+  path: ["confirmPassword"],
+});
+
+type SignupFormValues = z.infer<typeof signupSchema>;
 
 interface SignupFormProps {
   setActiveTab: (tab: string) => void;
@@ -12,67 +30,116 @@ interface SignupFormProps {
 
 const SignupForm: React.FC<SignupFormProps> = ({ setActiveTab }) => {
   const { signup } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [processingAuth, setProcessingAuth] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const form = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      confirmPassword: ""
+    },
+  });
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !password) {
-      toast.error("Veuillez remplir tous les champs");
-      return;
-    }
-    
-    if (password.length < 6) {
-      toast.error("Le mot de passe doit contenir au moins 6 caractères");
-      return;
-    }
-    
+  const onSubmit = async (values: SignupFormValues) => {
     try {
-      setProcessingAuth(true);
-      await signup(email, password);
+      setIsLoading(true);
+      await signup(values.email, values.password);
       setActiveTab("login");
       toast.success("Compte créé avec succès! Veuillez vérifier votre email.");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur d'inscription:", error);
+      toast.error(error.message || "Erreur d'inscription");
     } finally {
-      setProcessingAuth(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSignup} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="signup-email">Email</Label>
-        <Input
-          id="signup-email"
-          type="email"
-          placeholder="votre@email.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <AtSign className="h-4 w-4" />
+                Email
+              </FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="votre@email.com" 
+                  {...field} 
+                  className="bg-white"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="signup-password">Mot de passe</Label>
-        <Input
-          id="signup-password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
+        
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <Lock className="h-4 w-4" />
+                Mot de passe
+              </FormLabel>
+              <FormControl>
+                <Input 
+                  type="password" 
+                  {...field} 
+                  className="bg-white"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-        <p className="text-xs text-muted-foreground">
-          Le mot de passe doit contenir au moins 6 caractères
-        </p>
-      </div>
-      
-      <Button type="submit" className="w-full" disabled={processingAuth}>
-        S'inscrire
-      </Button>
-    </form>
+        
+        <FormField
+          control={form.control}
+          name="confirmPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <Lock className="h-4 w-4" />
+                Confirmer le mot de passe
+              </FormLabel>
+              <FormControl>
+                <Input 
+                  type="password" 
+                  {...field} 
+                  className="bg-white"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <Button 
+          type="submit" 
+          className="w-full flex gap-2 items-center justify-center" 
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <span className="flex items-center gap-2">
+              <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              Inscription...
+            </span>
+          ) : (
+            <>
+              <UserPlus className="h-4 w-4" />
+              S'inscrire
+            </>
+          )}
+        </Button>
+      </form>
+    </Form>
   );
 };
 

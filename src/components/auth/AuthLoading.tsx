@@ -1,13 +1,15 @@
 
 import React from "react";
-import { Loader } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
-const AuthLoading = () => {
+const AuthLoading: React.FC = () => {
   return (
-    <div className="flex flex-col items-center justify-center py-8">
-      <Loader className="h-8 w-8 animate-spin text-primary mb-4" />
-      <p>Traitement de l'authentification...</p>
-    </div>
+    <Card className="p-8 flex flex-col items-center justify-center">
+      <div className="h-12 w-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <p className="mt-4 text-muted-foreground text-center">
+        Traitement de l'authentification...
+      </p>
+    </Card>
   );
 };
 
