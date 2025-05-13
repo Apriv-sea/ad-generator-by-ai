@@ -27,9 +27,8 @@ export const addClient = async (client: Partial<Client>): Promise<string | null>
       user_id: userId
     };
     
-    // At this point, insertData.name is guaranteed to exist because:
-    // 1. We checked client.name above
-    // 2. mapClientToClientRecord ensures name is in the result
+    // Since name is already validated above and in the mapper function,
+    // we can be confident it exists in the insertData
     const { data, error } = await supabase
       .from('clients')
       .insert(insertData)
@@ -60,7 +59,7 @@ export const updateClient = async (
     
     const { data: clientCheck } = await supabase
       .from('clients')
-      .select('id')
+      .select('id, name')
       .eq('id', clientId)
       .eq('user_id', userId)
       .single();
@@ -69,8 +68,15 @@ export const updateClient = async (
       return false;
     }
     
+    // Ensure we have a name for the update
+    // If no name is provided in updates, use the existing name from clientCheck
+    const updatesWithName = {
+      ...updates,
+      name: updates.name || clientCheck.name
+    };
+    
     // Convert client object to database format
-    const clientRecord = mapClientToClientRecord(updates);
+    const clientRecord = mapClientToClientRecord(updatesWithName);
     
     // Add updated_at timestamp
     const updateData = {
