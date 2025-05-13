@@ -65,7 +65,7 @@ enabled = false
 enable_signup = false
 enable_confirmations = false
 
-# Activer le captcha pour l'inscription
+# Captcha désactivé pour l'inscription
 [auth.captcha]
-enabled = true
+enabled = false
 

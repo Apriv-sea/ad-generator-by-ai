@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -9,7 +9,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { AtSign, Lock, UserPlus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 // Schema de validation pour l'inscription
 const signupSchema = z.object({
@@ -32,7 +31,6 @@ interface SignupFormProps {
 const SignupForm: React.FC<SignupFormProps> = ({ setActiveTab }) => {
   const { signup } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -43,47 +41,10 @@ const SignupForm: React.FC<SignupFormProps> = ({ setActiveTab }) => {
     },
   });
 
-  useEffect(() => {
-    const loadCaptcha = async () => {
-      try {
-        // Création d'un élément div pour le captcha
-        const captchaContainer = document.getElementById('captcha-container');
-        if (!captchaContainer) return;
-        
-        // Vider le conteneur avant de charger un nouveau captcha
-        captchaContainer.innerHTML = '';
-        
-        // Chargement du captcha Supabase
-        const { data, error } = await supabase.auth.mfa.challenge();
-        
-        if (error) {
-          console.error("Erreur lors du chargement du captcha:", error);
-          throw error;
-        }
-        
-        if (data) {
-          // Store the session token for verification
-          setCaptchaToken(data.id);
-        }
-      } catch (error) {
-        console.error("Erreur lors du chargement du captcha:", error);
-        toast.error("Impossible de charger le captcha. Veuillez réessayer.");
-      }
-    };
-    
-    loadCaptcha();
-  }, []);
-
   const onSubmit = async (values: SignupFormValues) => {
     try {
       setIsLoading(true);
-      
-      // Vérifier si le token captcha est disponible
-      if (!captchaToken) {
-        throw new Error("Veuillez compléter le captcha avant de vous inscrire.");
-      }
-      
-      await signup(values.email, values.password, captchaToken);
+      await signup(values.email, values.password);
       setActiveTab("login");
       toast.success("Compte créé avec succès! Veuillez vérifier votre email.");
     } catch (error: any) {
@@ -160,15 +121,10 @@ const SignupForm: React.FC<SignupFormProps> = ({ setActiveTab }) => {
           )}
         />
         
-        {/* Conteneur pour le captcha */}
-        <div id="captcha-container" className="min-h-[78px] w-full flex justify-center items-center border rounded p-2 bg-white">
-          {!captchaToken && <div className="text-muted-foreground text-sm">Chargement du captcha...</div>}
-        </div>
-        
         <Button 
           type="submit" 
           className="w-full flex gap-2 items-center justify-center" 
-          disabled={isLoading || !captchaToken}
+          disabled={isLoading}
         >
           {isLoading ? (
             <span className="flex items-center gap-2">

@@ -16,22 +16,13 @@ export function useAuthActions() {
     }
   };
 
-  // Signup function with captcha support
-  const signup = async (email: string, password: string, captchaToken?: string) => {
+  // Signup function without captcha support
+  const signup = async (email: string, password: string) => {
     try {
-      const signupOptions: any = {
+      const { error } = await supabase.auth.signUp({
         email,
         password,
-      };
-      
-      // Ajouter le token captcha si fourni
-      if (captchaToken) {
-        signupOptions.options = {
-          captchaToken
-        };
-      }
-      
-      const { error } = await supabase.auth.signUp(signupOptions);
+      });
       if (error) throw error;
       toast.success("Registration successful. Please check your email to confirm your account.");
     } catch (error: any) {
