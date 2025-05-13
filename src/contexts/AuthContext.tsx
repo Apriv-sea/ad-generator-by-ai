@@ -13,7 +13,6 @@ interface AuthContextType {
   signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
-  emailLogin: (email?: string) => Promise<void>;
   processAuthTokens: () => Promise<boolean>;
 }
 
@@ -22,7 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   // Use our custom hooks to manage auth state and actions
   const { user, session, isLoading, isAuthenticated } = useAuthSession();
-  const { login, signup, logout, emailLogin } = useAuthActions();
+  const { login, signup, logout } = useAuthActions();
 
   return (
     <AuthContext.Provider 
@@ -33,7 +32,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         signup,
         logout,
-        emailLogin,
         isAuthenticated,
         processAuthTokens
       }}

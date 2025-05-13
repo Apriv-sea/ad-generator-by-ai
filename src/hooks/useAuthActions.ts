@@ -1,7 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { initiateEmailLogin } from "@/utils/authUtils";
 
 export function useAuthActions() {
   // Login function
@@ -45,15 +44,9 @@ export function useAuthActions() {
     }
   };
 
-  // Email login function
-  const emailLogin = async (email?: string) => {
-    await initiateEmailLogin(email);
-  };
-
   return {
     login,
     signup,
-    logout,
-    emailLogin
+    logout
   };
 }
