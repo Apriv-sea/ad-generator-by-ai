@@ -5,11 +5,15 @@ import { registerAllModules } from "handsontable/registry";
 import "handsontable/dist/handsontable.full.min.css";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Save, FileSpreadsheet } from "lucide-react";
+import { Save, FileSpreadsheet, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 // Enregistrer tous les modules pour avoir accès à toutes les fonctionnalités
 registerAllModules();
+
+// Nombre de lignes à ajouter par lot
+const ROWS_INCREMENT = 1000;
+const DEFAULT_ROWS = 1000;
 
 interface SpreadsheetEditorProps {
   data: any[][];
@@ -27,11 +31,23 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
   const [tableData, setTableData] = useState<any[][]>(data || []);
   const hotTableRef = useRef<any>(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [totalRows, setTotalRows] = useState(DEFAULT_ROWS);
 
   // Mettre à jour les données du tableau lorsque les données externes changent
   useEffect(() => {
     if (data && data.length > 0) {
-      setTableData(data);
+      // Conserver les données existantes mais s'assurer qu'il y a au moins DEFAULT_ROWS lignes
+      const dataLength = data.length;
+      if (dataLength < DEFAULT_ROWS) {
+        const defaultHeaders = data[0];
+        const moreEmptyRows = Array(DEFAULT_ROWS - dataLength).fill(Array(defaultHeaders.length).fill(''));
+        const newData = [...data, ...moreEmptyRows];
+        setTableData(newData);
+        setTotalRows(DEFAULT_ROWS);
+      } else {
+        setTableData(data);
+        setTotalRows(data.length);
+      }
       setIsDirty(false);
     } else {
       // Si aucune donnée n'est fournie, créer une grille vide avec les en-têtes
@@ -46,9 +62,10 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
         "Description 2",
       ];
       
-      const emptyRows = Array(10).fill(Array(defaultHeaders.length).fill(''));
+      const emptyRows = Array(DEFAULT_ROWS).fill(Array(defaultHeaders.length).fill(''));
       const newData = [defaultHeaders, ...emptyRows];
       setTableData(newData);
+      setTotalRows(DEFAULT_ROWS);
     }
   }, [data]);
 
@@ -75,6 +92,31 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
     setIsDirty(true);
   };
 
+  const addMoreRows = () => {
+    if (!hotTableRef.current) {
+      toast.error("Impossible d'accéder au tableur");
+      return;
+    }
+
+    try {
+      const instance = hotTableRef.current.hotInstance;
+      const columnsCount = instance.countCols();
+      
+      // Ajouter 1000 lignes vides supplémentaires
+      const emptyRows = Array(ROWS_INCREMENT).fill(Array(columnsCount).fill(''));
+      const newTotalRows = totalRows + ROWS_INCREMENT;
+      
+      // Utiliser l'API Handsontable pour ajouter des lignes
+      instance.alter('insert_row_below', totalRows - 1, ROWS_INCREMENT);
+      
+      setTotalRows(newTotalRows);
+      toast.success(`${ROWS_INCREMENT} lignes supplémentaires ajoutées`);
+    } catch (error) {
+      console.error("Erreur lors de l'ajout de lignes:", error);
+      toast.error("Impossible d'ajouter des lignes supplémentaires");
+    }
+  };
+
   return (
     <Card className="overflow-hidden border-none shadow-lg">
       <div className="bg-primary/5 p-3 flex justify-between items-center">
@@ -82,15 +124,27 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
           <FileSpreadsheet className="h-5 w-5 mr-2 text-primary" />
           <h3 className="font-medium">Éditeur de feuille</h3>
         </div>
-        <Button 
-          size="sm" 
-          onClick={handleSave} 
-          disabled={!isDirty || readOnly}
-          className="gap-1"
-        >
-          <Save className="h-4 w-4" />
-          Enregistrer
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={addMoreRows}
+            disabled={readOnly}
+            className="gap-1"
+          >
+            <Plus className="h-4 w-4" />
+            Ajouter 1000 lignes
+          </Button>
+          <Button 
+            size="sm" 
+            onClick={handleSave} 
+            disabled={!isDirty || readOnly}
+            className="gap-1"
+          >
+            <Save className="h-4 w-4" />
+            Enregistrer
+          </Button>
+        </div>
       </div>
       <CardContent className="p-0">
         <div className="h-[700px] w-full overflow-hidden">
