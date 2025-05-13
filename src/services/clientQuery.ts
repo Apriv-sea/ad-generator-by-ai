@@ -109,6 +109,7 @@ export async function getClientShortInfo(clientId: string): Promise<Client | nul
       return null;
     }
     
+    // Properly map snake_case DB fields to camelCase JS properties
     return {
       id: data.id,
       name: data.name,
