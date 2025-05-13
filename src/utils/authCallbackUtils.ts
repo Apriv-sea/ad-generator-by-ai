@@ -19,9 +19,9 @@ export const checkForToken = () => {
   let refreshToken = null;
   let isTokenFound = false;
   
-  // First check if we have a hash fragment with tokens
+  // Check if we have a hash fragment with tokens
   if (window.location.hash) {
-    console.log("Hash fragment detected in URL:", window.location.hash.substring(0, 20) + "...");
+    console.log("Hash fragment detected in URL");
     isTokenFound = true;
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     accessToken = hashParams.get('access_token');
@@ -62,18 +62,17 @@ export const manuallySetSession = async (accessToken: string, refreshToken: stri
       console.log("Session successfully established manually");
       
       // Store user preferences
-      if (data.session.user?.app_metadata?.provider === 'google') {
-        localStorage.setItem("google_connected", "true");
+      if (data.session.user) {
+        localStorage.setItem("auth_connected", "true");
         
-        // Store Google user info
+        // Store user info
         const userData = {
-          provider: 'google',
           email: data.session.user.email,
           name: data.session.user?.user_metadata?.full_name || data.session.user.email,
           picture: data.session.user?.user_metadata?.picture || data.session.user?.user_metadata?.avatar_url
         };
         
-        localStorage.setItem("google_user", JSON.stringify(userData));
+        localStorage.setItem("user_data", JSON.stringify(userData));
       }
       
       toast.success("Connexion réussie!");

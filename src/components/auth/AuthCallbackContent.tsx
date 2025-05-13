@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import AuthDebugDialog from "@/components/AuthDebugDialog";
 import AuthError from "@/components/auth/AuthError";
 import AuthLoading from "@/components/auth/AuthLoading";
-import AuthCallbackError from "@/components/auth/AuthCallbackError";
 
 interface AuthCallbackContentProps {
   status: string;
@@ -30,7 +29,10 @@ const AuthCallbackContent: React.FC<AuthCallbackContentProps> = ({
         <h1 className="text-2xl font-bold mb-4">{status}</h1>
         
         {errorDetails && (
-          <AuthCallbackError errorDetails={errorDetails} />
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md text-left mb-4">
+            <p className="text-red-800 font-medium mb-2">Détails de l'erreur:</p>
+            <p className="text-red-700 text-sm whitespace-pre-wrap">{errorDetails}</p>
+          </div>
         )}
         
         {isProcessing && (
@@ -44,7 +46,7 @@ const AuthCallbackContent: React.FC<AuthCallbackContentProps> = ({
           
           {isTokenFound && (
             <Button onClick={manualRedirectToRoot} className="mx-1">
-              Rediriger vers la page d'accueil avec le jeton
+              Rediriger vers la page d'accueil
             </Button>
           )}
           

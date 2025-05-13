@@ -33,17 +33,6 @@ const AuthCallback = () => {
           return;
         }
 
-        // Check if we're on localhost and should redirect
-        const isLocalhost = window.location.hostname === 'localhost';
-        const hasToken = window.location.hash && window.location.hash.includes('access_token');
-        
-        if (isLocalhost && hasToken) {
-          setStatus("Redirection vers l'application déployée requise");
-          setIsProcessing(false);
-          navigate('/localhost-redirect');
-          return;
-        }
-
         // Check if session exists already (case where token was processed by AuthContext)
         const { data: { session } } = await supabase.auth.getSession();
         
@@ -92,7 +81,7 @@ const AuthCallback = () => {
           }
         } else {
           setStatus("Aucun jeton d'authentification trouvé dans l'URL");
-          setErrorDetails("Le processus d'authentification n'a pas généré de jeton valide. Vérifiez la configuration d'authentification.");
+          setErrorDetails("Le processus d'authentification n'a pas généré de jeton valide. Vérifiez la configuration d'authentification dans Supabase.");
         }
         
         // If we get here, authentication failed
@@ -117,10 +106,9 @@ const AuthCallback = () => {
   }, [navigate, processAuthTokens]);
 
   const manualRedirectToRoot = () => {
-    // Copy token information to the root URL
+    // Redirect to root page with token information
     if (window.location.hash && window.location.hash.includes('access_token')) {
-      const rootUrl = window.location.origin + '/' + window.location.hash;
-      window.location.href = rootUrl;
+      navigate("/", { replace: true });
     } else {
       navigate("/");
     }
