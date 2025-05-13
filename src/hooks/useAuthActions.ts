@@ -46,8 +46,8 @@ export function useAuthActions() {
   };
 
   // Email login function
-  const emailLogin = async () => {
-    await initiateEmailLogin();
+  const emailLogin = async (email?: string) => {
+    await initiateEmailLogin(email);
   };
 
   return {

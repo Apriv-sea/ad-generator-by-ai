@@ -3,30 +3,43 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
- * Initiates email authentication login through Supabase
+ * Initiates email authentication login through Supabase magic link
  */
-export const initiateEmailLogin = async (): Promise<void> => {
+export const initiateEmailLogin = async (email?: string): Promise<void> => {
   try {
-    console.log("Initiating email authentication");
+    console.log("Initiating email magic link authentication");
+    
+    if (!email) {
+      // If no email is provided, show a prompt to get it
+      const emailInput = prompt("Veuillez entrer votre adresse email pour recevoir un lien de connexion");
+      
+      if (!emailInput) {
+        toast.error("Adresse email requise pour la connexion");
+        return;
+      }
+      
+      email = emailInput;
+    }
     
     // Get the current URL origin for redirect
     const redirectUrl = window.location.origin + '/auth/callback';
     console.log("Using redirect URL:", redirectUrl);
     
-    // Configuration for email OAuth via Supabase with basic scopes only
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'azure',
+    // Configuration for magic link via Supabase
+    const { error, data } = await supabase.auth.signInWithOtp({
+      email: email,
       options: {
-        redirectTo: redirectUrl,
-        scopes: 'email profile openid',
+        emailRedirectTo: redirectUrl
       }
     });
     
     if (error) throw error;
-    console.log("Email authentication initiation successful");
+    
+    console.log("Magic link email sent successfully");
+    toast.success("Un email avec un lien de connexion a été envoyé à votre adresse email");
   } catch (error: any) {
-    console.error("Error connecting:", error);
-    toast.error("Error connecting. Please try again.");
+    console.error("Error sending magic link:", error);
+    toast.error(error.message || "Erreur lors de l'envoi du lien de connexion. Veuillez réessayer.");
   }
 };
 

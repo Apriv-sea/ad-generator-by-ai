@@ -25,6 +25,7 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isEmailAuthLoading, setIsEmailAuthLoading] = useState(false);
+  const [email, setEmail] = useState("");
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -51,12 +52,18 @@ const LoginForm = () => {
   const handleEmailAuth = async () => {
     try {
       setIsEmailAuthLoading(true);
-      await emailLogin();
+      // Utilisez l'email du formulaire si disponible
+      const emailToUse = form.getValues().email || email;
+      await emailLogin(emailToUse);
     } catch (error) {
       console.error("Erreur d'authentification par email:", error);
     } finally {
       setIsEmailAuthLoading(false);
     }
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
   };
 
   return (
@@ -77,6 +84,10 @@ const LoginForm = () => {
                     placeholder="votre@email.com" 
                     {...field} 
                     className="bg-white"
+                    onChange={(e) => {
+                      field.onChange(e);
+                      handleEmailChange(e);
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -144,7 +155,7 @@ const LoginForm = () => {
         className="w-full flex gap-2 items-center justify-center"
       >
         <Mail className="h-4 w-4" />
-        {isEmailAuthLoading ? "Chargement..." : "Connexion par email"}
+        {isEmailAuthLoading ? "Envoi en cours..." : "Connexion par lien magique"}
       </Button>
     </div>
   );

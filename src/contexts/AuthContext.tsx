@@ -13,7 +13,7 @@ interface AuthContextType {
   signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
-  emailLogin: () => Promise<void>;
+  emailLogin: (email?: string) => Promise<void>;
   processAuthTokens: () => Promise<boolean>;
 }
 
