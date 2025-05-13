@@ -54,9 +54,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ setActiveTab }) => {
         captchaContainer.innerHTML = '';
         
         // Chargement du captcha Supabase
-        const { data, error } = await supabase.auth.mfa.challenge({ 
-          factorType: 'totp' 
-        });
+        const { data, error } = await supabase.auth.mfa.challenge();
         
         if (error) {
           console.error("Erreur lors du chargement du captcha:", error);
