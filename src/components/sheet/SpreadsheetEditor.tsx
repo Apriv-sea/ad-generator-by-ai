@@ -1,11 +1,15 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { HotTable } from "@handsontable/react";
+import { registerAllModules } from "handsontable/registry";
 import "handsontable/dist/handsontable.full.min.css";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Save } from "lucide-react";
+import { Save, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
+
+// Enregistrer tous les modules pour avoir accès à toutes les fonctionnalités
+registerAllModules();
 
 interface SpreadsheetEditorProps {
   data: any[][];
@@ -72,20 +76,24 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
   };
 
   return (
-    <Card className="overflow-hidden">
-      <div className="bg-muted p-2 flex justify-between items-center">
-        <h3 className="font-medium">Éditeur de feuille</h3>
+    <Card className="overflow-hidden border-none shadow-lg">
+      <div className="bg-primary/5 p-3 flex justify-between items-center">
+        <div className="flex items-center">
+          <FileSpreadsheet className="h-5 w-5 mr-2 text-primary" />
+          <h3 className="font-medium">Éditeur de feuille</h3>
+        </div>
         <Button 
           size="sm" 
           onClick={handleSave} 
           disabled={!isDirty || readOnly}
+          className="gap-1"
         >
-          <Save className="h-4 w-4 mr-1" />
+          <Save className="h-4 w-4" />
           Enregistrer
         </Button>
       </div>
       <CardContent className="p-0">
-        <div className="h-[600px] w-full overflow-hidden">
+        <div className="h-[700px] w-full overflow-hidden">
           <HotTable
             ref={hotTableRef}
             data={tableData}
@@ -95,17 +103,51 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
             height="100%"
             licenseKey="non-commercial-and-evaluation"
             stretchH="all"
-            autoColumnSize={false}
+            autoColumnSize={true}
             manualColumnResize={true}
             manualRowResize={true}
-            contextMenu={!readOnly}
+            contextMenu={!readOnly && {
+              items: {
+                'row_above': {}, 
+                'row_below': {},
+                'col_left': {},
+                'col_right': {},
+                'remove_row': {},
+                'remove_col': {},
+                'separator': '---------',
+                'copy': {},
+                'cut': {}
+              }
+            }}
             comments={!readOnly}
             readOnly={readOnly}
             afterChange={handleAfterChange}
             columnSorting={true}
             filters={true}
             dropdownMenu={true}
-            className="htCustomStyles"
+            fixedRowsTop={1}
+            wordWrap={true}
+            className="hot-improved"
+            mergeCells={true}
+            allowEmpty={true}
+            fillHandle={true}
+            outsideClickDeselects={false}
+            cell={[
+              { row: 0, col: -1, className: 'header-cell', readOnly: true }
+            ]}
+            cells={(row, col) => {
+              const cellProperties = {};
+              
+              if (row === 0) {
+                // Style pour l'en-tête
+                Object.assign(cellProperties, { 
+                  className: 'header-cell',
+                  readOnly: true
+                });
+              }
+              
+              return cellProperties;
+            }}
           />
         </div>
       </CardContent>

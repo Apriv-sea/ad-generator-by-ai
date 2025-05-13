@@ -1,8 +1,9 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Sheet, sheetService } from "@/services/googleSheetsService";
 import SpreadsheetEditor from "../sheet/SpreadsheetEditor";
+import { addTableStyles } from "@/lib/utils";
 
 interface SpreadsheetSaverProps {
   sheet: Sheet;
@@ -18,6 +19,18 @@ const SpreadsheetSaver: React.FC<SpreadsheetSaverProps> = ({
   onUpdateComplete
 }) => {
   const [isSaving, setIsSaving] = useState(false);
+
+  // Ajouter les styles personnalisés pour le tableur
+  useEffect(() => {
+    addTableStyles();
+    return () => {
+      // Nettoyer les styles lors du démontage du composant
+      const styleElement = document.getElementById('handsontable-custom-styles');
+      if (styleElement) {
+        styleElement.remove();
+      }
+    };
+  }, []);
 
   const handleSpreadsheetSave = async (data: any[][]) => {
     if (!sheet) {
