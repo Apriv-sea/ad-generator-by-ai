@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/services/googleSheetsService";
-import { FileSpreadsheet, ExternalLink, Trash } from "lucide-react";
+import { FileSpreadsheet, Trash } from "lucide-react";
 import { toast } from "sonner";
 
 interface SheetsListProps {

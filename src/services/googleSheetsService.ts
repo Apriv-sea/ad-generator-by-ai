@@ -15,7 +15,7 @@ export type {
 
 export { getClients };
 
-// Export le service combiné avec l'implémentation locale
+// Service combiné avec l'implémentation locale uniquement
 export const googleSheetsService = {
   createSheet: localSheetService.createSheet,
   listSheets: localSheetService.listSheets,
@@ -26,3 +26,6 @@ export const googleSheetsService = {
   deleteSheet: localSheetService.deleteSheet,
   generateContent: contentGenerationService.generateContent
 };
+
+// Renommer pour clarifier que nous n'utilisons plus Google Sheets
+export const sheetService = googleSheetsService;

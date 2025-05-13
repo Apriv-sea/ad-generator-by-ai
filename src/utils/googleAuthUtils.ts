@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
- * Initiates Google OAuth login through Supabase
+ * Initiates Google OAuth login through Supabase, sans les scopes Google Sheets/Drive
  */
 export const initiateGoogleLogin = async (): Promise<void> => {
   try {
@@ -13,12 +13,12 @@ export const initiateGoogleLogin = async (): Promise<void> => {
     const redirectUrl = window.location.origin + '/auth/callback';
     console.log("Using redirect URL:", redirectUrl);
     
-    // Configuration for Google OAuth via Supabase with debugging
+    // Configuration for Google OAuth via Supabase with basic scopes only
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
-        scopes: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets',
+        scopes: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid',
         queryParams: {
           access_type: 'offline',
           prompt: 'consent'

@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Save, FilePlus } from "lucide-react";
 import { toast } from "sonner";
-import { Sheet, Campaign, AdGroup, Client, googleSheetsService } from "@/services/googleSheetsService";
+import { Sheet, Campaign, AdGroup, Client, sheetService } from "@/services/googleSheetsService";
 import ClientInfoCard from "./campaign/ClientInfoCard";
 import CampaignForm from "./campaign/CampaignForm";
 import CampaignTable from "./campaign/CampaignTable";
@@ -40,12 +39,12 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
     setIsLoading(true);
     try {
       // Charger les données existantes de la feuille
-      const data = await googleSheetsService.getSheetData(sheet.id);
+      const data = await sheetService.getSheetData(sheet.id);
       if (data && data.values && data.values.length > 0) {
         setSheetData(data.values);
         
         // Extraire les campagnes à partir des données
-        const loadedCampaigns = googleSheetsService.extractCampaigns(sheet.id);
+        const loadedCampaigns = sheetService.extractCampaigns(sheet.id);
         setCampaigns(loadedCampaigns.length > 0 ? loadedCampaigns : [createEmptyCampaign()]);
       } else {
         // Initialiser avec des données vides
@@ -64,7 +63,7 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
     if (!sheet) return;
     
     try {
-      const client = await googleSheetsService.getClientInfo(sheet.id);
+      const client = await sheetService.getClientInfo(sheet.id);
       setClientInfo(client);
     } catch (error) {
       console.error("Erreur lors du chargement des informations client:", error);
@@ -215,7 +214,7 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
       }
       
       // Écrire les données dans la feuille
-      const success = await googleSheetsService.writeSheetData(
+      const success = await sheetService.writeSheetData(
         sheet.id, 
         "Campagnes publicitaires!A2:C100", 
         sheetData
@@ -242,7 +241,7 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
     setIsSaving(true);
     try {
       // Enregistrer les données du tableur
-      const success = await googleSheetsService.writeSheetData(
+      const success = await sheetService.writeSheetData(
         sheet.id,
         "", // Range ignoré dans l'implémentation locale
         data
@@ -253,7 +252,7 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
         setSheetData(data);
         
         // Mettre à jour les campagnes en fonction des nouvelles données
-        const loadedCampaigns = googleSheetsService.extractCampaigns(sheet.id);
+        const loadedCampaigns = sheetService.extractCampaigns(sheet.id);
         setCampaigns(loadedCampaigns.length > 0 ? loadedCampaigns : [createEmptyCampaign()]);
         
         onUpdateComplete();
@@ -314,7 +313,7 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
           const keywords = adGroup.keywords.filter(k => k.trim());
           
           // Générer les titres et descriptions
-          const generatedContent = await googleSheetsService.generateContent({
+          const generatedContent = await sheetService.generateContent({
             clientContext,
             campaignContext: campaign.context,
             adGroupContext: adGroup.context,
@@ -348,7 +347,7 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
           
           // Écrire ligne par ligne pour voir les résultats en temps réel
           const range = `Campagnes publicitaires!A${rowIndex}:R${rowIndex}`;
-          await googleSheetsService.writeSheetData(sheet.id, range, [row]);
+          await sheetService.writeSheetData(sheet.id, range, [row]);
           rowIndex++;
         }
       }

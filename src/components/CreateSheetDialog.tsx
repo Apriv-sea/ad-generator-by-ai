@@ -13,7 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { googleSheetsService, Client } from "@/services/googleSheetsService";
+import { sheetService, Client } from "@/services/googleSheetsService";
 import ClientSelector from "./ClientSelector";
 import { getClients } from "@/services/clientQuery";
 
@@ -83,7 +83,7 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
     setIsCreating(true);
     try {
       // Passer les informations du client pour les stocker dans la feuille
-      const newSheet = await googleSheetsService.createSheet(sheetName, selectedClientData);
+      const newSheet = await sheetService.createSheet(sheetName, selectedClientData);
       if (newSheet) {
         toast.success(`Feuille "${sheetName}" créée avec succès!`);
         setIsOpen(false);

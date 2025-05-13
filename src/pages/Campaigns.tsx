@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
-import { Sheet, googleSheetsService } from "@/services/googleSheetsService";
+import { Sheet, sheetService } from "@/services/googleSheetsService";
 import SheetsList from "@/components/SheetsList";
 import CreateSheetDialog from "@/components/CreateSheetDialog";
 import CampaignManager from "@/components/CampaignManager";
@@ -34,7 +34,7 @@ const Campaigns = () => {
   const fetchSheets = async () => {
     setIsLoading(true);
     try {
-      const sheetsList = await googleSheetsService.listSheets();
+      const sheetsList = await sheetService.listSheets();
       setSheets(sheetsList);
     } catch (error) {
       console.error("Erreur lors de la récupération des feuilles:", error);
@@ -56,7 +56,7 @@ const Campaigns = () => {
 
   const handleDeleteSheet = async (sheetId: string) => {
     try {
-      const success = await googleSheetsService.deleteSheet(sheetId);
+      const success = await sheetService.deleteSheet(sheetId);
       if (success) {
         // Si la feuille supprimée est celle qui est sélectionnée,
         // on désélectionne
