@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
@@ -70,7 +71,7 @@ const Index = () => {
         const error = params.get('error');
         const errorDesc = params.get('error_description');
         console.error(`Erreur OAuth: ${error}: ${errorDesc}`);
-        setAuthError(`Erreur Google OAuth: ${error}. ${errorDesc || ''}`);
+        setAuthError(`Erreur d'authentification: ${error}. ${errorDesc || ''}`);
       }
     };
 
@@ -89,7 +90,7 @@ const Index = () => {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold mb-6 text-center">Ad Content Generator</h1>
         <p className="text-xl text-center mb-10">
-          Générez des titres et descriptions publicitaires efficaces en intégrant Google Sheets et l'IA
+          Générez des titres et descriptions publicitaires efficaces grâce à l'IA
         </p>
         
         {authError && (
@@ -113,10 +114,10 @@ const Index = () => {
             L'Ad Content Generator vous permet de générer automatiquement des titres et descriptions publicitaires optimisés pour vos campagnes SEA, en se basant sur les informations de vos clients et les mots-clés pertinents.
           </p>
           <p className="mb-4">
-            <strong>Un point fort majeur :</strong> Vous avez la liberté d'utiliser le modèle de langage (LLM) de votre choix (OpenAI, Anthropic, Google Gemini). Pour cela, vous devrez vous munir au préalable des clés API correspondantes que vous pourrez configurer dans les paramètres. Cette flexibilité vous permet de générer des annonces ultra-pertinentes pour votre compte Google Ads selon vos préférences et besoins spécifiques.
+            <strong>Un point fort majeur :</strong> Vous avez la liberté d'utiliser le modèle de langage (LLM) de votre choix (OpenAI, Anthropic, Claude). Pour cela, vous devrez vous munir au préalable des clés API correspondantes que vous pourrez configurer dans les paramètres. Cette flexibilité vous permet de générer des annonces ultra-pertinentes selon vos préférences et besoins spécifiques.
           </p>
           <p>
-            <strong>Pourquoi nous demandons l'accès à votre compte Google :</strong> L'outil s'intègre directement avec Google Drive et Google Sheets pour récupérer vos données client et y écrire les annonces générées. Toutes les opérations sont transparentes et ne concernent que les documents que vous autorisez explicitement.
+            <strong>Stockage de données :</strong> L'outil stocke vos données localement et utilise un éditeur de type tableur intégré pour gérer vos campagnes publicitaires. Toutes les opérations sont effectuées dans votre navigateur pour garantir la confidentialité de vos données.
           </p>
         </div>
         
@@ -124,11 +125,11 @@ const Index = () => {
           <Card className="shadow-md hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle>Commencez</CardTitle>
-              <CardDescription>Connectez-vous avec votre compte Google</CardDescription>
+              <CardDescription>Connectez-vous avec votre compte</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="mb-4">
-                Authentifiez-vous pour accéder à Google Drive et Sheets
+                Authentifiez-vous pour accéder à l'application
               </p>
               <Button 
                 className="w-full" 
@@ -146,7 +147,7 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <p className="mb-4">
-                Intégration simple avec vos outils existants et génération de contenu par IA
+                Intégration simple avec vos données et génération de contenu par IA
               </p>
               <Button 
                 variant="outline" 

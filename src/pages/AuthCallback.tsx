@@ -78,7 +78,7 @@ const AuthCallback = () => {
           }
         } else {
           setStatus("Aucun jeton d'authentification trouvé dans l'URL");
-          setErrorDetails("Le processus d'authentification n'a pas généré de jeton valide. Vérifiez la configuration OAuth.");
+          setErrorDetails("Le processus d'authentification n'a pas généré de jeton valide. Vérifiez la configuration d'authentification.");
         }
         
         // If we get here, authentication failed

@@ -3,34 +3,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
- * Initiates Google OAuth login through Supabase, sans les scopes Google Sheets/Drive
+ * Initiates email authentication login through Supabase
  */
-export const initiateGoogleLogin = async (): Promise<void> => {
+export const initiateEmailLogin = async (): Promise<void> => {
   try {
-    console.log("Initiating Google OAuth login");
+    console.log("Initiating email authentication");
     
     // Get the current URL origin for redirect
     const redirectUrl = window.location.origin + '/auth/callback';
     console.log("Using redirect URL:", redirectUrl);
     
-    // Configuration for Google OAuth via Supabase with basic scopes only
+    // Configuration for email OAuth via Supabase with basic scopes only
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider: 'azure',
       options: {
         redirectTo: redirectUrl,
-        scopes: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid',
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent'
-        }
+        scopes: 'email profile openid',
       }
     });
     
     if (error) throw error;
-    console.log("Google OAuth initiation successful");
+    console.log("Email authentication initiation successful");
   } catch (error: any) {
-    console.error("Error connecting with Google:", error);
-    toast.error("Error connecting to Google. Please try again.");
+    console.error("Error connecting:", error);
+    toast.error("Error connecting. Please try again.");
   }
 };
 
@@ -69,18 +65,17 @@ export const processAuthTokens = async (): Promise<boolean> => {
         console.log("Session successfully established from URL token");
         
         // Store user preferences
-        if (data.session.user?.app_metadata?.provider === 'google') {
-          localStorage.setItem("google_connected", "true");
+        if (data.session.user) {
+          localStorage.setItem("auth_connected", "true");
           
-          // Store Google user info
+          // Store user info
           const userData = {
-            provider: 'google',
             email: data.session.user.email,
             name: data.session.user?.user_metadata?.full_name || data.session.user.email,
             picture: data.session.user?.user_metadata?.picture || data.session.user?.user_metadata?.avatar_url
           };
           
-          localStorage.setItem("google_user", JSON.stringify(userData));
+          localStorage.setItem("user_data", JSON.stringify(userData));
         }
         
         toast.success("Connection successful!");

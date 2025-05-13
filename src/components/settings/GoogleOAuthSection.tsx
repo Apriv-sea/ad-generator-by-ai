@@ -6,27 +6,27 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-const GoogleOAuthSection: React.FC = () => {
+const AccountSection: React.FC = () => {
   const { user } = useAuth();
-  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
-  const [googleUserData, setGoogleUserData] = useState<any>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
 
   // Load connection status from localStorage on component mount
   useEffect(() => {
-    const googleConnected = localStorage.getItem("google_connected");
-    const googleUser = localStorage.getItem("google_user");
+    const authConnected = localStorage.getItem("auth_connected");
+    const userDataStr = localStorage.getItem("user_data");
     
-    // Check if the user is connected with Google
-    if (googleConnected === "true" && user?.app_metadata?.provider === "google") {
-      setIsGoogleConnected(true);
+    // Check if the user is connected
+    if (authConnected === "true" && user) {
+      setIsConnected(true);
       
-      // Load Google user data if available
-      if (googleUser) {
+      // Load user data if available
+      if (userDataStr) {
         try {
-          const parsedData = JSON.parse(googleUser);
-          setGoogleUserData(parsedData);
+          const parsedData = JSON.parse(userDataStr);
+          setUserData(parsedData);
         } catch (error) {
-          console.error("Error parsing Google user data:", error);
+          console.error("Error parsing user data:", error);
         }
       }
     }
@@ -35,11 +35,11 @@ const GoogleOAuthSection: React.FC = () => {
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      // Clear Google-related preferences
-      localStorage.removeItem("google_connected");
-      localStorage.removeItem("google_user");
-      setIsGoogleConnected(false);
-      setGoogleUserData(null);
+      // Clear auth-related preferences
+      localStorage.removeItem("auth_connected");
+      localStorage.removeItem("user_data");
+      setIsConnected(false);
+      setUserData(null);
       toast.success("Déconnecté avec succès");
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
@@ -47,14 +47,12 @@ const GoogleOAuthSection: React.FC = () => {
     }
   };
 
-  const isGoogleUser = user?.app_metadata?.provider === "google";
-
   return (
     <div className="max-w-2xl mx-auto">
       <CardHeader className="px-0 pt-0">
-        <CardTitle>Connexion Google</CardTitle>
+        <CardTitle>Compte utilisateur</CardTitle>
         <CardDescription>
-          Gérez votre compte Google connecté
+          Gérez votre compte connecté
         </CardDescription>
       </CardHeader>
       <CardContent className="px-0 pb-0">
@@ -62,7 +60,7 @@ const GoogleOAuthSection: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="font-medium">
-                {isGoogleUser ? "Compte Google connecté" : "Compte Google"}
+                {user ? "Compte connecté" : "Compte"}
               </p>
               <p className="text-sm text-muted-foreground">{user?.email}</p>
             </div>
@@ -71,10 +69,10 @@ const GoogleOAuthSection: React.FC = () => {
             </Button>
           </div>
           
-          {isGoogleUser && (
+          {user && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Connecté uniquement pour l'authentification. Les données de l'application sont stockées localement.
+                Connecté. Les données de l'application sont stockées localement.
               </p>
             </div>
           )}
@@ -84,4 +82,4 @@ const GoogleOAuthSection: React.FC = () => {
   );
 };
 
-export default GoogleOAuthSection;
+export default AccountSection;

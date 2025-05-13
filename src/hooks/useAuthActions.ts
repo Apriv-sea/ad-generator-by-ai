@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { initiateGoogleLogin } from "@/utils/googleAuthUtils";
+import { initiateEmailLogin } from "@/utils/authUtils";
 
 export function useAuthActions() {
   // Login function
@@ -36,10 +36,8 @@ export function useAuthActions() {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       // Clean localStorage
-      localStorage.removeItem('google_user');
-      localStorage.removeItem('google_connected');
-      localStorage.removeItem('google_sheets_access');
-      localStorage.removeItem('google_drive_access');
+      localStorage.removeItem('user_data');
+      localStorage.removeItem('auth_connected');
       toast.success("Logout successful");
     } catch (error: any) {
       console.error("Logout error:", error);
@@ -47,15 +45,15 @@ export function useAuthActions() {
     }
   };
 
-  // Google login function
-  const googleLogin = async () => {
-    await initiateGoogleLogin();
+  // Email login function
+  const emailLogin = async () => {
+    await initiateEmailLogin();
   };
 
   return {
     login,
     signup,
     logout,
-    googleLogin
+    emailLogin
   };
 }

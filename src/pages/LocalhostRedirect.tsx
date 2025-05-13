@@ -112,7 +112,7 @@ const LocalhostRedirect = () => {
           <div className="bg-amber-50 p-4 rounded-md">
             <h3 className="font-medium mb-1">Information importante</h3>
             <p className="text-sm">
-              Vous avez été redirigé vers localhost après l'authentification Google. 
+              Vous avez été redirigé vers localhost après l'authentification. 
               Pour compléter le processus, vous devez être redirigé vers votre application déployée.
             </p>
             {tokenParams && (

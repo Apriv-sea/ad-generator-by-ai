@@ -22,12 +22,12 @@ const HowItWorks = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h3 className="font-semibold text-lg mb-2">Connexion à votre compte Google</h3>
-                <p>Connectez-vous avec votre compte Google pour accéder à Google Drive et Sheets.</p>
+                <h3 className="font-semibold text-lg mb-2">Connexion à votre compte</h3>
+                <p>Créez un compte ou connectez-vous pour accéder à l'application.</p>
               </div>
               <div>
                 <h3 className="font-semibold text-lg mb-2">Configuration des clés API</h3>
-                <p>Configurez au moins une clé API pour les services de génération de contenu (OpenAI, Anthropic, Google).</p>
+                <p>Configurez au moins une clé API pour les services de génération de contenu (OpenAI, Anthropic).</p>
               </div>
             </CardContent>
           </Card>
@@ -54,8 +54,8 @@ const HowItWorks = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h3 className="font-semibold text-lg mb-2">Création d'une feuille Google Sheets</h3>
-                <p>Créez ou sélectionnez une feuille Google Sheets pour y stocker les campagnes.</p>
+                <h3 className="font-semibold text-lg mb-2">Création d'une feuille</h3>
+                <p>Créez ou sélectionnez une feuille dans l'éditeur intégré pour y stocker les campagnes.</p>
               </div>
               <div>
                 <h3 className="font-semibold text-lg mb-2">Remplissage des premières colonnes</h3>
@@ -66,8 +66,8 @@ const HowItWorks = () => {
                 <p>Notre système générera automatiquement 10 titres et 5 descriptions pour chaque ligne.</p>
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-2">Intégration dans Google Sheets</h3>
-                <p>Les résultats sont automatiquement intégrés dans votre feuille Google Sheets.</p>
+                <h3 className="font-semibold text-lg mb-2">Intégration dans l'éditeur</h3>
+                <p>Les résultats sont automatiquement intégrés dans votre tableur.</p>
               </div>
             </CardContent>
           </Card>

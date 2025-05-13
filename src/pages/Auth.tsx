@@ -7,12 +7,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useNavigate, useLocation, Link } from "react-router-dom";
 import LoginForm from "@/components/auth/LoginForm";
 import SignupForm from "@/components/auth/SignupForm";
-import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
+import EmailLoginButton from "@/components/auth/GoogleLoginButton";
 import AuthLoading from "@/components/auth/AuthLoading";
 import AuthError from "@/components/auth/AuthError";
 import AuthDebugDialog from "@/components/AuthDebugDialog";
 import { Button } from "@/components/ui/button";
-import GoogleAuthWarning from "@/components/auth/GoogleAuthWarning";
+import EmailAuthWarning from "@/components/auth/GoogleAuthWarning";
 
 const Auth = () => {
   const location = useLocation();
@@ -22,7 +22,7 @@ const Auth = () => {
   const [activeTab, setActiveTab] = useState("login");
   const [processingAuth, setProcessingAuth] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [showGoogleWarning, setShowGoogleWarning] = useState(false);
+  const [showAuthWarning, setShowAuthWarning] = useState(false);
   
   // Check for URL tokens on component mount
   useEffect(() => {
@@ -57,11 +57,11 @@ const Auth = () => {
           const errorDesc = params.get('error_description');
           console.error(`Auth page: OAuth error - ${error}: ${errorDesc}`);
           
-          // Detect the specific Google unverified app error
+          // Detect specific authentication errors
           if (errorDesc?.includes('not verified') || errorDesc?.includes('validation') || error === 'access_denied') {
-            setShowGoogleWarning(true);
+            setShowAuthWarning(true);
           } else {
-            setAuthError(`Erreur Google OAuth: ${error}. ${errorDesc || ''}`);
+            setAuthError(`Erreur d'authentification: ${error}. ${errorDesc || ''}`);
           }
         }
       } catch (error) {
@@ -81,7 +81,7 @@ const Auth = () => {
   }
 
   const handleTryAgain = () => {
-    setShowGoogleWarning(false);
+    setShowAuthWarning(false);
     window.history.replaceState({}, document.title, window.location.pathname);
   };
 
@@ -92,16 +92,16 @@ const Auth = () => {
           <CardHeader>
             <CardTitle className="text-2xl text-center">Ad Content Generator</CardTitle>
             <CardDescription className="text-center">
-              Connectez-vous pour accéder à vos campagnes Google Ads
+              Connectez-vous pour accéder à vos campagnes publicitaires
             </CardDescription>
           </CardHeader>
           
           <CardContent>
-            {showGoogleWarning && (
-              <GoogleAuthWarning onContinue={handleTryAgain} />
+            {showAuthWarning && (
+              <EmailAuthWarning onContinue={handleTryAgain} />
             )}
             
-            {authError && !showGoogleWarning && <AuthError error={authError} />}
+            {authError && !showAuthWarning && <AuthError error={authError} />}
             
             {processingAuth || isLoading ? (
               <AuthLoading />
@@ -133,7 +133,7 @@ const Auth = () => {
                   </div>
                 </div>
                 
-                <GoogleLoginButton />
+                <EmailLoginButton />
               </>
             )}
           </CardContent>

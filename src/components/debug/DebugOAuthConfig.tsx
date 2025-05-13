@@ -4,18 +4,17 @@ import React from "react";
 const DebugOAuthConfig: React.FC = () => {
   return (
     <div>
-      <h3 className="font-medium mb-1">Configuration Google OAuth</h3>
+      <h3 className="font-medium mb-1">Configuration d'authentification</h3>
       <ol className="list-decimal pl-5 text-sm space-y-1">
-        <li>Vérifiez que l'URL de redirection <code className="font-bold">{window.location.origin}/auth/callback</code> est correctement configurée comme URI de redirection autorisé dans Google Cloud Console</li>
-        <li>Vérifiez que votre URL actuelle est ajoutée comme "Origine JavaScript autorisée" dans la console Google:
+        <li>Vérifiez que l'URL de redirection <code className="font-bold">{window.location.origin}/auth/callback</code> est correctement configurée comme URI de redirection autorisé dans le service d'authentification</li>
+        <li>Vérifiez que votre URL actuelle est ajoutée comme "Origine JavaScript autorisée" :
           <ul className="list-disc pl-5 mt-1">
             <li><code className="font-bold">{window.location.origin}</code> (votre URL actuelle)</li>
           </ul>
         </li>
-        <li>Assurez-vous que votre ID client et Secret client sont correctement configurés dans Supabase</li>
-        <li>Si vous avez configuré "Authorize all domains" dans Google Cloud Console, vérifiez que cette option est correctement activée</li>
+        <li>Assurez-vous que votre ID client et Secret client sont correctement configurés</li>
         <li>Vérifiez que le protocole (http/https) correspond exactement dans les URLs autorisées</li>
-        <li className="font-semibold">Pendant le développement: ajoutez votre adresse email comme utilisateur de test dans Google Cloud Console</li>
+        <li className="font-semibold">Pendant le développement: ajoutez votre adresse email comme utilisateur de test</li>
       </ol>
       <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded">
         <p className="font-semibold">Informations essentielles:</p>
@@ -28,11 +27,8 @@ const DebugOAuthConfig: React.FC = () => {
       <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
         <p className="font-semibold">Important pour les applications non vérifiées:</p>
         <p className="text-xs mt-1">
-          Pendant le développement, Google affiche un écran d'avertissement car l'application n'est pas vérifiée. 
-          Pour continuer, cliquez sur "Paramètres avancés" puis "Revenir en lieu sûr".
-        </p>
-        <p className="text-xs mt-1">
-          Alternative: ajoutez votre email comme utilisateur de test dans la console Google Cloud.
+          Pendant le développement, le service d'authentification peut afficher un écran d'avertissement car l'application n'est pas vérifiée. 
+          Suivez les instructions à l'écran pour continuer.
         </p>
       </div>
     </div>
