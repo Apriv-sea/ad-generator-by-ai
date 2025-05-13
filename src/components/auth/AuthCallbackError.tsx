@@ -2,7 +2,7 @@
 import React from "react";
 import AuthDebugDialog from "@/components/AuthDebugDialog";
 import { Button } from "@/components/ui/button";
-import GoogleAuthWarning from "./GoogleAuthWarning";
+import AuthWarning from "./AuthWarning";
 
 interface AuthCallbackErrorProps {
   errorDetails: string;
@@ -20,7 +20,7 @@ const AuthCallbackError: React.FC<AuthCallbackErrorProps> = ({ errorDetails }) =
                               errorDetails.toLowerCase().includes('access_denied');
 
   if (isUnverifiedAppError) {
-    return <GoogleAuthWarning />;
+    return <AuthWarning />;
   }
 
   return (
@@ -31,8 +31,8 @@ const AuthCallbackError: React.FC<AuthCallbackErrorProps> = ({ errorDetails }) =
       <div className="mt-3 text-xs">
         <p>Vérifiez que :</p>
         <ul className="list-disc pl-5 text-left">
-          <li>Votre compte est ajouté comme utilisateur de test dans Google Cloud Console</li>
-          <li>L'URL de redirection <code className="font-bold">{window.location.origin}/auth/callback</code> est exactement configurée comme URI autorisé dans Google Cloud Console</li>
+          <li>Votre compte est ajouté comme utilisateur de test dans le service d'authentification</li>
+          <li>L'URL de redirection <code className="font-bold">{window.location.origin}/auth/callback</code> est exactement configurée comme URI autorisé</li>
           <li>L'URL racine <code className="font-bold">{window.location.origin}</code> est également configurée comme URI autorisé</li>
           <li>L'écran de consentement OAuth est correctement configuré</li>
         </ul>
@@ -43,7 +43,7 @@ const AuthCallbackError: React.FC<AuthCallbackErrorProps> = ({ errorDetails }) =
           <p className="font-semibold">Problème de redirection détecté :</p>
           <p>Assurez-vous que :</p>
           <ul className="list-disc pl-5 text-left">
-            <li>L'URL exacte <code className="font-bold">{window.location.origin}</code> est ajoutée aux "Origines JavaScript autorisées" dans Google Cloud Console</li>
+            <li>L'URL exacte <code className="font-bold">{window.location.origin}</code> est ajoutée aux "Origines JavaScript autorisées"</li>
             <li>L'URL <code className="font-bold">{window.location.origin}/auth/callback</code> est ajoutée aux "URI de redirection autorisés"</li>
             <li>Si vous avez activé l'option "Autoriser toutes les origines", vérifiez que cela est bien configuré</li>
             <li>Les paramètres des URL sont exactement identiques (incluant http/https)</li>
