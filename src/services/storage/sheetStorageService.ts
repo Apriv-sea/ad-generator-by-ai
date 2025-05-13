@@ -1,9 +1,10 @@
 
-import { Sheet, Client, Campaign } from "../types";
+import { Sheet, Client } from "../types";
 import { SheetData } from "../types/sheetData";
 import { localStorageUtils } from "./localStorageUtils";
 import { toast } from "sonner";
-import { campaignExtractorService } from "./campaignExtractorService";
+import { mapClientRecordToClient } from "../mappers/clientMapper";
+import { ClientRecord } from "@/types/supabase-extensions";
 
 /**
  * Service for managing sheets storage in localStorage
@@ -57,10 +58,10 @@ class SheetStorageService {
    */
   createSheet(name: string, client: Client | null = null): Sheet {
     try {
-      // Générer un ID unique
+      // Generate a unique ID
       const id = `sheet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      // Définir les en-têtes par défaut
+      // Define default headers
       const headers = [
         "Nom de la campagne",
         "Nom du groupe d'annonces",
@@ -82,13 +83,13 @@ class SheetStorageService {
         "Description 5"
       ];
       
-      // Créer les données initiales (headers + 10 lignes vides)
+      // Create initial data (headers + 10 empty rows)
       const initialData: any[][] = [headers];
       for (let i = 0; i < 10; i++) {
         initialData.push(Array(headers.length).fill(''));
       }
       
-      // Créer l'objet Sheet
+      // Create Sheet object
       const newSheet: Sheet = {
         id,
         name,
@@ -98,7 +99,7 @@ class SheetStorageService {
         clientContext: client?.businessContext
       };
       
-      // Créer l'objet SheetData
+      // Create SheetData object
       const sheetData: SheetData = {
         id,
         content: initialData,
@@ -107,12 +108,12 @@ class SheetStorageService {
         lastModified: new Date().toISOString()
       };
       
-      // Enregistrer la feuille dans la liste
+      // Save sheet to list
       const sheets = this.getSheets();
       sheets.push(newSheet);
       localStorageUtils.setItem(this.storageKey, sheets);
       
-      // Enregistrer les données de la feuille
+      // Save sheet data
       const dataKey = `sheet_data_${id}`;
       localStorageUtils.setItem(dataKey, sheetData);
       

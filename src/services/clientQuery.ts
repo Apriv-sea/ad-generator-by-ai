@@ -2,19 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Client, ClientResponse, SingleClientResponse } from "./types/client";
 import { ClientRecord } from "@/types/supabase-extensions";
-
-/**
- * Convert a ClientRecord from the database to a Client object
- */
-function mapClientRecordToClient(record: ClientRecord): Client {
-  return {
-    id: record.id,
-    name: record.name,
-    businessContext: record.business_context || undefined,
-    specifics: record.specifics || undefined,
-    editorialGuidelines: record.editorial_guidelines || undefined
-  };
-}
+import { mapClientRecordToClient } from "./mappers/clientMapper";
 
 /**
  * Get all clients for the current user
@@ -37,9 +25,9 @@ export const getClients = async (): Promise<ClientResponse> => {
     }
 
     // Map ClientRecord objects to Client objects
-    const clients = data.map(mapClientRecordToClient);
+    const clients = data.map(record => mapClientRecordToClient(record as ClientRecord));
     
-    return { data: clients as any, error: null };
+    return { data: clients, error: null };
   } catch (error) {
     console.error("Exception in getClients:", error);
     return { data: null, error: error as Error };
@@ -67,9 +55,9 @@ export const getClientById = async (clientId: string): Promise<SingleClientRespo
       return { data: null, error };
     }
 
-    const client = mapClientRecordToClient(data);
+    const client = mapClientRecordToClient(data as ClientRecord);
     
-    return { data: client as any, error: null };
+    return { data: client, error: null };
   } catch (error) {
     console.error("Exception in getClientById:", error);
     return { data: null, error: error as Error };
@@ -98,7 +86,7 @@ export const getClientInfo = async (clientId: string | undefined): Promise<Clien
     }
     
     // Use the mapper function to convert to Client format
-    return mapClientRecordToClient(data);
+    return mapClientRecordToClient(data as ClientRecord);
   } catch (error) {
     console.error("Exception in getClientInfo:", error);
     return null;
@@ -123,12 +111,15 @@ export const getClientShortInfo = async (): Promise<Client[]> => {
       return [];
     }
     
-    // Map the data to Client objects
-    return data.map(record => ({
-      id: record.id,
-      name: record.name,
-      businessContext: record.business_context || undefined
-    }));
+    // Map the data to Client objects using the mapper
+    return data.map(record => mapClientRecordToClient({
+      ...record,
+      specifics: null,
+      editorial_guidelines: null,
+      user_id: '', // These fields aren't used in the result but needed for type safety
+      created_at: '',
+      updated_at: ''
+    } as ClientRecord));
   } catch (error) {
     console.error("Exception in getClientShortInfo:", error);
     return [];

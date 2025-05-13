@@ -1,6 +1,8 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { Client, ClientResponse } from "./types/client";
+import { Client } from "./types/client";
 import { getCurrentUserId } from "./utils/supabaseUtils";
+import { mapClientToClientRecord } from "./mappers/clientMapper";
 
 /**
  * Create a new client
@@ -10,13 +12,13 @@ export const addClient = async (client: Partial<Client>): Promise<string | null>
     const userId = await getCurrentUserId();
     if (!userId) return null;
     
+    // Convert client object to database format
+    const clientRecord = mapClientToClientRecord(client);
+    
     const { data, error } = await supabase
       .from('clients')
       .insert({
-        name: client.name || '',
-        business_context: client.businessContext || '',
-        specifics: client.specifics || '',
-        editorial_guidelines: client.editorialGuidelines || '',
+        ...clientRecord,
         user_id: userId
       })
       .select();
@@ -55,14 +57,14 @@ export const updateClient = async (
       return false;
     }
     
-    // Create an update object with only the fields that are provided
-    const updateData: any = {};
-    if (updates.name !== undefined) updateData.name = updates.name;
-    if (updates.businessContext !== undefined) updateData.business_context = updates.businessContext;
-    if (updates.specifics !== undefined) updateData.specifics = updates.specifics;
-    if (updates.editorialGuidelines !== undefined) updateData.editorial_guidelines = updates.editorialGuidelines;
-    // Convert Date to ISO string for database compatibility
-    updateData.updated_at = new Date().toISOString();
+    // Convert client object to database format
+    const clientRecord = mapClientToClientRecord(updates);
+    
+    // Add updated_at timestamp
+    const updateData = {
+      ...clientRecord,
+      updated_at: new Date().toISOString()
+    };
     
     const { error } = await supabase
       .from('clients')

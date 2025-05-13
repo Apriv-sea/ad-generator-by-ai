@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Client } from "@/services/googleSheetsService";
+import { Client } from "@/services/types/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Info } from "lucide-react";
