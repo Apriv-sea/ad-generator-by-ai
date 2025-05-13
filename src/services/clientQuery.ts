@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Client, ClientResponse, SingleClientResponse } from "./types/client";
 import { getCurrentUserId } from "./utils/supabaseUtils";
@@ -95,3 +94,27 @@ export const getClientInfo = async (clientId: string): Promise<Pick<Client, 'id'
     return null;
   }
 };
+
+export async function getClientShortInfo(clientId: string): Promise<Client | null> {
+  try {
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', clientId)
+      .single();
+    
+    if (error || !data) {
+      console.error("Erreur lors de la récupération des informations client:", error);
+      return null;
+    }
+    
+    return {
+      id: data.id,
+      name: data.name,
+      businessContext: data.business_context || undefined
+    };
+  } catch (error) {
+    console.error("Exception lors de la récupération des infos client:", error);
+    return null;
+  }
+}
