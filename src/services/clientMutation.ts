@@ -18,8 +18,11 @@ export const addClient = async (client: Partial<Client>): Promise<string | null>
       return null;
     }
     
-    // Convert client object to database format
-    const clientRecord = mapClientToClientRecord(client);
+    // Convert client object to database format with required name field
+    const clientRecord = mapClientToClientRecord({
+      ...client,
+      name: client.name // Ensure name is explicitly passed
+    });
     
     // Create the insert data with user_id
     const insertData = {
@@ -27,8 +30,9 @@ export const addClient = async (client: Partial<Client>): Promise<string | null>
       user_id: userId
     };
     
-    // Since name is already validated above and in the mapper function,
-    // we can be confident it exists in the insertData
+    // Now insertData.name is definitely not undefined because:
+    // 1. We checked client.name above
+    // 2. mapClientToClientRecord throws if name is missing
     const { data, error } = await supabase
       .from('clients')
       .insert(insertData)
@@ -57,6 +61,7 @@ export const updateClient = async (
     const userId = await getCurrentUserId();
     if (!userId) return false;
     
+    // Get existing client to ensure we have a name
     const { data: clientCheck } = await supabase
       .from('clients')
       .select('id, name')
@@ -68,14 +73,13 @@ export const updateClient = async (
       return false;
     }
     
-    // Ensure we have a name for the update
-    // If no name is provided in updates, use the existing name from clientCheck
-    const updatesWithName = {
+    // Ensure we have a name for the update by using the existing name if not provided
+    const updatesWithName: Partial<Client> = {
       ...updates,
       name: updates.name || clientCheck.name
     };
     
-    // Convert client object to database format
+    // Convert client object to database format (now with guaranteed name field)
     const clientRecord = mapClientToClientRecord(updatesWithName);
     
     // Add updated_at timestamp

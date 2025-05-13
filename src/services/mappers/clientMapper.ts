@@ -17,14 +17,16 @@ export function mapClientRecordToClient(record: ClientRecord): Client {
 
 /**
  * Maps a Client object (camelCase) to a ClientRecord for database operations (snake_case)
+ * Ensures that required fields are present
  */
 export function mapClientToClientRecord(client: Partial<Client>): Partial<ClientRecord> {
-  // Ensure name is present since it's required by the database
-  if (client.name === undefined) {
+  // Validate required fields
+  if (!client.name) {
     throw new Error("Client name is required");
   }
   
   const result: Partial<ClientRecord> = {
+    // Explicitly include name as it's required by the database
     name: client.name,
   };
   
