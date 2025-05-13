@@ -21,12 +21,15 @@ export const addClient = async (client: Partial<Client>): Promise<string | null>
     // Convert client object to database format
     const clientRecord = mapClientToClientRecord(client);
     
+    // Create the insert data with user_id
+    const insertData = {
+      ...clientRecord,
+      user_id: userId
+    };
+    
     const { data, error } = await supabase
       .from('clients')
-      .insert({
-        ...clientRecord,
-        user_id: userId
-      })
+      .insert(insertData)
       .select();
     
     if (error || !data || data.length === 0) {
