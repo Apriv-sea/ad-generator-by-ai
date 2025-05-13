@@ -12,6 +12,7 @@ interface AuthCallbackContentProps {
   errorDetails: string | null;
   isTokenFound: boolean;
   manualRedirectToRoot: () => void;
+  isProcessing: boolean;
 }
 
 const AuthCallbackContent: React.FC<AuthCallbackContentProps> = ({
@@ -19,6 +20,7 @@ const AuthCallbackContent: React.FC<AuthCallbackContentProps> = ({
   errorDetails,
   isTokenFound,
   manualRedirectToRoot,
+  isProcessing,
 }) => {
   const navigate = useNavigate();
 
@@ -31,7 +33,9 @@ const AuthCallbackContent: React.FC<AuthCallbackContentProps> = ({
           <AuthCallbackError errorDetails={errorDetails} />
         )}
         
-        <div className="mt-4 animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+        {isProcessing && (
+          <div className="mt-4 animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+        )}
         
         <div className="mt-6 space-y-2">
           <Button variant="outline" onClick={() => navigate("/auth")} className="mx-1">

@@ -6,14 +6,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, ExternalLink } from 'lucide-react';
+import { AlertCircle, ExternalLink, CheckCircle } from 'lucide-react';
 import AuthDebugDialog from '@/components/AuthDebugDialog';
+import { toast } from 'sonner';
 
 const LocalhostRedirect = () => {
   const [deployedUrl, setDeployedUrl] = useState<string | null>(null);
   const [inputUrl, setInputUrl] = useState<string>('');
   const [redirecting, setRedirecting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [tokenInfo, setTokenInfo] = useState<{
+    type: string;
+    source: string;
+    hasAccessToken: boolean;
+  } | null>(null);
   const navigate = useNavigate();
 
   // Extract token and query parameters
@@ -31,22 +37,54 @@ const LocalhostRedirect = () => {
 
       // Extract token information from URL
       let tokenInfo = '';
+      let tokenType = 'unknown';
+      let tokenSource = 'unknown';
+      let hasAccessToken = false;
       
       // Check hash for access_token (Supabase auth)
       if (window.location.hash && window.location.hash.includes('access_token')) {
         console.log("Found access token in URL hash");
         tokenInfo = window.location.hash;
+        tokenType = window.location.hash.includes('type=signup') ? 'inscription' : 'connexion';
+        tokenSource = 'hash';
+        hasAccessToken = true;
         setTokenParams(tokenInfo);
+        
+        setTokenInfo({
+          type: tokenType,
+          source: tokenSource,
+          hasAccessToken: hasAccessToken
+        });
       } 
       // Check search params (query string)
       else if (window.location.search) {
         console.log("Found query parameters in URL");
         tokenInfo = window.location.search;
+        tokenType = 'paramètres';
+        tokenSource = 'search';
+        hasAccessToken = false;
         setTokenParams(tokenInfo);
+        
+        setTokenInfo({
+          type: tokenType,
+          source: tokenSource,
+          hasAccessToken: hasAccessToken
+        });
       }
       
       if (!tokenInfo) {
         setErrorMsg("Aucun jeton d'authentification trouvé dans l'URL.");
+      }
+      
+      // If we have a deployed URL stored and a token, suggest auto-redirect
+      if (storedDeployedUrl && tokenInfo && !redirecting) {
+        toast.info("Une redirection automatique est recommandée pour compléter l'authentification.", {
+          duration: 10000,
+          action: {
+            label: "Rediriger",
+            onClick: () => handleRedirect()
+          }
+        });
       }
     } else {
       // Not on localhost, redirect to the root
@@ -64,6 +102,7 @@ const LocalhostRedirect = () => {
       localStorage.setItem('deployed_url', cleanUrl);
       setDeployedUrl(cleanUrl);
       setErrorMsg(null);
+      toast.success("URL enregistrée avec succès");
     } catch (e) {
       setErrorMsg("URL invalide. Veuillez entrer une URL complète (avec https://)");
     }
@@ -73,6 +112,7 @@ const LocalhostRedirect = () => {
     if (!deployedUrl || !tokenParams) return;
     
     setRedirecting(true);
+    toast.loading("Redirection en cours...");
     
     // Build the new URL - carefully handling the parameters
     // If tokenParams starts with # or ?, we pass it as is
@@ -88,16 +128,17 @@ const LocalhostRedirect = () => {
     localStorage.removeItem('deployed_url');
     setDeployedUrl(null);
     setInputUrl('');
+    toast.info("Configuration effacée");
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
       <Card className="w-full max-w-lg">
         <CardHeader>
-          <CardTitle>Redirection localhost nécessaire</CardTitle>
+          <CardTitle>Redirection de confirmation d'email</CardTitle>
           <CardDescription>
-            Votre navigateur a été redirigé vers localhost après l'authentification. Pour terminer le processus, 
-            vous devez être redirigé vers votre application déployée.
+            Votre navigateur a été redirigé vers localhost après la confirmation de votre email. 
+            Pour terminer le processus, vous devez être redirigé vers votre application déployée.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -112,13 +153,14 @@ const LocalhostRedirect = () => {
           <div className="bg-amber-50 p-4 rounded-md">
             <h3 className="font-medium mb-1">Information importante</h3>
             <p className="text-sm">
-              Vous avez été redirigé vers localhost après l'authentification. 
-              Pour compléter le processus, vous devez être redirigé vers votre application déployée.
+              Vous avez été redirigé vers localhost après la confirmation de votre email.
+              Pour compléter le processus d'inscription, vous devez être redirigé vers votre application déployée.
             </p>
-            {tokenParams && (
-              <p className="text-xs mt-2 text-amber-700">
-                Un jeton d'authentification a été détecté et sera transmis à l'URL déployée.
-              </p>
+            {tokenInfo?.hasAccessToken && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-green-700">
+                <CheckCircle className="h-4 w-4" />
+                <p>Un jeton d'authentification a été détecté ({tokenInfo.type}) et sera transmis à l'URL déployée.</p>
+              </div>
             )}
           </div>
 

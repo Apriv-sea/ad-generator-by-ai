@@ -11,6 +11,7 @@ const AuthCallback = () => {
   const [status, setStatus] = useState<string>("Traitement de l'authentification...");
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [isTokenFound, setIsTokenFound] = useState<boolean>(false);
+  const [isProcessing, setIsProcessing] = useState<boolean>(true);
   const navigate = useNavigate();
   const { processAuthTokens } = useAuth();
 
@@ -27,7 +28,19 @@ const AuthCallback = () => {
           setStatus(`Erreur d'authentification: ${authError.error}`);
           setErrorDetails(authError.errorDescription);
           toast.error(`Échec de l'authentification: ${authError.error}`);
+          setIsProcessing(false);
           setTimeout(() => navigate("/auth"), 5000);
+          return;
+        }
+
+        // Check if we're on localhost and should redirect
+        const isLocalhost = window.location.hostname === 'localhost';
+        const hasToken = window.location.hash && window.location.hash.includes('access_token');
+        
+        if (isLocalhost && hasToken) {
+          setStatus("Redirection vers l'application déployée requise");
+          setIsProcessing(false);
+          navigate('/localhost-redirect');
           return;
         }
 
@@ -37,6 +50,7 @@ const AuthCallback = () => {
         if (session) {
           console.log("Session already exists, redirecting to dashboard");
           toast.success("Connexion réussie!");
+          setIsProcessing(false);
           setTimeout(() => navigate("/dashboard"), 1000);
           return;
         }
@@ -94,11 +108,13 @@ const AuthCallback = () => {
         setErrorDetails(error instanceof Error ? error.message : "Erreur inconnue");
         toast.error("Échec de l'authentification");
         setTimeout(() => navigate("/auth"), 5000);
+      } finally {
+        setIsProcessing(false);
       }
     };
 
     handleCallback();
-  }, [navigate, processAuthTokens, isTokenFound]);
+  }, [navigate, processAuthTokens]);
 
   const manualRedirectToRoot = () => {
     // Copy token information to the root URL
@@ -116,6 +132,7 @@ const AuthCallback = () => {
       errorDetails={errorDetails}
       isTokenFound={isTokenFound}
       manualRedirectToRoot={manualRedirectToRoot}
+      isProcessing={isProcessing}
     />
   );
 };
