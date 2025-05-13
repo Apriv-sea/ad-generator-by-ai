@@ -132,10 +132,12 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
             allowEmpty={true}
             fillHandle={true}
             outsideClickDeselects={false}
-            cell={[
-              { row: 0, col: -1, className: 'header-cell', readOnly: true }
-            ]}
             cells={(row, col) => {
+              // Vérifier que row est un nombre entier positif
+              if (typeof row !== 'number' || row < 0 || !Number.isInteger(row)) {
+                return {};
+              }
+              
               const cellProperties = {};
               
               if (row === 0) {
