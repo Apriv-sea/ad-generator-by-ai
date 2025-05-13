@@ -4,22 +4,37 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/services/googleSheetsService";
-import { FileSpreadsheet, ExternalLink } from "lucide-react";
+import { FileSpreadsheet, ExternalLink, Trash } from "lucide-react";
+import { toast } from "sonner";
 
 interface SheetsListProps {
   sheets: Sheet[];
   onSelectSheet: (sheet: Sheet) => void;
+  onDeleteSheet: (sheetId: string) => void;
   isLoading: boolean;
 }
 
-const SheetsList: React.FC<SheetsListProps> = ({ sheets, onSelectSheet, isLoading }) => {
+const SheetsList: React.FC<SheetsListProps> = ({ 
+  sheets, 
+  onSelectSheet, 
+  onDeleteSheet,
+  isLoading 
+}) => {
+  const handleDeleteSheet = (sheetId: string, sheetName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm(`Êtes-vous sûr de vouloir supprimer la feuille "${sheetName}" ?`)) {
+      onDeleteSheet(sheetId);
+      toast.success(`Feuille "${sheetName}" supprimée avec succès`);
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
         <CardContent className="pt-6">
           <div className="flex justify-center py-8">
             <div className="text-center">
-              <p className="mb-2">Chargement de vos feuilles Google Sheets...</p>
+              <p className="mb-2">Chargement de vos feuilles...</p>
               <div className="animate-spin h-8 w-8 border-4 border-primary rounded-full border-t-transparent mx-auto"></div>
             </div>
           </div>
@@ -35,7 +50,7 @@ const SheetsList: React.FC<SheetsListProps> = ({ sheets, onSelectSheet, isLoadin
           <div className="text-center py-8">
             <FileSpreadsheet className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground">
-              Aucune feuille Google Sheets trouvée.
+              Aucune feuille trouvée.
               <br />
               Créez une nouvelle feuille pour commencer.
             </p>
@@ -74,16 +89,17 @@ const SheetsList: React.FC<SheetsListProps> = ({ sheets, onSelectSheet, isLoadin
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(sheet.url, '_blank')}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      Ouvrir
-                    </Button>
-                    <Button
-                      size="sm"
                       onClick={() => onSelectSheet(sheet)}
                     >
                       Sélectionner
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-500 hover:bg-red-50"
+                      onClick={(e) => handleDeleteSheet(sheet.id, sheet.name, e)}
+                    >
+                      <Trash className="h-4 w-4" />
                     </Button>
                   </div>
                 </TableCell>

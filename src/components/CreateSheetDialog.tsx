@@ -80,11 +80,6 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
       return;
     }
 
-    if (!selectedClient) {
-      toast.error("Veuillez sélectionner un client.");
-      return;
-    }
-
     setIsCreating(true);
     try {
       // Passer les informations du client pour les stocker dans la feuille
@@ -122,7 +117,7 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Créer une nouvelle feuille Google Sheets</DialogTitle>
+          <DialogTitle>Créer une nouvelle feuille</DialogTitle>
           <DialogDescription>
             Sélectionnez un client et personnalisez le nom de la feuille
           </DialogDescription>
@@ -163,7 +158,7 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
           </Button>
           <Button 
             onClick={handleCreateSheet}
-            disabled={isCreating || !selectedClient}
+            disabled={isCreating}
           >
             {isCreating ? (
               <>

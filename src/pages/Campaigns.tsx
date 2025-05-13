@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
-import { useAuth } from "@/contexts/AuthContext";
 import { Sheet, googleSheetsService } from "@/services/googleSheetsService";
 import SheetsList from "@/components/SheetsList";
 import CreateSheetDialog from "@/components/CreateSheetDialog";
@@ -13,7 +12,6 @@ import CampaignManager from "@/components/CampaignManager";
 import { FileSpreadsheet, RefreshCw } from "lucide-react";
 
 const Campaigns = () => {
-  const { isAuthenticated, user } = useAuth();
   const [sheets, setSheets] = useState<Sheet[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedSheet, setSelectedSheet] = useState<Sheet | null>(null);
@@ -34,11 +32,6 @@ const Campaigns = () => {
   }, []);
 
   const fetchSheets = async () => {
-    if (!isAuthenticated) {
-      toast.error("Veuillez vous connecter pour accéder à vos feuilles Google Sheets");
-      return;
-    }
-    
     setIsLoading(true);
     try {
       const sheetsList = await googleSheetsService.listSheets();
@@ -51,16 +44,35 @@ const Campaigns = () => {
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchSheets();
-    }
-  }, [isAuthenticated]);
+    fetchSheets();
+  }, []);
 
   const handleSelectSheet = (sheet: Sheet) => {
     setSelectedSheet(sheet);
     localStorage.setItem('selected_sheet', JSON.stringify(sheet));
     toast.success(`Feuille "${sheet.name}" sélectionnée avec succès!`);
     setActiveTab("editor");
+  };
+
+  const handleDeleteSheet = async (sheetId: string) => {
+    try {
+      const success = await googleSheetsService.deleteSheet(sheetId);
+      if (success) {
+        // Si la feuille supprimée est celle qui est sélectionnée,
+        // on désélectionne
+        if (selectedSheet && selectedSheet.id === sheetId) {
+          setSelectedSheet(null);
+          localStorage.removeItem('selected_sheet');
+          setActiveTab("sheets");
+        }
+        
+        // Rafraîchir la liste des feuilles
+        await fetchSheets();
+      }
+    } catch (error) {
+      console.error("Erreur lors de la suppression de la feuille:", error);
+      toast.error("Impossible de supprimer la feuille");
+    }
   };
 
   const handleCreateSheet = () => {
@@ -79,7 +91,7 @@ const Campaigns = () => {
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
           <TabsList className="mb-6">
-            <TabsTrigger value="sheets">Feuilles Google Sheets</TabsTrigger>
+            <TabsTrigger value="sheets">Feuilles</TabsTrigger>
             <TabsTrigger value="editor" disabled={!selectedSheet}>
               Éditeur de Campagnes
             </TabsTrigger>
@@ -88,9 +100,9 @@ const Campaigns = () => {
           <TabsContent value="sheets">
             <Card className="mb-8">
               <CardHeader>
-                <CardTitle>Intégration Google Sheets</CardTitle>
+                <CardTitle>Gestion des feuilles</CardTitle>
                 <CardDescription>
-                  Créez une nouvelle feuille ou connectez-vous à une feuille existante
+                  Créez une nouvelle feuille ou sélectionnez une feuille existante
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col md:flex-row gap-4">
@@ -106,20 +118,12 @@ const Campaigns = () => {
               </CardContent>
             </Card>
             
-            {!isAuthenticated ? (
-              <div className="bg-muted/50 border rounded-lg p-8 text-center">
-                <h3 className="text-xl font-semibold mb-3">Connexion requise</h3>
-                <p className="mb-6">
-                  Veuillez vous connecter avec votre compte Google pour accéder à vos feuilles.
-                </p>
-              </div>
-            ) : (
-              <SheetsList 
-                sheets={sheets} 
-                onSelectSheet={handleSelectSheet} 
-                isLoading={isLoading} 
-              />
-            )}
+            <SheetsList 
+              sheets={sheets} 
+              onSelectSheet={handleSelectSheet}
+              onDeleteSheet={handleDeleteSheet}
+              isLoading={isLoading} 
+            />
           </TabsContent>
           
           <TabsContent value="editor">
@@ -142,12 +146,6 @@ const Campaigns = () => {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => window.open(selectedSheet.url, '_blank')}
-                    >
-                      Voir dans Google Sheets
-                    </Button>
                     <Button 
                       variant="outline" 
                       onClick={() => setActiveTab("sheets")}

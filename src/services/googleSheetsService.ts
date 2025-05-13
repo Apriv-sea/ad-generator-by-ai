@@ -1,6 +1,6 @@
 
 import { type Sheet, type Client, type Campaign, type AdGroup, type GenerationPrompt } from "./types";
-import { sheetService } from "./sheetService";
+import { localSheetService } from "./localSheetService";
 import { clientService } from "./clientService";
 import { contentGenerationService } from "./contentGenerationService";
 import { getClients } from "./clientQuery";
@@ -15,12 +15,14 @@ export type {
 
 export { getClients };
 
-// Export the combined service
+// Export le service combiné avec l'implémentation locale
 export const googleSheetsService = {
-  createSheet: sheetService.createSheet,
-  listSheets: sheetService.listSheets,
-  getSheetData: sheetService.getSheetData,
-  writeSheetData: sheetService.writeSheetData,
-  getClientInfo: clientService.getClientInfo,
+  createSheet: localSheetService.createSheet,
+  listSheets: localSheetService.listSheets,
+  getSheetData: localSheetService.getSheetData,
+  writeSheetData: localSheetService.writeSheetData,
+  getClientInfo: localSheetService.getClientInfo,
+  extractCampaigns: localSheetService.extractCampaigns,
+  deleteSheet: localSheetService.deleteSheet,
   generateContent: contentGenerationService.generateContent
 };

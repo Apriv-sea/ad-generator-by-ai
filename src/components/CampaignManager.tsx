@@ -11,6 +11,7 @@ import CampaignForm from "./campaign/CampaignForm";
 import CampaignTable from "./campaign/CampaignTable";
 import ModelSelector from "./campaign/ModelSelector";
 import LoadingState from "./campaign/LoadingState";
+import SpreadsheetEditor from "./sheet/SpreadsheetEditor";
 
 interface CampaignManagerProps {
   sheet: Sheet | null;
@@ -23,7 +24,8 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>("gpt-4");
-  const [viewMode, setViewMode] = useState<"form" | "table">("table");
+  const [viewMode, setViewMode] = useState<"form" | "table" | "spreadsheet">("table");
+  const [sheetData, setSheetData] = useState<any[][] | null>(null);
 
   useEffect(() => {
     if (sheet) {
@@ -39,53 +41,14 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
     try {
       // Charger les données existantes de la feuille
       const data = await googleSheetsService.getSheetData(sheet.id);
-      if (data && data.values && data.values.length > 1) {
-        const rawData = data.values.slice(1); // Ignorer les en-têtes
+      if (data && data.values && data.values.length > 0) {
+        setSheetData(data.values);
         
-        // Grouper par campagne
-        const campaignMap = new Map<string, any[]>();
-        rawData.forEach((row: any[]) => {
-          if (row.length >= 3 && row[0]) {
-            const campaignName = row[0];
-            if (!campaignMap.has(campaignName)) {
-              campaignMap.set(campaignName, []);
-            }
-            campaignMap.get(campaignName)?.push(row);
-          }
-        });
-        
-        // Convertir en structure de données
-        const loadedCampaigns: Campaign[] = [];
-        campaignMap.forEach((rows, campaignName) => {
-          const adGroups: AdGroup[] = [];
-          const processedAdGroups = new Set<string>();
-          
-          rows.forEach(row => {
-            if (row.length >= 3 && row[1] && !processedAdGroups.has(row[1])) {
-              const adGroupName = row[1];
-              processedAdGroups.add(adGroupName);
-              
-              // Extraire les mots-clés
-              const keywords = row[2] ? row[2].split(',').map((k: string) => k.trim()).filter((k: string) => k) : [];
-              
-              adGroups.push({
-                name: adGroupName,
-                keywords: keywords.length > 0 ? keywords : [""],
-                context: ""
-              });
-            }
-          });
-          
-          loadedCampaigns.push({
-            name: campaignName,
-            adGroups,
-            context: ""
-          });
-        });
-        
+        // Extraire les campagnes à partir des données
+        const loadedCampaigns = googleSheetsService.extractCampaigns(sheet.id);
         setCampaigns(loadedCampaigns.length > 0 ? loadedCampaigns : [createEmptyCampaign()]);
       } else {
-        // Initialiser avec une campagne vide
+        // Initialiser avec des données vides
         setCampaigns([createEmptyCampaign()]);
       }
     } catch (error) {
@@ -215,9 +178,35 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
 
     setIsSaving(true);
     try {
-      // Convertir les données en format adapté pour Google Sheets
+      // Convertir les données en format adapté pour le tableur
       const sheetData = [];
       
+      // Ajouter les en-têtes si c'est une nouvelle feuille
+      if (!sheet) {
+        const headers = [
+          "Nom de la campagne",
+          "Nom du groupe d'annonces",
+          "Top 3 mots-clés",
+          "Titre 1",
+          "Titre 2",
+          "Titre 3",
+          "Titre 4",
+          "Titre 5",
+          "Titre 6",
+          "Titre 7",
+          "Titre 8",
+          "Titre 9",
+          "Titre 10",
+          "Description 1",
+          "Description 2",
+          "Description 3",
+          "Description 4",
+          "Description 5"
+        ];
+        sheetData.push(headers);
+      }
+      
+      // Ajouter les données des campagnes
       for (const campaign of campaigns) {
         for (const adGroup of campaign.adGroups) {
           const keywords = adGroup.keywords.filter(k => k.trim()).join(", ");
@@ -239,6 +228,39 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
     } catch (error) {
       console.error("Erreur lors de la sauvegarde des données:", error);
       toast.error("Impossible de sauvegarder les données");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSpreadsheetSave = async (data: any[][]) => {
+    if (!sheet) {
+      toast.error("Aucune feuille sélectionnée");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Enregistrer les données du tableur
+      const success = await googleSheetsService.writeSheetData(
+        sheet.id,
+        "", // Range ignoré dans l'implémentation locale
+        data
+      );
+      
+      if (success) {
+        toast.success("Tableur sauvegardé avec succès");
+        setSheetData(data);
+        
+        // Mettre à jour les campagnes en fonction des nouvelles données
+        const loadedCampaigns = googleSheetsService.extractCampaigns(sheet.id);
+        setCampaigns(loadedCampaigns.length > 0 ? loadedCampaigns : [createEmptyCampaign()]);
+        
+        onUpdateComplete();
+      }
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde du tableur:", error);
+      toast.error("Impossible de sauvegarder le tableur");
     } finally {
       setIsSaving(false);
     }
@@ -305,7 +327,7 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
             continue;
           }
           
-          // Construire la ligne pour Google Sheets
+          // Construire la ligne pour le tableur
           const row = [
             campaign.name,
             adGroup.name,
@@ -330,6 +352,9 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
           rowIndex++;
         }
       }
+      
+      // Recharger les données du tableur
+      loadInitialData();
       
       toast.success("Contenu généré et sauvegardé avec succès");
       onUpdateComplete();
@@ -367,18 +392,21 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
         <CardContent className="pt-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Campagnes et Groupes d'Annonces</h2>
-            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "form" | "table")} className="ml-4">
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "form" | "table" | "spreadsheet")} className="ml-4">
               <TabsList>
                 <TabsTrigger value="table">Vue Tableau</TabsTrigger>
                 <TabsTrigger value="form">Vue Formulaire</TabsTrigger>
+                <TabsTrigger value="spreadsheet">Tableur</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
           
           <div className="space-y-6">
-            {viewMode === "table" ? (
+            {viewMode === "table" && (
               <CampaignTable campaigns={campaigns} setCampaigns={setCampaigns} />
-            ) : (
+            )}
+            
+            {viewMode === "form" && (
               <>
                 {campaigns.map((campaign, campaignIndex) => (
                   <CampaignForm
@@ -400,6 +428,14 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
                 </Button>
               </>
             )}
+            
+            {viewMode === "spreadsheet" && sheetData && (
+              <SpreadsheetEditor 
+                data={sheetData} 
+                sheetId={sheet.id}
+                onSave={handleSpreadsheetSave}
+              />
+            )}
           </div>
         </CardContent>
       </Card>
@@ -410,14 +446,16 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
       />
 
       <div className="flex justify-end space-x-4">
-        <Button
-          variant="outline"
-          onClick={saveCampaigns}
-          disabled={isSaving}
-        >
-          <Save className="h-4 w-4 mr-1" />
-          Sauvegarder
-        </Button>
+        {viewMode !== "spreadsheet" && (
+          <Button
+            variant="outline"
+            onClick={saveCampaigns}
+            disabled={isSaving}
+          >
+            <Save className="h-4 w-4 mr-1" />
+            Sauvegarder
+          </Button>
+        )}
         <Button
           onClick={generateContent}
           disabled={isSaving || !clientInfo}
