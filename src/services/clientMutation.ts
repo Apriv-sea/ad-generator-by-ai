@@ -18,11 +18,8 @@ export const addClient = async (client: Partial<Client>): Promise<string | null>
       return null;
     }
     
-    // Convert client object to database format with required name field
-    const clientRecord = mapClientToClientRecord({
-      ...client,
-      name: client.name // Ensure name is explicitly passed
-    });
+    // Convert client object to database format
+    const clientRecord = mapClientToClientRecord(client);
     
     // Create the insert data with user_id
     const insertData = {
@@ -30,9 +27,7 @@ export const addClient = async (client: Partial<Client>): Promise<string | null>
       user_id: userId
     };
     
-    // Now insertData.name is definitely not undefined because:
-    // 1. We checked client.name above
-    // 2. mapClientToClientRecord throws if name is missing
+    // Insert the client
     const { data, error } = await supabase
       .from('clients')
       .insert(insertData)
