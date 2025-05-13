@@ -105,7 +105,6 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
             columnSorting={true}
             filters={true}
             dropdownMenu={true}
-            renderer="html"
             className="htCustomStyles"
           />
         </div>
