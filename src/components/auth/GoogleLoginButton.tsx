@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
 const EmailLoginButton = () => {
-  const { emailLogin } = useAuth();
   const [isLoading, setIsLoading] = React.useState(false);
 
   const handleClick = async () => {
     try {
       setIsLoading(true);
-      await emailLogin();
+      // This is just a placeholder until we implement proper email login
+      console.log("Email login button clicked");
+      // In the future, we could implement a modal or redirect to a form
     } catch (error) {
       console.error("Error initiating email login:", error);
     } finally {
