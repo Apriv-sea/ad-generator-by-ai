@@ -27,6 +27,9 @@ export const addClient = async (client: Partial<Client>): Promise<string | null>
       user_id: userId
     };
     
+    // At this point, insertData.name is guaranteed to exist because:
+    // 1. We checked client.name above
+    // 2. mapClientToClientRecord ensures name is in the result
     const { data, error } = await supabase
       .from('clients')
       .insert(insertData)
