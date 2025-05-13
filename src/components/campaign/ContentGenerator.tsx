@@ -3,8 +3,10 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FilePlus } from "lucide-react";
 import { toast } from "sonner";
-import { Sheet, Client, sheetService } from "@/services/googleSheetsService";
+import { Sheet, Client, Campaign, sheetService } from "@/services/googleSheetsService";
 import ModelSelector from "./ModelSelector";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import CampaignExtractor from "./CampaignExtractor";
 
 interface ContentGeneratorProps {
   sheet: Sheet;
@@ -23,6 +25,7 @@ const ContentGenerator: React.FC<ContentGeneratorProps> = ({
 }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>("gpt-4");
+  const [extractedCampaigns, setExtractedCampaigns] = useState<Campaign[]>([]);
 
   const generateContent = async () => {
     if (!sheet) {
@@ -106,30 +109,43 @@ const ContentGenerator: React.FC<ContentGeneratorProps> = ({
   };
 
   return (
-    <div className="space-y-4">
-      <ModelSelector 
-        selectedModel={selectedModel} 
-        onModelSelect={setSelectedModel} 
+    <div className="space-y-6">
+      <CampaignExtractor 
+        sheet={sheet}
+        sheetData={sheetData}
+        onUpdateComplete={onUpdateComplete}
       />
 
-      <div className="flex justify-end">
-        <Button
-          onClick={generateContent}
-          disabled={isSaving || !clientInfo || !sheetData || sheetData.length <= 1}
-        >
-          {isSaving ? (
-            <>
-              <span className="animate-spin mr-2">⊚</span>
-              Génération...
-            </>
-          ) : (
-            <>
-              <FilePlus className="h-4 w-4 mr-1" />
-              Générer le Contenu
-            </>
-          )}
-        </Button>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Générer du contenu</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ModelSelector 
+            selectedModel={selectedModel} 
+            onModelSelect={setSelectedModel} 
+          />
+
+          <div className="flex justify-end">
+            <Button
+              onClick={generateContent}
+              disabled={isSaving || !clientInfo || !sheetData || sheetData.length <= 1}
+            >
+              {isSaving ? (
+                <>
+                  <span className="animate-spin mr-2">⊚</span>
+                  Génération...
+                </>
+              ) : (
+                <>
+                  <FilePlus className="h-4 w-4 mr-1" />
+                  Générer le Contenu
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
