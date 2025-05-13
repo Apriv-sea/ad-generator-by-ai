@@ -1,7 +1,6 @@
 
 import React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface EmailAuthWarningProps {
