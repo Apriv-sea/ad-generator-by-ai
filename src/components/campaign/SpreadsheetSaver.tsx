@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Sheet, sheetService } from "@/services/googleSheetsService";
-import SpreadsheetEditor from "../sheet/SpreadsheetEditor";
+import XLSXSheetEditor from "../sheet/XLSXSheetEditor";
 import { addTableStyles } from "@/lib/utils";
 
 interface SpreadsheetSaverProps {
@@ -63,9 +63,8 @@ const SpreadsheetSaver: React.FC<SpreadsheetSaverProps> = ({
   return (
     <>
       {sheetData && (
-        <SpreadsheetEditor 
-          data={sheetData} 
-          sheetId={sheet.id}
+        <XLSXSheetEditor 
+          initialData={sheetData} 
           onSave={handleSpreadsheetSave}
         />
       )}
