@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sheet } from "@/services/googleSheetsService";
 import ClientInfoCard from "./campaign/ClientInfoCard";
@@ -9,6 +9,8 @@ import ContentGenerator from "./campaign/ContentGenerator";
 import SpreadsheetSaver from "./campaign/SpreadsheetSaver";
 import { useSheetData } from "@/hooks/useSheetData";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Campaign } from "@/services/types";
+import { campaignExtractorService } from "@/services/storage/campaignExtractorService";
 
 interface CampaignManagerProps {
   sheet: Sheet | null;
@@ -17,6 +19,21 @@ interface CampaignManagerProps {
 
 const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComplete }) => {
   const { clientInfo, isLoading, sheetData, setSheetData } = useSheetData(sheet);
+  const [extractedCampaigns, setExtractedCampaigns] = useState<Campaign[]>([]);
+
+  // Extract campaigns from sheet data when data changes
+  useEffect(() => {
+    if (sheetData && sheet) {
+      const campaigns = campaignExtractorService.extractCampaigns({
+        id: sheet.id,
+        content: sheetData,
+        headers: sheetData[0] || [],
+        lastModified: new Date().toISOString(),
+        clientInfo: clientInfo
+      });
+      setExtractedCampaigns(campaigns);
+    }
+  }, [sheetData, sheet, clientInfo]);
 
   if (isLoading) {
     return <LoadingState />;
@@ -28,7 +45,7 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
 
   return (
     <div className="space-y-6">
-      <ClientInfoCard clientInfo={clientInfo} />
+      <ClientInfoCard clientInfo={clientInfo} campaigns={extractedCampaigns} />
 
       <Tabs defaultValue="spreadsheet" className="w-full">
         <TabsList className="mb-4">
