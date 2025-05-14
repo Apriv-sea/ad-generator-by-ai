@@ -141,7 +141,14 @@ export function useCampaignTable(
 
     try {
       // Parse pasted data (format: campaign, ad group, keywords)
-      const lines = bulkData.split('\n').filter(line => line.trim());
+      const lines = bulkData
+        .split('\n')
+        .filter(line => line.trim());
+      
+      if (lines.length === 0) {
+        toast.error("Aucune donnée valide à importer");
+        return;
+      }
       
       const newRows: TableRow[] = lines.map((line, index) => {
         const parts = line.split('\t');
@@ -152,11 +159,6 @@ export function useCampaignTable(
           keywords: parts[2] || ""
         };
       });
-
-      if (newRows.length === 0) {
-        toast.error("Aucune donnée valide à importer");
-        return;
-      }
 
       // Replace table data
       setTableData(newRows);
@@ -175,19 +177,31 @@ export function useCampaignTable(
     e.preventDefault();
     const pastedText = e.clipboardData.getData('text');
     
-    if (!pastedText.includes('\n')) {
+    if (!pastedText.includes('\n') && !pastedText.includes('\t')) {
       // Simple paste for a single cell
       handleCellChange(rowIndex, field, pastedText);
       return;
     }
     
-    // If multiple lines detected, suggest bulk import
-    toast.info("Utilisez l'option d'importation en bloc pour coller plusieurs lignes", {
-      action: {
-        label: "Importer",
-        onClick: () => setShowBulkImport(true)
-      }
-    });
+    // Multi-ligne ou multi-colonne détecté
+    const lines = pastedText.split('\n').filter(line => line.trim());
+    
+    if (lines.length > 1 || pastedText.includes('\t')) {
+      // Plusieurs lignes ou colonnes détectées, proposer l'importation en bloc
+      toast.info("Utilisez l'option d'importation en bloc pour coller plusieurs lignes", {
+        action: {
+          label: "Importer",
+          onClick: () => {
+            setShowBulkImport(true);
+            setBulkData(pastedText);
+          }
+        }
+      });
+      return;
+    }
+    
+    // Fallback au comportement par défaut
+    handleCellChange(rowIndex, field, pastedText);
   };
 
   return {

@@ -103,7 +103,6 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
       const columnsCount = instance.countCols();
       
       // Ajouter 1000 lignes vides supplémentaires
-      const emptyRows = Array(ROWS_INCREMENT).fill(Array(columnsCount).fill(''));
       const newTotalRows = totalRows + ROWS_INCREMENT;
       
       // Utiliser l'API Handsontable pour ajouter des lignes
@@ -115,6 +114,36 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
       console.error("Erreur lors de l'ajout de lignes:", error);
       toast.error("Impossible d'ajouter des lignes supplémentaires");
     }
+  };
+
+  // Configuration pour gérer correctement le collage de plusieurs lignes
+  const beforePaste = (data: string[][], coords: any[]) => {
+    // Ne pas traiter si en lecture seule
+    if (readOnly) return;
+
+    // Marquer le tableur comme modifié
+    setIsDirty(true);
+    
+    // Vérifier s'il faut ajouter plus de lignes pour accommoder les données collées
+    if (!hotTableRef.current) return;
+    
+    const startRow = coords[0].startRow;
+    const neededRows = startRow + data.length;
+    
+    // Si les données collées dépassent le nombre de lignes actuelles, ajouter des lignes
+    if (neededRows > totalRows) {
+      const rowsToAdd = neededRows - totalRows;
+      const instance = hotTableRef.current.hotInstance;
+      
+      // Ajouter des lignes supplémentaires pour accommoder les données
+      instance.alter('insert_row_below', totalRows - 1, rowsToAdd);
+      
+      // Mettre à jour le compteur de lignes
+      setTotalRows(neededRows);
+      toast.info(`${rowsToAdd} lignes ajoutées pour accommoder les données collées`);
+    }
+    
+    return false; // Laisser Handsontable gérer le collage par défaut
   };
 
   return (
@@ -186,6 +215,7 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
             allowEmpty={true}
             fillHandle={true}
             outsideClickDeselects={false}
+            beforePaste={beforePaste}
             cells={(row, col) => {
               // Vérifier que row est un nombre entier positif
               if (typeof row !== 'number' || row < 0 || !Number.isInteger(row)) {
