@@ -1,7 +1,8 @@
-import { Sheet, Client } from "./types";
+import { Sheet, Client, Campaign } from "./types";
 import { getUserAccessToken } from "./utilities";
 import { toast } from "sonner";
 import { VALIDATED_COLUMNS } from "./googleSheetsService";
+import { campaignExtractorService } from "./storage/campaignExtractorService";
 
 export const sheetService = {
   // Créer une nouvelle feuille Google Sheets avec les colonnes validées
@@ -262,6 +263,107 @@ export const sheetService = {
     } catch (error) {
       console.error("Erreur lors de l'écriture dans la feuille:", error);
       toast.error("Impossible d'écrire les données dans la feuille Google Sheets");
+      return false;
+    }
+  },
+  
+  // Récupérer les informations du client à partir de l'onglet "Informations client"
+  getClientInfo: async (sheetId: string): Promise<Client | null> => {
+    try {
+      const accessToken = getUserAccessToken();
+      if (!accessToken) return null;
+
+      const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Informations%20client!A1:B5`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Impossible de récupérer les informations client");
+      }
+
+      const data = await response.json();
+      if (!data.values || data.values.length === 0) {
+        return null;
+      }
+
+      // Créer un objet client à partir des données
+      const clientInfo: Client = { id: '', name: '' };
+      
+      data.values.forEach((row: string[]) => {
+        if (row.length < 2) return;
+        
+        const key = row[0].toLowerCase();
+        const value = row[1];
+        
+        if (key.includes("id")) {
+          clientInfo.id = value;
+        } else if (key.includes("nom")) {
+          clientInfo.name = value;
+        } else if (key.includes("contexte")) {
+          clientInfo.businessContext = value;
+        } else if (key.includes("spécificité")) {
+          clientInfo.specifics = value;
+        } else if (key.includes("charte") || key.includes("éditor")) {
+          clientInfo.editorialGuidelines = value;
+        }
+      });
+      
+      return clientInfo;
+    } catch (error) {
+      console.error("Erreur lors de la récupération des informations client:", error);
+      toast.error("Impossible de récupérer les informations du client");
+      return null;
+    }
+  },
+  
+  // Extraire les campagnes d'une feuille
+  extractCampaigns: (sheetId: string): Campaign[] => {
+    try {
+      // Utiliser le service d'extraction de campagnes
+      return campaignExtractorService.extractCampaigns({
+        id: sheetId,
+        content: [],  // Sera rempli par le service d'extraction
+        headers: [],  // Sera rempli par le service d'extraction
+        lastModified: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Erreur lors de l'extraction des campagnes:", error);
+      toast.error("Impossible d'extraire les campagnes");
+      return [];
+    }
+  },
+  
+  // Supprimer une feuille
+  deleteSheet: async (sheetId: string): Promise<boolean> => {
+    try {
+      const accessToken = getUserAccessToken();
+      if (!accessToken) return false;
+
+      const response = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${sheetId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        }
+      );
+
+      if (!response.ok && response.status !== 204) {
+        const errorData = await response.json();
+        console.error("Erreur lors de la suppression de la feuille:", errorData);
+        throw new Error(`Erreur lors de la suppression de la feuille: ${errorData.error?.message || response.statusText}`);
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Erreur lors de la suppression de la feuille:", error);
+      toast.error("Impossible de supprimer la feuille Google Sheets");
       return false;
     }
   }

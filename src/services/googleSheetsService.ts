@@ -13,7 +13,7 @@ export type {
   GenerationPrompt 
 };
 
-export { getClients };
+export { getClients, sheetService };
 
 // Les colonnes validées ensemble pour les campagnes publicitaires
 export const VALIDATED_COLUMNS = [
