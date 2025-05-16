@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, Globe } from "lucide-react";
+import { AlertTriangle, Globe, FileSpreadsheet } from "lucide-react";
 
 interface GoogleAuthPromptProps {
   authError: string | null;
@@ -31,27 +31,7 @@ const GoogleAuthPrompt: React.FC<GoogleAuthPromptProps> = ({
         </Alert>
       )}
       
-      <div className="space-y-4 w-full max-w-md">
-        <Alert className="bg-white border-slate-200">
-          <AlertTitle className="flex items-center">
-            <AlertTriangle className="h-4 w-4 mr-2 text-slate-500" />
-            Configuration requise
-          </AlertTitle>
-          <AlertDescription className="text-sm space-y-2">
-            <p>Avant de vous connecter, assurez-vous que ces URLs sont correctement configurées dans votre console Google Cloud:</p>
-            
-            <div className="mt-2">
-              <p className="font-medium">URI JavaScript autorisée:</p>
-              <code className="bg-white p-1 block text-xs rounded border mt-1 mb-2 break-all">{window.location.origin}</code>
-            </div>
-            
-            <div>
-              <p className="font-medium">URI de redirection autorisée:</p>
-              <code className="bg-white p-1 block text-xs rounded border mt-1 break-all">{window.location.origin}/auth/callback/google</code>
-            </div>
-          </AlertDescription>
-        </Alert>
-        
+      <div className="space-y-4 w-full max-w-md">        
         <Button 
           onClick={onGoogleAuth} 
           disabled={isAuthenticating}
@@ -65,7 +45,5 @@ const GoogleAuthPrompt: React.FC<GoogleAuthPromptProps> = ({
   );
 };
 
-// Import this at the top
-import { FileSpreadsheet } from "lucide-react";
-
 export default GoogleAuthPrompt;
+

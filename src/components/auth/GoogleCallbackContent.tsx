@@ -69,21 +69,9 @@ const GoogleCallbackContent: React.FC<GoogleCallbackContentProps> = ({
                   </Button>
                 </div>
                 
-                {/* Informations de configuration pour l'authentification Google */}
+                {/* Informations de débogage pour l'authentification Google */}
                 <div className="mt-6 border-t pt-4 text-left">
                   <h3 className="font-semibold mb-2">Configuration Google OAuth</h3>
-                  
-                  <Alert className="mb-4 bg-white border-slate-200">
-                    <AlertTitle>Assurez-vous d'ajouter les URI suivantes dans votre console Google Cloud:</AlertTitle>
-                    <AlertDescription>
-                      <p className="mt-2"><strong>URI JavaScript autorisée:</strong></p>
-                      <code className="bg-white p-1 block rounded border mt-1 mb-3">{window.location.origin}</code>
-                      
-                      <p><strong>URI de redirection autorisée:</strong></p>
-                      <code className="bg-white p-1 block rounded border mt-1">{window.location.origin}/auth/callback/google</code>
-                    </AlertDescription>
-                  </Alert>
-                  
                   <DebugOAuthConfig />
                 </div>
               </>
@@ -96,3 +84,4 @@ const GoogleCallbackContent: React.FC<GoogleCallbackContentProps> = ({
 };
 
 export default GoogleCallbackContent;
+
