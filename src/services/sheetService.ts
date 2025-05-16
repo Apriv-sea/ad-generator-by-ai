@@ -3,6 +3,7 @@ import { getUserAccessToken } from "./utilities";
 import { toast } from "sonner";
 import { VALIDATED_COLUMNS } from "./googleSheetsService";
 import { campaignExtractorService } from "./storage/campaignExtractorService";
+import { contentGenerationService } from "./contentGenerationService";
 
 export const sheetService = {
   // Créer une nouvelle feuille Google Sheets avec les colonnes validées
@@ -366,5 +367,8 @@ export const sheetService = {
       toast.error("Impossible de supprimer la feuille Google Sheets");
       return false;
     }
-  }
+  },
+
+  // Générer du contenu pour une campagne
+  generateContent: contentGenerationService.generateContent
 };
