@@ -73,7 +73,7 @@ const GoogleCallbackContent: React.FC<GoogleCallbackContentProps> = ({
                 <div className="mt-6 border-t pt-4 text-left">
                   <h3 className="font-semibold mb-2">Configuration Google OAuth</h3>
                   
-                  <Alert className="mb-4 bg-amber-50">
+                  <Alert className="mb-4 bg-white border-slate-200">
                     <AlertTitle>Assurez-vous d'ajouter les URI suivantes dans votre console Google Cloud:</AlertTitle>
                     <AlertDescription>
                       <p className="mt-2"><strong>URI JavaScript autorisée:</strong></p>

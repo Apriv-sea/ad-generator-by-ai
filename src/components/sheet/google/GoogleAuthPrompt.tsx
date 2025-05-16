@@ -32,9 +32,9 @@ const GoogleAuthPrompt: React.FC<GoogleAuthPromptProps> = ({
       )}
       
       <div className="space-y-4 w-full max-w-md">
-        <Alert className="bg-amber-50 border-amber-200">
+        <Alert className="bg-white border-slate-200">
           <AlertTitle className="flex items-center">
-            <AlertTriangle className="h-4 w-4 mr-2 text-amber-500" />
+            <AlertTriangle className="h-4 w-4 mr-2 text-slate-500" />
             Configuration requise
           </AlertTitle>
           <AlertDescription className="text-sm space-y-2">
