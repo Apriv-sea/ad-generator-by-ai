@@ -1,36 +1,17 @@
-
 import { Sheet, Client } from "./types";
 import { getUserAccessToken } from "./utilities";
 import { toast } from "sonner";
+import { VALIDATED_COLUMNS } from "./googleSheetsService";
 
 export const sheetService = {
-  // Créer une nouvelle feuille Google Sheets avec le template spécifique
+  // Créer une nouvelle feuille Google Sheets avec les colonnes validées
   createSheet: async (title: string, client: Client | null = null): Promise<Sheet | null> => {
     try {
       const accessToken = getUserAccessToken();
       if (!accessToken) return null;
 
-      // Définition des en-têtes de colonnes pour notre template
-      const headers = [
-        "Nom de la campagne",
-        "Nom du groupe d'annonces",
-        "Top 3 mots-clés",
-        "Titre 1",
-        "Titre 2",
-        "Titre 3",
-        "Titre 4",
-        "Titre 5",
-        "Titre 6",
-        "Titre 7",
-        "Titre 8",
-        "Titre 9",
-        "Titre 10",
-        "Description 1",
-        "Description 2",
-        "Description 3",
-        "Description 4",
-        "Description 5"
-      ];
+      // Utiliser les en-têtes validés
+      const headers = VALIDATED_COLUMNS;
 
       const response = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
         method: 'POST',
@@ -73,9 +54,9 @@ export const sheetService = {
 
       const data = await response.json();
       
-      // Après avoir créé la feuille, on ajoute les en-têtes
+      // Après avoir créé la feuille, on ajoute les en-têtes validés
       await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${data.spreadsheetId}/values/Campagnes%20publicitaires!A1:R1?valueInputOption=USER_ENTERED`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${data.spreadsheetId}/values/Campagnes%20publicitaires!A1:${String.fromCharCode(65 + headers.length - 1)}1?valueInputOption=USER_ENTERED`,
         {
           method: 'PUT',
           headers: {
@@ -83,7 +64,7 @@ export const sheetService = {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            range: "Campagnes publicitaires!A1:R1",
+            range: `Campagnes publicitaires!A1:${String.fromCharCode(65 + headers.length - 1)}1`,
             majorDimension: "ROWS",
             values: [headers]
           })
@@ -117,7 +98,7 @@ export const sheetService = {
         );
       }
 
-      // Formatage des en-têtes en gras
+      // Formatage des en-têtes en gras et avec un arrière-plan gris
       await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${data.spreadsheetId}:batchUpdate`,
         {

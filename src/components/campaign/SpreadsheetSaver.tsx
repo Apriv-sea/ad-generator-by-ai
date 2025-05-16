@@ -1,7 +1,9 @@
 
 import React from "react";
-import { Sheet } from "@/services/googleSheetsService";
+import { Sheet, VALIDATED_COLUMNS } from "@/services/googleSheetsService";
 import GoogleSheetsEmbed from "../sheet/GoogleSheetsEmbed";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { InformationCircle } from "lucide-react";
 
 interface SpreadsheetSaverProps {
   sheet: Sheet;
@@ -26,7 +28,16 @@ const SpreadsheetSaver: React.FC<SpreadsheetSaverProps> = ({
   const savedUrl = localStorage.getItem(`google_sheet_url_${sheet.id}`) || "";
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-4">
+      <Alert variant="default" className="bg-blue-50 border-blue-200">
+        <InformationCircle className="h-4 w-4" />
+        <AlertTitle>Tableur Google Sheets avec colonnes validées</AlertTitle>
+        <AlertDescription>
+          Cette feuille Google Sheets est configurée avec {VALIDATED_COLUMNS.length} colonnes validées 
+          pour vos campagnes publicitaires, y compris les titres et descriptions.
+        </AlertDescription>
+      </Alert>
+      
       <GoogleSheetsEmbed
         sheetUrl={savedUrl}
         onSheetUrlChange={handleSheetUrlChange}
