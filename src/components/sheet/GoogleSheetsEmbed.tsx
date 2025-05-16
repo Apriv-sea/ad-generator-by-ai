@@ -93,7 +93,7 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
     setIsAuthenticating(true);
     
     // Configuration pour l'authentification OAuth2
-    const clientId = "YOUR_GOOGLE_CLIENT_ID"; // À remplacer par votre ID client Google
+    const clientId = "135447600769-22vd8jk726t5f8gp58robppv0v8eeme7.apps.googleusercontent.com"; // ID client Google mis à jour
     const redirectUri = encodeURIComponent(window.location.origin + '/auth/callback/google');
     const scope = encodeURIComponent('https://www.googleapis.com/auth/spreadsheets');
     
