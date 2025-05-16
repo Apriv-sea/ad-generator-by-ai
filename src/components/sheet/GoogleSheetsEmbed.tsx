@@ -3,9 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, ExternalLink, Save, Check, Globe } from "lucide-react";
+import { FileSpreadsheet, ExternalLink, Save, Check, Globe, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet } from "@/services/googleSheetsService";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface GoogleSheetsEmbedProps {
   sheetUrl?: string;
@@ -22,6 +24,7 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
   const [validUrl, setValidUrl] = useState(!!sheetUrl);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Vérifier si l'utilisateur est déjà authentifié avec Google
   useEffect(() => {
@@ -33,6 +36,7 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
           .then(response => {
             if (response.ok) {
               setIsAuthenticated(true);
+              setAuthError(null);
             } else {
               // Token invalide, supprimer
               localStorage.removeItem('google_access_token');
@@ -91,6 +95,7 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
   // Fonction pour gérer l'authentification Google
   const handleGoogleAuth = () => {
     setIsAuthenticating(true);
+    setAuthError(null);
     
     // Configuration pour l'authentification OAuth2
     const clientId = "135447600769-22vd8jk726t5f8gp58robppv0v8eeme7.apps.googleusercontent.com"; // ID client Google mis à jour
@@ -100,6 +105,9 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
     // Stocker l'état actuel pour la vérification après redirection
     const state = Math.random().toString(36).substring(2, 15);
     localStorage.setItem('google_auth_state', state);
+    
+    // Afficher l'URL de redirection complète pour le débogage
+    console.log("URL de redirection:", window.location.origin + '/auth/callback/google');
     
     // Rediriger vers l'URL d'authentification Google
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&state=${state}&prompt=consent`;
@@ -199,14 +207,33 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
               <p className="text-sm text-muted-foreground mb-6 text-center">
                 Connectez votre compte Google pour créer et gérer vos feuilles directement depuis notre application
               </p>
-              <Button 
-                onClick={handleGoogleAuth} 
-                disabled={isAuthenticating}
-                className="gap-2"
-              >
-                <Globe className="h-4 w-4" />
-                {isAuthenticating ? "Connexion en cours..." : "Se connecter à Google Sheets"}
-              </Button>
+              
+              {authError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Erreur d'authentification</AlertTitle>
+                  <AlertDescription>{authError}</AlertDescription>
+                </Alert>
+              )}
+              
+              <div className="space-y-2 w-full max-w-md">
+                <Button 
+                  onClick={handleGoogleAuth} 
+                  disabled={isAuthenticating}
+                  className="w-full gap-2"
+                >
+                  <Globe className="h-4 w-4" />
+                  {isAuthenticating ? "Connexion en cours..." : "Se connecter à Google Sheets"}
+                </Button>
+                
+                <div className="pt-4 text-xs text-muted-foreground">
+                  <p className="font-medium mb-1">Information de configuration:</p>
+                  <p>URI de redirection: <code className="bg-slate-100 p-1 rounded text-xs">{window.location.origin}/auth/callback/google</code></p>
+                  <p className="mt-1">
+                    Si vous rencontrez des erreurs de redirection, assurez-vous que cette URL est bien configurée dans votre console Google Cloud.
+                  </p>
+                </div>
+              </div>
             </div>
           ) : (
             <>
@@ -215,13 +242,22 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
                   <Check className="h-5 w-5 mr-2 text-green-500" />
                   <span className="text-sm font-medium">Connecté à Google Sheets</span>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={createNewSheet}
-                >
-                  Créer une nouvelle feuille
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={createNewSheet}
+                      >
+                        Créer une nouvelle feuille
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Créer une nouvelle feuille Google Sheets avec votre compte</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               
               <div className="flex gap-2">
