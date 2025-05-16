@@ -1,13 +1,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, ExternalLink, Save, Check, Globe, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet } from "@/services/googleSheetsService";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import GoogleSheetHeader, { GoogleAuthHeader } from './google/GoogleSheetHeader';
+import GoogleSheetUrlInput from './google/GoogleSheetUrlInput';
+import GoogleSheetEmbed from './google/GoogleSheetEmbed';
+import GoogleSheetPlaceholder from './google/GoogleSheetPlaceholder';
+import GoogleAuthPrompt from './google/GoogleAuthPrompt';
+import {
+  extractSheetId,
+  generateEmbedUrl,
+  checkGoogleAuth,
+  initGoogleAuth
+} from './google/googleSheetsUtils';
 
 interface GoogleSheetsEmbedProps {
   sheetUrl?: string;
@@ -28,47 +34,18 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
 
   // Vérifier si l'utilisateur est déjà authentifié avec Google
   useEffect(() => {
-    const checkGoogleAuth = () => {
-      const token = localStorage.getItem('google_access_token');
-      if (token) {
-        // Vérifier si le token est toujours valide
-        fetch('https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=' + token)
-          .then(response => {
-            if (response.ok) {
-              setIsAuthenticated(true);
-              setAuthError(null);
-            } else {
-              // Token invalide, supprimer
-              localStorage.removeItem('google_access_token');
-              setIsAuthenticated(false);
-            }
-          })
-          .catch(() => {
-            localStorage.removeItem('google_access_token');
-            setIsAuthenticated(false);
-          });
+    const verifyAuthentication = async () => {
+      const isAuth = await checkGoogleAuth();
+      setIsAuthenticated(isAuth);
+      if (!isAuth) {
+        localStorage.removeItem('google_access_token');
+      } else {
+        setAuthError(null);
       }
     };
     
-    checkGoogleAuth();
+    verifyAuthentication();
   }, []);
-
-  // Fonction pour extraire l'ID de la feuille à partir de l'URL
-  const extractSheetId = (url: string): string | null => {
-    try {
-      // Format typique: https://docs.google.com/spreadsheets/d/SHEET_ID/edit#gid=0
-      const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-      return match ? match[1] : null;
-    } catch (error) {
-      console.error("Erreur lors de l'extraction de l'ID de la feuille:", error);
-      return null;
-    }
-  };
-
-  // Fonction pour générer l'URL d'intégration
-  const generateEmbedUrl = (sheetId: string): string => {
-    return `https://docs.google.com/spreadsheets/d/${sheetId}/edit?usp=sharing&embedded=true`;
-  };
 
   // Fonction pour gérer la soumission de l'URL
   const handleSubmit = () => {
@@ -97,29 +74,7 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
     setIsAuthenticating(true);
     setAuthError(null);
     
-    // Configuration pour l'authentification OAuth2
-    const clientId = "135447600769-22vd8jk726t5f8gp58robppv0v8eeme7.apps.googleusercontent.com";
-    const redirectUri = encodeURIComponent(window.location.origin + '/auth/callback/google');
-    const scope = encodeURIComponent('https://www.googleapis.com/auth/spreadsheets');
-    
-    // Générer un état aléatoire sécurisé et le stocker
-    // Utilisation d'une méthode plus robuste pour générer l'état
-    const generateSecureState = () => {
-      const array = new Uint32Array(8);
-      window.crypto.getRandomValues(array);
-      return Array.from(array, dec => dec.toString(16).padStart(8, '0')).join('');
-    };
-    
-    const state = generateSecureState();
-    localStorage.setItem('google_auth_state', state);
-    
-    // Afficher l'URL de redirection complète pour le débogage
-    console.log("URL de redirection:", window.location.origin + '/auth/callback/google');
-    console.log("État de sécurité généré:", state);
-    
-    // Rediriger vers l'URL d'authentification Google avec prompt=consent pour forcer le dialogue de consentement
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&state=${state}&prompt=consent`;
-    
+    const authUrl = initGoogleAuth();
     window.location.href = authUrl;
   };
 
@@ -198,132 +153,34 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
 
   return (
     <Card className="overflow-hidden border-none shadow-lg">
-      <div className="bg-primary/5 p-3 flex justify-between items-center">
-        <div className="flex items-center">
-          <FileSpreadsheet className="h-5 w-5 mr-2 text-primary" />
-          <h3 className="font-medium">Google Sheets</h3>
-        </div>
-        <div className="flex gap-2">
-          {validUrl && (
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={openInNewTab}
-              className="gap-1"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Ouvrir dans Google Sheets
-            </Button>
-          )}
-        </div>
-      </div>
+      <GoogleSheetHeader 
+        isAuthenticated={isAuthenticated}
+        validUrl={validUrl}
+        onOpenInNewTab={openInNewTab}
+        onCreateNewSheet={createNewSheet}
+      />
       <CardContent className="p-4">
         <div className="space-y-4">
           {!isAuthenticated ? (
-            <div className="flex flex-col items-center py-8">
-              <FileSpreadsheet className="h-12 w-12 mb-4 text-primary/50" />
-              <h3 className="text-lg font-medium mb-2">Connectez-vous à Google Sheets</h3>
-              <p className="text-sm text-muted-foreground mb-6 text-center">
-                Connectez votre compte Google pour créer et gérer vos feuilles directement depuis notre application
-              </p>
-              
-              {authError && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Erreur d'authentification</AlertTitle>
-                  <AlertDescription>{authError}</AlertDescription>
-                </Alert>
-              )}
-              
-              <div className="space-y-4 w-full max-w-md">
-                <Alert className="bg-amber-50 border-amber-200">
-                  <AlertTitle className="flex items-center">
-                    <AlertTriangle className="h-4 w-4 mr-2 text-amber-500" />
-                    Configuration requise
-                  </AlertTitle>
-                  <AlertDescription className="text-sm space-y-2">
-                    <p>Avant de vous connecter, assurez-vous que ces URLs sont correctement configurées dans votre console Google Cloud:</p>
-                    
-                    <div className="mt-2">
-                      <p className="font-medium">URI JavaScript autorisée:</p>
-                      <code className="bg-white p-1 block text-xs rounded border mt-1 mb-2 break-all">{window.location.origin}</code>
-                    </div>
-                    
-                    <div>
-                      <p className="font-medium">URI de redirection autorisée:</p>
-                      <code className="bg-white p-1 block text-xs rounded border mt-1 break-all">{window.location.origin}/auth/callback/google</code>
-                    </div>
-                  </AlertDescription>
-                </Alert>
-                
-                <Button 
-                  onClick={handleGoogleAuth} 
-                  disabled={isAuthenticating}
-                  className="w-full gap-2"
-                >
-                  <Globe className="h-4 w-4" />
-                  {isAuthenticating ? "Connexion en cours..." : "Se connecter à Google Sheets"}
-                </Button>
-              </div>
-            </div>
+            <GoogleAuthPrompt 
+              authError={authError}
+              isAuthenticating={isAuthenticating}
+              onGoogleAuth={handleGoogleAuth}
+            />
           ) : (
             <>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Check className="h-5 w-5 mr-2 text-green-500" />
-                  <span className="text-sm font-medium">Connecté à Google Sheets</span>
-                </div>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={createNewSheet}
-                      >
-                        Créer une nouvelle feuille
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Créer une nouvelle feuille Google Sheets avec votre compte</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
+              <GoogleAuthHeader onCreateNewSheet={createNewSheet} />
               
-              <div className="flex gap-2">
-                <Input
-                  value={inputUrl}
-                  onChange={(e) => setInputUrl(e.target.value)}
-                  placeholder="Coller l'URL d'une feuille Google Sheets"
-                  className="flex-1"
-                />
-                <Button onClick={handleSubmit}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Intégrer
-                </Button>
-              </div>
+              <GoogleSheetUrlInput 
+                inputUrl={inputUrl}
+                onInputChange={setInputUrl}
+                onSubmit={handleSubmit}
+              />
               
-              {validUrl && sheetUrl && (
-                <div className="border rounded-md overflow-hidden" style={{ height: '700px' }}>
-                  <iframe
-                    src={sheetUrl}
-                    title="Google Sheets Embed"
-                    width="100%"
-                    height="100%"
-                    style={{ border: 'none' }}
-                  />
-                </div>
-              )}
-              
-              {!validUrl && (
-                <div className="p-8 text-center text-muted-foreground">
-                  <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 opacity-25" />
-                  <p>Collez l'URL d'une feuille Google Sheets pour l'intégrer ici ou créez-en une nouvelle.</p>
-                  <p className="text-sm mt-2">
-                    Format: https://docs.google.com/spreadsheets/d/VOTRE_ID_DE_FEUILLE/edit
-                  </p>
-                </div>
+              {validUrl && sheetUrl ? (
+                <GoogleSheetEmbed sheetUrl={sheetUrl} />
+              ) : (
+                <GoogleSheetPlaceholder />
               )}
             </>
           )}
