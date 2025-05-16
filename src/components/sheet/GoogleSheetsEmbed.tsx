@@ -98,18 +98,26 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
     setAuthError(null);
     
     // Configuration pour l'authentification OAuth2
-    const clientId = "135447600769-22vd8jk726t5f8gp58robppv0v8eeme7.apps.googleusercontent.com"; // ID client Google mis à jour
+    const clientId = "135447600769-22vd8jk726t5f8gp58robppv0v8eeme7.apps.googleusercontent.com";
     const redirectUri = encodeURIComponent(window.location.origin + '/auth/callback/google');
     const scope = encodeURIComponent('https://www.googleapis.com/auth/spreadsheets');
     
-    // Stocker l'état actuel pour la vérification après redirection
-    const state = Math.random().toString(36).substring(2, 15);
+    // Générer un état aléatoire sécurisé et le stocker
+    // Utilisation d'une méthode plus robuste pour générer l'état
+    const generateSecureState = () => {
+      const array = new Uint32Array(8);
+      window.crypto.getRandomValues(array);
+      return Array.from(array, dec => dec.toString(16).padStart(8, '0')).join('');
+    };
+    
+    const state = generateSecureState();
     localStorage.setItem('google_auth_state', state);
     
     // Afficher l'URL de redirection complète pour le débogage
     console.log("URL de redirection:", window.location.origin + '/auth/callback/google');
+    console.log("État de sécurité généré:", state);
     
-    // Rediriger vers l'URL d'authentification Google
+    // Rediriger vers l'URL d'authentification Google avec prompt=consent pour forcer le dialogue de consentement
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&state=${state}&prompt=consent`;
     
     window.location.href = authUrl;
@@ -176,6 +184,17 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
       toast.error("Impossible de créer une nouvelle feuille Google Sheets");
     }
   };
+
+  // Vérifier si l'utilisateur vient d'être redirigé après une erreur d'authentification
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    
+    if (error) {
+      setAuthError(`Erreur d'authentification: ${error}`);
+      toast.error(`Erreur d'authentification Google: ${error}`);
+    }
+  }, []);
 
   return (
     <Card className="overflow-hidden border-none shadow-lg">

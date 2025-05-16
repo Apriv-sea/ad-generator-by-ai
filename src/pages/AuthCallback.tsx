@@ -83,11 +83,30 @@ const AuthCallback: React.FC = () => {
         // Vérifier que l'état correspond à celui stocké
         const savedState = localStorage.getItem('google_auth_state');
         
-        if (!accessToken || !state || state !== savedState) {
-          console.error("Erreur d'authentification: token manquant ou état non valide");
+        console.log("Saved state:", savedState);
+        console.log("Received state:", state);
+        
+        if (!accessToken) {
+          console.error("Erreur d'authentification: token manquant");
           setStatus("error");
-          setErrorDetails("Token manquant ou état de sécurité non valide. Veuillez réessayer l'authentification.");
+          setErrorDetails("Token manquant. Veuillez réessayer l'authentification.");
           toast.error("Échec de l'authentification Google");
+          return;
+        }
+        
+        if (!state || !savedState) {
+          console.error("Erreur d'authentification: état manquant");
+          setStatus("error");
+          setErrorDetails("État de sécurité manquant. Veuillez vider le cache du navigateur et réessayer l'authentification.");
+          toast.error("Échec de l'authentification Google");
+          return;
+        }
+        
+        if (state !== savedState) {
+          console.error("Erreur d'authentification: état non valide");
+          setStatus("error");
+          setErrorDetails(`État de sécurité non valide. Reçu: ${state}, Attendu: ${savedState}. Veuillez réessayer l'authentification.`);
+          toast.error("Échec de l'authentification Google - Problème de sécurité");
           return;
         }
         

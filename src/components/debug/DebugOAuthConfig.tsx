@@ -31,6 +31,18 @@ const DebugOAuthConfig: React.FC = () => {
           Suivez les instructions à l'écran pour continuer.
         </p>
       </div>
+      <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
+        <p className="font-semibold">État de sécurité:</p>
+        <p className="text-xs mt-1">
+          Pour résoudre l'erreur "Token manquant ou état de sécurité non valide", essayez de:
+          <ul className="list-disc pl-5 mt-1">
+            <li>Vider le cache de votre navigateur</li>
+            <li>Supprimer les cookies associés au domaine</li>
+            <li>Réessayer la connexion à Google Sheets</li>
+            <li>Vérifier que votre compte est autorisé dans la console Google Cloud</li>
+          </ul>
+        </p>
+      </div>
     </div>
   );
 };
