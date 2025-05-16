@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, ExternalLink, Save, Check, Google } from "lucide-react";
+import { FileSpreadsheet, ExternalLink, Save, Check, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet } from "@/services/googleSheetsService";
 
@@ -204,7 +204,7 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
                 disabled={isAuthenticating}
                 className="gap-2"
               >
-                <Google className="h-4 w-4" />
+                <Globe className="h-4 w-4" />
                 {isAuthenticating ? "Connexion en cours..." : "Se connecter à Google Sheets"}
               </Button>
             </div>
