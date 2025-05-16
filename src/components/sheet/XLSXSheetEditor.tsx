@@ -6,22 +6,47 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { Save, FileSpreadsheet, Download, Upload, Plus, Trash } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { 
+  Save, 
+  FileSpreadsheet, 
+  Download, 
+  Upload, 
+  Plus, 
+  Trash, 
+  Maximize2,
+  Import,
+  Export
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface XLSXSheetEditorProps {
   initialData: any[][];
   onSave: (data: any[][]) => void;
   readOnly?: boolean;
+  showFullscreenButton?: boolean;
+  onFullscreen?: () => void;
 }
 
 const XLSXSheetEditor: React.FC<XLSXSheetEditorProps> = ({
   initialData,
   onSave,
-  readOnly = false
+  readOnly = false,
+  showFullscreenButton = false,
+  onFullscreen
 }) => {
   // État pour stocker les données du tableur
   const [data, setData] = useState<any[][]>(initialData || []);
   const [isDirty, setIsDirty] = useState(false);
+  const [bulkData, setBulkData] = useState("");
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   
   // Référence pour l'entrée de fichier
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -153,15 +178,59 @@ const XLSXSheetEditor: React.FC<XLSXSheetEditorProps> = ({
     setData(newData);
     setIsDirty(true);
   };
+  
+  // Traiter les données en format texte pour l'import en masse
+  const handleBulkImport = () => {
+    if (!bulkData.trim()) {
+      toast.error("Aucune donnée à importer");
+      return;
+    }
+    
+    try {
+      const rows = bulkData.split("\n").filter(row => row.trim());
+      
+      if (rows.length === 0) {
+        toast.error("Aucune ligne valide à importer");
+        return;
+      }
+      
+      // Garder l'en-tête
+      const headers = [...data][0];
+      const newData = [headers];
+      
+      rows.forEach(row => {
+        // Diviser par tabulation ou virgule
+        let cells = row.includes("\t") ? row.split("\t") : row.split(",");
+        
+        // Ajuster la taille pour correspondre au nombre de colonnes
+        while (cells.length < headers.length) {
+          cells.push("");
+        }
+        
+        // Limiter au nombre de colonnes
+        cells = cells.slice(0, headers.length);
+        
+        newData.push(cells);
+      });
+      
+      setData(newData);
+      setIsDirty(true);
+      setIsImportDialogOpen(false);
+      toast.success(`${rows.length} lignes importées avec succès`);
+    } catch (error) {
+      console.error("Erreur lors de l'importation en masse:", error);
+      toast.error("Format d'importation invalide");
+    }
+  };
 
   return (
     <Card className="overflow-hidden border-none shadow-lg">
-      <div className="bg-primary/5 p-3 flex justify-between items-center">
+      <div className="bg-primary/5 p-3 flex flex-wrap justify-between items-center gap-2">
         <div className="flex items-center">
           <FileSpreadsheet className="h-5 w-5 mr-2 text-primary" />
           <h3 className="font-medium">Éditeur de feuille</h3>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <input
             type="file"
             ref={fileInputRef}
@@ -171,16 +240,64 @@ const XLSXSheetEditor: React.FC<XLSXSheetEditorProps> = ({
             disabled={readOnly}
           />
           
-          <Button 
-            size="sm" 
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={readOnly}
-            className="gap-1"
-          >
-            <Upload className="h-4 w-4" />
-            Importer
-          </Button>
+          <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                size="sm" 
+                variant="outline"
+                disabled={readOnly}
+                className="gap-1"
+              >
+                <Import className="h-4 w-4" />
+                Importer des données
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Importer des données</DialogTitle>
+              </DialogHeader>
+              <Tabs defaultValue="paste">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="paste">Coller des données</TabsTrigger>
+                  <TabsTrigger value="file">Importer un fichier</TabsTrigger>
+                </TabsList>
+                <TabsContent value="paste" className="py-4">
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Collez vos données (format tableur avec colonnes séparées par des tabulations ou des virgules)
+                    </p>
+                    <Textarea 
+                      value={bulkData}
+                      onChange={(e) => setBulkData(e.target.value)}
+                      placeholder="Colonne1&#9;Colonne2&#9;Colonne3..."
+                      className="h-40 font-mono text-sm"
+                    />
+                    <div className="flex justify-end">
+                      <Button onClick={handleBulkImport}>
+                        Importer
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+                <TabsContent value="file" className="py-4">
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Sélectionnez un fichier Excel ou CSV
+                    </p>
+                    <div className="grid w-full max-w-sm items-center gap-1.5">
+                      <Button 
+                        variant="secondary" 
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Sélectionner un fichier
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </DialogContent>
+          </Dialog>
           
           <Button 
             size="sm" 
@@ -188,7 +305,7 @@ const XLSXSheetEditor: React.FC<XLSXSheetEditorProps> = ({
             onClick={handleExport}
             className="gap-1"
           >
-            <Download className="h-4 w-4" />
+            <Export className="h-4 w-4" />
             Exporter
           </Button>
           
@@ -202,6 +319,18 @@ const XLSXSheetEditor: React.FC<XLSXSheetEditorProps> = ({
             <Plus className="h-4 w-4" />
             Ajouter une ligne
           </Button>
+          
+          {showFullscreenButton && onFullscreen && (
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={onFullscreen}
+              className="gap-1"
+            >
+              <Maximize2 className="h-4 w-4" />
+              Plein écran
+            </Button>
+          )}
           
           <Button 
             size="sm" 

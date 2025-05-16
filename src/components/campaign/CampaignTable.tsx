@@ -1,4 +1,3 @@
-
 import React from "react";
 import { 
   Table, 
@@ -13,6 +12,7 @@ import { useCampaignTable } from "@/hooks/useCampaignTable";
 import CampaignTableHeader from "./CampaignTableHeader";
 import CampaignTableRow from "./CampaignTableRow";
 import BulkImportPanel from "./BulkImportPanel";
+import { toast } from "sonner";
 
 interface CampaignTableProps {
   campaigns: Campaign[];
