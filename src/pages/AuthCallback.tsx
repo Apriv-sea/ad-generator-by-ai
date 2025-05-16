@@ -2,126 +2,105 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import AuthCallbackContent from "@/components/auth/AuthCallbackContent";
-import { checkForAuthErrors, checkForToken, manuallySetSession } from "@/utils/authCallbackUtils";
 
-const AuthCallback = () => {
-  const [status, setStatus] = useState<string>("Traitement de l'authentification...");
-  const [errorDetails, setErrorDetails] = useState<string | null>(null);
-  const [isTokenFound, setIsTokenFound] = useState<boolean>(false);
-  const [isProcessing, setIsProcessing] = useState<boolean>(true);
+const AuthCallback: React.FC = () => {
+  const [status, setStatus] = useState<"processing" | "success" | "error">("processing");
   const navigate = useNavigate();
-  const { processAuthTokens } = useAuth();
 
   useEffect(() => {
-    const handleCallback = async () => {
+    const processCallback = () => {
       try {
-        console.log("Processing authentication callback...");
+        // Extraire les paramètres d'URL du hash pour OAuth2 implicit grant
+        const fragment = window.location.hash.substring(1);
+        const params = new URLSearchParams(fragment);
         
-        // Check URL for errors
-        const urlParams = new URLSearchParams(window.location.search);
-        const authError = checkForAuthErrors(urlParams);
+        const accessToken = params.get('access_token');
+        const tokenType = params.get('token_type');
+        const expiresIn = params.get('expires_in');
+        const state = params.get('state');
         
-        if (authError) {
-          setStatus(`Erreur d'authentification: ${authError.error}`);
-          setErrorDetails(authError.errorDescription);
-          toast.error(`Échec de l'authentification: ${authError.error}`);
-          setIsProcessing(false);
-          setTimeout(() => navigate("/auth"), 5000);
-          return;
-        }
-
-        // Check if session exists already (case where token was processed by AuthContext)
-        const { data: { session } } = await supabase.auth.getSession();
+        // Vérifier que l'état correspond à celui stocké
+        const savedState = localStorage.getItem('google_auth_state');
         
-        if (session) {
-          console.log("Session already exists, redirecting to dashboard");
-          toast.success("Connexion réussie!");
-          setIsProcessing(false);
-          setTimeout(() => navigate("/dashboard"), 1000);
+        if (!accessToken || !state || state !== savedState) {
+          console.error("Erreur d'authentification: token manquant ou état non valide");
+          setStatus("error");
+          toast.error("Échec de l'authentification Google");
           return;
         }
         
-        // Check for access_token in URL hash or as a standalone JWT
-        const { accessToken, refreshToken, isTokenFound: tokenFound } = checkForToken();
-        setIsTokenFound(tokenFound);
+        // Stocker le token d'accès
+        localStorage.setItem('google_access_token', accessToken);
+        localStorage.removeItem('google_auth_state'); // Nettoyer l'état
         
-        if (accessToken) {
-          console.log("Access token found, attempting to set session...");
-          
-          try {
-            // Try to process token using the centralized function first
-            const tokenProcessed = await processAuthTokens();
-            
-            if (tokenProcessed) {
-              console.log("Token processed successfully through AuthContext");
-              toast.success("Connexion réussie!");
-              setStatus("Authentification réussie! Redirection...");
-              
-              // Clean the URL
-              window.history.replaceState({}, document.title, window.location.pathname);
-              
-              setTimeout(() => navigate("/dashboard"), 1000);
-              return;
-            }
-            
-            // Fallback to manual token processing if the above fails
-            const sessionEstablished = await manuallySetSession(accessToken, refreshToken);
-            
-            if (sessionEstablished) {
-              setStatus("Authentification réussie! Redirection...");
-              setTimeout(() => navigate("/dashboard"), 1000);
-              return;
-            }
-          } catch (tokenError) {
-            console.error("Error processing token:", tokenError);
-            setErrorDetails(String(tokenError));
-          }
-        } else {
-          setStatus("Aucun jeton d'authentification trouvé dans l'URL");
-          setErrorDetails("Le processus d'authentification n'a pas généré de jeton valide. Vérifiez la configuration d'authentification dans Supabase.");
+        // Calculer la date d'expiration
+        if (expiresIn) {
+          const expiryTime = new Date().getTime() + parseInt(expiresIn) * 1000;
+          localStorage.setItem('google_token_expiry', expiryTime.toString());
         }
         
-        // If we get here, authentication failed
-        if (!isTokenFound) {
-          setStatus("Échec de l'authentification");
-          setErrorDetails("Impossible de récupérer les informations de session");
-          toast.error("Échec de l'authentification");
-          setTimeout(() => navigate("/auth"), 5000);
-        }
+        setStatus("success");
+        toast.success("Authentification Google réussie");
+        
+        // Rediriger vers la page précédente après un court délai
+        setTimeout(() => {
+          navigate(-1);
+        }, 1500);
+        
       } catch (error) {
-        console.error("Authentication error:", error);
-        setStatus("Une erreur est survenue");
-        setErrorDetails(error instanceof Error ? error.message : "Erreur inconnue");
-        toast.error("Échec de l'authentification");
-        setTimeout(() => navigate("/auth"), 5000);
-      } finally {
-        setIsProcessing(false);
+        console.error("Erreur lors du traitement du callback:", error);
+        setStatus("error");
+        toast.error("Erreur lors du traitement de l'authentification");
       }
     };
-
-    handleCallback();
-  }, [navigate, processAuthTokens]);
-
-  const manualRedirectToRoot = () => {
-    // Redirect to root page with token information
-    if (window.location.hash && window.location.hash.includes('access_token')) {
-      navigate("/", { replace: true });
-    } else {
-      navigate("/");
-    }
-  };
+    
+    processCallback();
+  }, [navigate]);
 
   return (
-    <AuthCallbackContent
-      status={status}
-      errorDetails={errorDetails}
-      isTokenFound={isTokenFound}
-      manualRedirectToRoot={manualRedirectToRoot}
-      isProcessing={isProcessing}
-    />
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="bg-card shadow-lg rounded-lg p-8 max-w-md w-full">
+        <div className="text-center">
+          {status === "processing" && (
+            <>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <h2 className="text-2xl font-semibold mb-2">Traitement de l'authentification...</h2>
+              <p className="text-muted-foreground">Veuillez patienter pendant que nous finalisons votre connexion Google Sheets.</p>
+            </>
+          )}
+          
+          {status === "success" && (
+            <>
+              <div className="rounded-full h-12 w-12 bg-green-100 flex items-center justify-center mx-auto mb-4">
+                <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-semibold mb-2 text-green-600">Authentification réussie!</h2>
+              <p className="text-muted-foreground">Vous êtes maintenant connecté à Google Sheets. Redirection en cours...</p>
+            </>
+          )}
+          
+          {status === "error" && (
+            <>
+              <div className="rounded-full h-12 w-12 bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-semibold mb-2 text-red-600">Échec de l'authentification</h2>
+              <p className="text-muted-foreground mb-4">Une erreur s'est produite lors de la connexion à Google Sheets.</p>
+              <button 
+                className="px-4 py-2 bg-primary text-primary-foreground rounded"
+                onClick={() => navigate(-1)}
+              >
+                Retourner à l'application
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

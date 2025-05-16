@@ -127,6 +127,7 @@ const SpreadsheetSaver: React.FC<SpreadsheetSaverProps> = ({
             <GoogleSheetsEmbed
               sheetUrl={googleSheetUrl}
               onSheetUrlChange={handleSheetUrlChange}
+              sheet={sheet}
             />
           </TabsContent>
         </Tabs>
