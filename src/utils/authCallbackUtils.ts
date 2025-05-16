@@ -1,91 +1,99 @@
 
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+/**
+ * Utility functions for authentication callback handling
+ */
 
-// Check URL for authentication errors
-export const checkForAuthErrors = (urlParams: URLSearchParams) => {
-  const error = urlParams.get("error");
-  if (error) {
-    console.error("OAuth error:", error);
-    const errorDescription = urlParams.get("error_description") || "Aucune description disponible";
-    return { error, errorDescription };
-  }
-  return null;
-};
-
-// Check for token in URL hash or pathname
-export const checkForToken = () => {
-  let accessToken = null;
-  let refreshToken = null;
-  let isTokenFound = false;
-  
-  // Check if we have a hash fragment with tokens
-  if (window.location.hash) {
-    console.log("Hash fragment detected in URL");
-    isTokenFound = true;
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    accessToken = hashParams.get('access_token');
-    refreshToken = hashParams.get('refresh_token');
-    
-    if (accessToken) {
-      console.log("Access token found in hash");
-    } else {
-      console.log("No access token in hash despite hash being present");
-    }
-  } 
-  // If no access token in hash, check if the URL itself is a JWT token
-  else if (window.location.pathname.length > 20 && window.location.pathname.includes('.')) {
-    console.log("URL appears to be a JWT token, extracting...");
-    isTokenFound = true;
-    accessToken = window.location.pathname.substring(1); // Remove leading slash
-  }
-  
-  return { accessToken, refreshToken, isTokenFound };
-};
-
-// Handle manual token setting when processAuthTokens fails
-export const manuallySetSession = async (accessToken: string, refreshToken: string | null) => {
+/**
+ * Processes Google Sheets authentication callback and stores tokens
+ */
+export const processGoogleSheetsCallback = (): {
+  success: boolean;
+  accessToken?: string;
+  errorDetails?: string;
+} => {
   try {
-    console.log("Attempting to manually set session with token");
+    // Extract URL parameters from hash for OAuth2 implicit grant
+    const fragment = window.location.hash.substring(1);
+    const params = new URLSearchParams(fragment);
     
-    const { data, error } = await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken || ''
-    });
+    const accessToken = params.get('access_token');
+    const expiresIn = params.get('expires_in');
+    const state = params.get('state');
     
-    if (error) {
-      console.error("Error setting session:", error);
-      throw error;
+    // Verify that state matches the one stored
+    const savedState = localStorage.getItem('google_auth_state');
+    
+    if (!accessToken) {
+      return {
+        success: false,
+        errorDetails: "Token d'accès manquant. Veuillez réessayer l'authentification."
+      };
     }
     
-    if (data.session) {
-      console.log("Session successfully established manually");
-      
-      // Store user preferences
-      if (data.session.user) {
-        localStorage.setItem("auth_connected", "true");
-        
-        // Store user info
-        const userData = {
-          email: data.session.user.email,
-          name: data.session.user?.user_metadata?.full_name || data.session.user.email,
-          picture: data.session.user?.user_metadata?.picture || data.session.user?.user_metadata?.avatar_url
-        };
-        
-        localStorage.setItem("user_data", JSON.stringify(userData));
-      }
-      
-      toast.success("Connexion réussie!");
-      
-      // Clean URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-      
-      return true;
+    if (!state || !savedState) {
+      return {
+        success: false,
+        errorDetails: "État de sécurité manquant. Veuillez vider le cache du navigateur et réessayer."
+      };
     }
-  } catch (error) {
-    console.error("Error manually setting session:", error);
-    throw error;
+    
+    if (state !== savedState) {
+      return {
+        success: false,
+        errorDetails: `État de sécurité non valide. Reçu: ${state}, Attendu: ${savedState}.`
+      };
+    }
+    
+    // Store the access token
+    localStorage.setItem('google_access_token', accessToken);
+    localStorage.removeItem('google_auth_state'); // Clean up the state
+    
+    // Calculate the expiration date
+    if (expiresIn) {
+      const expiryTime = new Date().getTime() + parseInt(expiresIn) * 1000;
+      localStorage.setItem('google_token_expiry', expiryTime.toString());
+    }
+    
+    return {
+      success: true,
+      accessToken
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      errorDetails: error.message || "Une erreur s'est produite lors de l'authentification."
+    };
   }
+};
+
+/**
+ * Extracts errors from URL query parameters
+ */
+export const extractUrlErrors = (): { 
+  hasError: boolean; 
+  errorMessage?: string; 
+} => {
+  const searchParams = new URLSearchParams(window.location.search);
+  const error = searchParams.get('error');
+  const errorDescription = searchParams.get('error_description');
   
-  return false;
+  if (error) {
+    let errorMessage = `Erreur: ${error}`;
+    if (errorDescription) {
+      errorMessage += `\nDescription: ${errorDescription}`;
+    }
+    
+    // Handle specific error for redirect URI mismatch
+    if (error === 'redirect_uri_mismatch') {
+      errorMessage += `\n\nL'URI de redirection utilisée ne correspond pas à celles configurées dans votre console Google Cloud.\n`;
+      errorMessage += `URI attendue pour l'environnement actuel: ${window.location.origin}/auth/callback/google\n`;
+      errorMessage += `Assurez-vous d'ajouter cette URI exacte dans votre console Google Cloud.`;
+    }
+    
+    return { 
+      hasError: true, 
+      errorMessage 
+    };
+  }
+  return { hasError: false };
 };
