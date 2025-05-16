@@ -216,7 +216,27 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
                 </Alert>
               )}
               
-              <div className="space-y-2 w-full max-w-md">
+              <div className="space-y-4 w-full max-w-md">
+                <Alert className="bg-amber-50 border-amber-200">
+                  <AlertTitle className="flex items-center">
+                    <AlertTriangle className="h-4 w-4 mr-2 text-amber-500" />
+                    Configuration requise
+                  </AlertTitle>
+                  <AlertDescription className="text-sm space-y-2">
+                    <p>Avant de vous connecter, assurez-vous que ces URLs sont correctement configurées dans votre console Google Cloud:</p>
+                    
+                    <div className="mt-2">
+                      <p className="font-medium">URI JavaScript autorisée:</p>
+                      <code className="bg-white p-1 block text-xs rounded border mt-1 mb-2 break-all">{window.location.origin}</code>
+                    </div>
+                    
+                    <div>
+                      <p className="font-medium">URI de redirection autorisée:</p>
+                      <code className="bg-white p-1 block text-xs rounded border mt-1 break-all">{window.location.origin}/auth/callback/google</code>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+                
                 <Button 
                   onClick={handleGoogleAuth} 
                   disabled={isAuthenticating}
@@ -225,14 +245,6 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
                   <Globe className="h-4 w-4" />
                   {isAuthenticating ? "Connexion en cours..." : "Se connecter à Google Sheets"}
                 </Button>
-                
-                <div className="pt-4 text-xs text-muted-foreground">
-                  <p className="font-medium mb-1">Information de configuration:</p>
-                  <p>URI de redirection: <code className="bg-slate-100 p-1 rounded text-xs">{window.location.origin}/auth/callback/google</code></p>
-                  <p className="mt-1">
-                    Si vous rencontrez des erreurs de redirection, assurez-vous que cette URL est bien configurée dans votre console Google Cloud.
-                  </p>
-                </div>
               </div>
             </div>
           ) : (

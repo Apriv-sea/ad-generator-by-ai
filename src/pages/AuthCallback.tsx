@@ -57,7 +57,7 @@ const AuthCallback: React.FC = () => {
         // Gérer spécifiquement l'erreur de mismatch d'URI
         if (error === 'redirect_uri_mismatch') {
           errorMessage += `\n\nL'URI de redirection utilisée ne correspond pas à celles configurées dans votre console Google Cloud.\n`;
-          errorMessage += `URI attendue: ${window.location.origin}/auth/callback/google\n`;
+          errorMessage += `URI attendue pour l'environnement actuel: ${window.location.origin}/auth/callback/google\n`;
           errorMessage += `Assurez-vous d'ajouter cette URI exacte dans votre console Google Cloud.`;
         }
         
@@ -174,8 +174,21 @@ const AuthCallback: React.FC = () => {
                   </Button>
                 </div>
                 
-                {/* Informations de débogage pour l'authentification */}
-                <div className="mt-6 pt-4 border-t">
+                {/* Informations de configuration pour l'authentification Google */}
+                <div className="mt-6 border-t pt-4 text-left">
+                  <h3 className="font-semibold mb-2">Configuration Google OAuth</h3>
+                  
+                  <Alert className="mb-4 bg-amber-50">
+                    <AlertTitle>Assurez-vous d'ajouter les URI suivantes dans votre console Google Cloud:</AlertTitle>
+                    <AlertDescription>
+                      <p className="mt-2"><strong>URI JavaScript autorisée:</strong></p>
+                      <code className="bg-white p-1 block rounded border mt-1 mb-3">{window.location.origin}</code>
+                      
+                      <p><strong>URI de redirection autorisée:</strong></p>
+                      <code className="bg-white p-1 block rounded border mt-1">{window.location.origin}/auth/callback/google</code>
+                    </AlertDescription>
+                  </Alert>
+                  
                   <DebugOAuthConfig />
                 </div>
               </>
