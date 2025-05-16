@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Sheet } from "@/services/googleSheetsService";
-import GoogleSheetHeader, { GoogleAuthHeader } from './google/GoogleSheetHeader';
+import GoogleSheetHeader from './google/GoogleSheetHeader';
 import GoogleSheetUrlInput from './google/GoogleSheetUrlInput';
 import GoogleSheetEmbed from './google/GoogleSheetEmbed';
 import GoogleSheetPlaceholder from './google/GoogleSheetPlaceholder';
@@ -152,13 +152,7 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
   }, []);
 
   return (
-    <Card className="overflow-hidden border-none shadow-lg">
-      <GoogleSheetHeader 
-        isAuthenticated={isAuthenticated}
-        validUrl={validUrl}
-        onOpenInNewTab={openInNewTab}
-        onCreateNewSheet={createNewSheet}
-      />
+    <Card className="overflow-hidden border shadow-lg">
       <CardContent className="p-4">
         <div className="space-y-4">
           {!isAuthenticated ? (
@@ -169,7 +163,12 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
             />
           ) : (
             <>
-              <GoogleAuthHeader onCreateNewSheet={createNewSheet} />
+              <GoogleSheetHeader 
+                isAuthenticated={isAuthenticated}
+                validUrl={validUrl}
+                onOpenInNewTab={openInNewTab}
+                onCreateNewSheet={createNewSheet}
+              />
               
               <GoogleSheetUrlInput 
                 inputUrl={inputUrl}
