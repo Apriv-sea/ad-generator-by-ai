@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { utils, writeFile, read } from "xlsx";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
@@ -16,7 +15,7 @@ import {
   Trash, 
   Maximize2,
   Import,
-  Export
+  ExternalLink
 } from "lucide-react";
 import {
   Dialog,
@@ -305,7 +304,7 @@ const XLSXSheetEditor: React.FC<XLSXSheetEditorProps> = ({
             onClick={handleExport}
             className="gap-1"
           >
-            <Export className="h-4 w-4" />
+            <ExternalLink className="h-4 w-4" />
             Exporter
           </Button>
           
