@@ -1,7 +1,8 @@
 
 import { GenerationPrompt } from "../types";
 import { toast } from "sonner";
-import { secureLLMService, LLMConfig, SecureLLMResponse } from "./secureLLMService";
+import { secureLLMService, SecureLLMResponse } from "./secureLLMService";
+import type { LLMConfig } from "./secureLLMService";
 
 export interface LLMResponse {
   titles: string[];
@@ -17,8 +18,8 @@ export interface RetryOptions {
   maxDelay: number;
 }
 
-// Export LLMConfig from secureLLMService for backward compatibility
-export { LLMConfig } from "./secureLLMService";
+// Export LLMConfig type from secureLLMService for backward compatibility
+export type { LLMConfig } from "./secureLLMService";
 
 class LLMApiService {
   private defaultRetryOptions: RetryOptions = {
