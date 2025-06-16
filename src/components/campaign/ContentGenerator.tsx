@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import CampaignExtractor from "./CampaignExtractor";
 import ContentGeneratorHeader from "./ContentGeneratorHeader";
 import ContentGenerationForm from "./ContentGenerationForm";
+import ContentHistoryPanel from "./ContentHistoryPanel";
 import { useContentGeneration } from "./ContentGenerationLogic";
 
 interface ContentGeneratorProps {
@@ -35,6 +36,11 @@ const ContentGenerator: React.FC<ContentGeneratorProps> = ({
     onUpdateComplete
   });
 
+  const handleRevert = (revertData: any[][]) => {
+    setSheetData(revertData);
+    onUpdateComplete();
+  };
+
   return (
     <div className="space-y-6">
       <CampaignExtractor 
@@ -56,6 +62,11 @@ const ContentGenerator: React.FC<ContentGeneratorProps> = ({
           />
         </CardContent>
       </Card>
+
+      <ContentHistoryPanel 
+        sheetId={sheet.id}
+        onRevert={handleRevert}
+      />
     </div>
   );
 };

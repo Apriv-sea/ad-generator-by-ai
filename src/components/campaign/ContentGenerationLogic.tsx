@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Sheet, Client, sheetService } from "@/services/googleSheetsService";
+import { enhancedContentGenerationService } from "@/services/content/enhancedContentGenerationService";
 
 interface UseContentGenerationProps {
   sheet: Sheet;
@@ -49,6 +50,9 @@ export const useContentGeneration = ({
       let updatedRows = [...dataRows];
       let rowIndex = 2; // Commencer à la ligne 2 (après les en-têtes)
 
+      // Créer un backup des données actuelles
+      const backupData = JSON.parse(JSON.stringify(sheetData));
+
       for (let i = 0; i < dataRows.length; i++) {
         const row = dataRows[i];
         if (!row[0] || !row[1] || !row[2]) continue; // Ignorer les lignes vides
@@ -59,44 +63,85 @@ export const useContentGeneration = ({
 
         if (keywords.length === 0) continue;
 
-        // Utiliser l'API pour générer des titres et descriptions
-        const generatedContent = await sheetService.generateContent({
-          clientContext,
-          campaignContext: campaign,
-          adGroupContext: adGroup,
-          keywords,
-          model: selectedModel
-        });
+        console.log(`Génération pour: ${campaign} > ${adGroup}`);
 
-        if (!generatedContent) continue;
+        // Utiliser le service amélioré pour générer du contenu
+        const result = await enhancedContentGenerationService.generateContent(
+          {
+            clientContext,
+            campaignContext: campaign,
+            adGroupContext: adGroup,
+            keywords,
+            model: selectedModel
+          },
+          sheet.id,
+          backupData,
+          {
+            validateContent: true,
+            saveToHistory: true,
+            createBackup: i === 0, // Créer un backup seulement pour la première ligne
+            autoCleanContent: true,
+            maxRegenerateAttempts: 1 // Limiter pour éviter les timeouts
+          }
+        );
+
+        if (!result.success) {
+          console.error(`Échec de génération pour ${campaign} > ${adGroup}`);
+          continue;
+        }
 
         // Mettre à jour la ligne avec les titres et descriptions générés
         const updatedRow = [...row];
+        
         // Ajouter les titres aux colonnes 3 à 12
-        generatedContent.titles.forEach((title, index) => {
+        result.titles.forEach((title, index) => {
           if (index < 10) updatedRow[index + 3] = title;
         });
         
         // Ajouter les descriptions aux colonnes 13 à 17
-        generatedContent.descriptions.forEach((desc, index) => {
+        result.descriptions.forEach((desc, index) => {
           if (index < 5) updatedRow[index + 13] = desc;
         });
         
         updatedRows[i] = updatedRow;
         
         // Mettre à jour le tableau en temps réel
-        const range = `Campagnes publicitaires!A${rowIndex}:R${rowIndex}`;
-        await sheetService.writeSheetData(sheet.id, range, [updatedRow]);
+        try {
+          const range = `Campagnes publicitaires!A${rowIndex}:R${rowIndex}`;
+          await sheetService.writeSheetData(sheet.id, range, [updatedRow]);
+        } catch (writeError) {
+          console.error("Erreur d'écriture dans le sheet:", writeError);
+          // Continuer même si l'écriture échoue
+        }
+        
         rowIndex++;
+
+        // Afficher les résultats de validation s'il y en a
+        if (result.validationResults) {
+          const warnings = [
+            ...result.validationResults.titles.warnings,
+            ...result.validationResults.descriptions.warnings
+          ];
+          
+          if (warnings.length > 0) {
+            console.log(`Avertissements pour ${campaign} > ${adGroup}:`, warnings);
+          }
+        }
       }
       
-      // Mettre à jour les données du tableur
+      // Mettre à jour les données du tableur localement
       setSheetData([headers, ...updatedRows]);
-      toast.success("Contenu généré avec succès");
+      
+      // Afficher les statistiques
+      const stats = enhancedContentGenerationService.getStatsForSheet(sheet.id);
+      console.log("Statistiques de génération:", stats);
+      
+      toast.success(`Contenu généré avec succès ! ${stats.totalGenerations} générations au total.`);
       onUpdateComplete();
+      
     } catch (error) {
       console.error("Erreur lors de la génération du contenu:", error);
-      toast.error("Erreur lors de la génération du contenu");
+      toast.error(`Erreur lors de la génération du contenu: ${error.message}`);
     } finally {
       setIsSaving(false);
     }
