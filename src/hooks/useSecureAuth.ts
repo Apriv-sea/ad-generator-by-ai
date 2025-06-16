@@ -9,13 +9,17 @@ export function useSecureAuth() {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [lastActivity, setLastActivity] = useState<number>(Date.now());
+  const [retryCount, setRetryCount] = useState<number>(0);
 
   // Session timeout (30 minutes)
   const SESSION_TIMEOUT = 30 * 60 * 1000;
+  const MAX_RETRY_ATTEMPTS = 3;
+  const RETRY_DELAY = 2000;
 
   useEffect(() => {
     let authSubscription: { unsubscribe: () => void } | null = null;
     let activityTimer: NodeJS.Timeout | null = null;
+    let retryTimer: NodeJS.Timeout | null = null;
 
     const checkSessionValidity = () => {
       const now = Date.now();
@@ -28,35 +32,84 @@ export function useSecureAuth() {
 
     const updateActivity = () => {
       setLastActivity(Date.now());
+      setRetryCount(0); // Reset retry count on user activity
+    };
+
+    const handleTokenRefreshError = async () => {
+      if (retryCount < MAX_RETRY_ATTEMPTS) {
+        console.log(`Token refresh failed, retrying... (${retryCount + 1}/${MAX_RETRY_ATTEMPTS})`);
+        setRetryCount(prev => prev + 1);
+        
+        retryTimer = setTimeout(async () => {
+          try {
+            const { error } = await supabase.auth.refreshSession();
+            if (error) {
+              throw error;
+            }
+            console.log("Token refresh retry successful");
+            setRetryCount(0);
+          } catch (error) {
+            console.error("Token refresh retry failed:", error);
+            handleTokenRefreshError();
+          }
+        }, RETRY_DELAY * retryCount);
+      } else {
+        console.log("Max retry attempts reached, signing out");
+        toast.error("Erreur de session persistante. Veuillez vous reconnecter.");
+        handleSignOut();
+      }
     };
 
     const initAuth = async () => {
       try {
-        // Set up auth state listener
+        // Set up auth state listener with enhanced error handling
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          (event, session) => {
+          async (event, session) => {
             console.log("Auth state changed:", event);
-            setSession(session);
-            setUser(session?.user || null);
             
-            if (event === 'SIGNED_IN' && session?.user) {
+            // Enhanced security logging
+            if (event === 'TOKEN_REFRESHED' && session) {
+              console.log("Token refreshed successfully");
               setLastActivity(Date.now());
+              setRetryCount(0);
+            } else if (event === 'SIGNED_IN' && session?.user) {
+              console.log("User signed in:", session.user.id);
+              setLastActivity(Date.now());
+              setRetryCount(0);
               localStorage.setItem('auth_connected', 'true');
+              
+              // Security audit log
+              console.log("Security audit: User authentication successful", {
+                userId: session.user.id,
+                timestamp: new Date().toISOString(),
+                provider: session.user.app_metadata?.provider
+              });
             } else if (event === 'SIGNED_OUT') {
+              console.log("User signed out");
               localStorage.removeItem('auth_connected');
               localStorage.removeItem('user_data');
-            } else if (event === 'TOKEN_REFRESHED') {
-              setLastActivity(Date.now());
+              
+              // Clear sensitive data from sessionStorage
+              sessionStorage.removeItem('oauth_state');
+              sessionStorage.removeItem('google_auth_state');
             }
+            
+            setSession(session);
+            setUser(session?.user || null);
           }
         );
         
         authSubscription = subscription;
         
-        // Check for existing session
+        // Check for existing session with error handling
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error("Session error:", error);
+          if (error.message?.includes('refresh_token_not_found') || 
+              error.message?.includes('Invalid Refresh Token')) {
+            console.log("Invalid refresh token detected, clearing session");
+            await handleSignOut();
+          }
           throw error;
         }
         
@@ -70,7 +123,11 @@ export function useSecureAuth() {
         
       } catch (error) {
         console.error("Error initializing authentication:", error);
-        toast.error("Erreur d'initialisation de l'authentification");
+        // Don't show error toast on initialization to avoid spam
+        if (error?.message?.includes('refresh_token_not_found')) {
+          // Silently handle refresh token errors on init
+          await handleSignOut();
+        }
       } finally {
         setIsLoading(false);
       }
@@ -79,15 +136,20 @@ export function useSecureAuth() {
     const handleSignOut = async () => {
       try {
         await supabase.auth.signOut();
+        // Clear all sensitive data
+        localStorage.removeItem('auth_connected');
+        localStorage.removeItem('user_data');
+        sessionStorage.removeItem('oauth_state');
+        sessionStorage.removeItem('google_auth_state');
       } catch (error) {
         console.error("Error signing out:", error);
       }
     };
 
-    // Set up activity monitoring
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    // Set up activity monitoring with security considerations
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
     events.forEach(event => {
-      document.addEventListener(event, updateActivity, true);
+      document.addEventListener(event, updateActivity, { passive: true });
     });
 
     // Set up session check timer
@@ -102,20 +164,48 @@ export function useSecureAuth() {
       if (activityTimer) {
         clearInterval(activityTimer);
       }
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+      }
       events.forEach(event => {
-        document.removeEventListener(event, updateActivity, true);
+        document.removeEventListener(event, updateActivity);
       });
     };
-  }, [session, lastActivity]);
+  }, [session, lastActivity, retryCount]);
 
   const refreshSession = async () => {
     try {
       const { error } = await supabase.auth.refreshSession();
       if (error) throw error;
       setLastActivity(Date.now());
+      setRetryCount(0);
     } catch (error) {
       console.error("Error refreshing session:", error);
-      toast.error("Erreur lors du rafraîchissement de la session");
+      if (error?.message?.includes('refresh_token_not_found')) {
+        handleTokenRefreshError();
+      } else {
+        toast.error("Erreur lors du rafraîchissement de la session");
+      }
+    }
+  };
+
+  const secureSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      // Additional security cleanup
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Security audit log
+      console.log("Security audit: User signed out", {
+        timestamp: new Date().toISOString(),
+        reason: 'manual_logout'
+      });
+      
+      toast.success("Déconnexion réussie");
+    } catch (error) {
+      console.error("Error during secure sign out:", error);
+      toast.error("Erreur lors de la déconnexion");
     }
   };
 
@@ -125,6 +215,8 @@ export function useSecureAuth() {
     isLoading,
     isAuthenticated: !!session && !!user,
     lastActivity,
-    refreshSession
+    refreshSession,
+    secureSignOut,
+    retryCount
   };
 }
