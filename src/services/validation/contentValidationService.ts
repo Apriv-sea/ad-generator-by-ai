@@ -3,7 +3,7 @@ export interface ValidationResult {
   isValid: boolean;
   errors: string[];
   warnings: string[];
-  cleanedContent?: string;
+  cleanedContent?: string | string[];
 }
 
 export interface ContentLimits {
@@ -111,7 +111,7 @@ class ContentValidationService {
       
       warnings.push(...result.warnings.map(w => `Titre ${i + 1}: ${w}`));
       
-      if (result.cleanedContent) {
+      if (result.cleanedContent && typeof result.cleanedContent === 'string') {
         cleanedTitles.push(result.cleanedContent);
       }
     }
@@ -142,7 +142,7 @@ class ContentValidationService {
       
       warnings.push(...result.warnings.map(w => `Description ${i + 1}: ${w}`));
       
-      if (result.cleanedContent) {
+      if (result.cleanedContent && typeof result.cleanedContent === 'string') {
         cleanedDescriptions.push(result.cleanedContent);
       }
     }

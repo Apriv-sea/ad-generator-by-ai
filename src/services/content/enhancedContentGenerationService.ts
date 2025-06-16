@@ -178,11 +178,11 @@ class EnhancedContentGenerationService {
       let finalDescriptions = lastResponse.descriptions;
 
       if (autoCleanContent && finalValidationResults) {
-        if (finalValidationResults.titles.cleanedContent) {
-          finalTitles = finalValidationResults.titles.cleanedContent as string[];
+        if (finalValidationResults.titles.cleanedContent && Array.isArray(finalValidationResults.titles.cleanedContent)) {
+          finalTitles = finalValidationResults.titles.cleanedContent;
         }
-        if (finalValidationResults.descriptions.cleanedContent) {
-          finalDescriptions = finalValidationResults.descriptions.cleanedContent as string[];
+        if (finalValidationResults.descriptions.cleanedContent && Array.isArray(finalValidationResults.descriptions.cleanedContent)) {
+          finalDescriptions = finalValidationResults.descriptions.cleanedContent;
         }
       }
 
