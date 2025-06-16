@@ -1,195 +1,120 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Copy, ExternalLink, CheckCircle, FileSpreadsheet, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { ExternalLink, Download, FileSpreadsheet } from "lucide-react";
+import ClientSelector from "./ClientSelector";
+import { Client } from "@/services/types";
 
 interface TemplateGuideProps {
-  onSheetUrlSubmitted: (url: string) => void;
+  onSheetUrlSubmitted: (url: string, client?: Client) => void;
 }
 
 const TemplateGuide: React.FC<TemplateGuideProps> = ({ onSheetUrlSubmitted }) => {
-  const [currentStep, setCurrentStep] = useState<'template' | 'url'>('template');
-  const [userSheetUrl, setUserSheetUrl] = useState('');
-  const [templateCopied, setTemplateCopied] = useState(false);
+  const [sheetUrl, setSheetUrl] = useState("");
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const templateUrl = "https://docs.google.com/spreadsheets/d/18uELiv1vSb9eXSSu1tugMmNmmbq2VzyV7h04U8ywaz0/";
+  const templateUrl = "https://docs.google.com/spreadsheets/d/1uawoG2RorJDnWtdLHEe9AD7sloRWmp9h_vAAtr5vVJedit/edit#gid=0";
 
-  const handleCopyTemplate = () => {
-    navigator.clipboard.writeText(templateUrl);
-    setTemplateCopied(true);
-    toast.success("URL du template copiée dans le presse-papier");
-  };
-
-  const handleOpenTemplate = () => {
-    window.open(templateUrl, '_blank');
-    setTemplateCopied(true);
-  };
-
-  const handleContinueToUrl = () => {
-    setCurrentStep('url');
-  };
-
-  const handleSubmitUrl = () => {
-    if (!userSheetUrl.trim()) {
-      toast.error("Veuillez entrer l'URL de votre feuille Google Sheets");
+  const handleSubmit = async () => {
+    if (!sheetUrl.trim()) {
+      toast.error("Veuillez saisir l'URL de votre feuille Google Sheets");
       return;
     }
 
-    if (!userSheetUrl.includes('docs.google.com/spreadsheets')) {
-      toast.error("Veuillez entrer une URL Google Sheets valide");
-      return;
+    setIsSubmitting(true);
+    try {
+      onSheetUrlSubmitted(sheetUrl, selectedClient || undefined);
+    } catch (error) {
+      console.error("Erreur lors de la soumission:", error);
+      toast.error("Erreur lors de la connexion à la feuille");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    onSheetUrlSubmitted(userSheetUrl);
   };
 
-  if (currentStep === 'template') {
-    return (
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader className="text-center">
-          <CardTitle className="flex items-center justify-center gap-2">
-            <FileSpreadsheet className="h-6 w-6 text-blue-600" />
-            Étape 1 : Copier le template Google Sheets
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <FileSpreadsheet className="h-5 w-5 mr-2" />
+            Étape 1: Copier le template
           </CardTitle>
-          <CardDescription>
-            Utilisez notre template pré-configuré avec les colonnes optimisées pour la génération de contenu publicitaire
-          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <Alert className="border-blue-200 bg-blue-50">
-            <FileSpreadsheet className="h-4 w-4 text-blue-600" />
-            <AlertTitle className="text-blue-800">Template Google Sheets prêt à l'emploi</AlertTitle>
-            <AlertDescription className="text-blue-700">
-              Ce template contient toutes les colonnes nécessaires : nom de campagne, groupes d'annonces, 
-              mots-clés, et espaces pour les titres et descriptions générés par l'IA.
-            </AlertDescription>
-          </Alert>
-
-          <div className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                URL du template :
-              </Label>
-              <div className="flex gap-2">
-                <Input 
-                  value={templateUrl} 
-                  readOnly 
-                  className="bg-white text-sm"
-                />
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleCopyTemplate}
-                  className="shrink-0"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="text-center space-y-4">
-              <div className="space-y-2">
-                <h3 className="font-semibold text-gray-900">Instructions :</h3>
-                <ol className="text-sm text-gray-600 space-y-1 text-left max-w-md mx-auto">
-                  <li>1. Cliquez sur "Ouvrir le template" ci-dessous</li>
-                  <li>2. Dans Google Sheets, cliquez sur "Fichier" → "Faire une copie"</li>
-                  <li>3. Donnez un nom à votre copie</li>
-                  <li>4. Copiez l'URL de votre nouvelle feuille</li>
-                  <li>5. Revenez ici pour coller l'URL</li>
-                </ol>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button 
-                  onClick={handleOpenTemplate}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Ouvrir le template
-                </Button>
-                
-                {templateCopied && (
-                  <Button 
-                    onClick={handleContinueToUrl}
-                    variant="outline"
-                    className="border-green-300 text-green-700 hover:bg-green-50"
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    J'ai copié le template
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                )}
-              </div>
-            </div>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Commencez par faire une copie du template Google Sheets pour vos campagnes publicitaires.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              onClick={() => window.open(templateUrl, '_blank')}
+              className="flex items-center"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Ouvrir le template
+            </Button>
+            
+            <Button variant="outline" className="flex items-center">
+              <Download className="h-4 w-4 mr-2" />
+              Fichier → Faire une copie
+            </Button>
+          </div>
+          
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <p className="text-sm font-medium text-blue-900">💡 Conseil</p>
+            <p className="text-sm text-blue-800">
+              Renommez votre copie avec un nom descriptif, par exemple "Campagnes - [Nom du client]"
+            </p>
           </div>
         </CardContent>
       </Card>
-    );
-  }
 
-  return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader className="text-center">
-        <CardTitle className="flex items-center justify-center gap-2">
-          <CheckCircle className="h-6 w-6 text-green-600" />
-          Étape 2 : Connecter votre feuille Google Sheets
-        </CardTitle>
-        <CardDescription>
-          Collez l'URL de votre copie du template pour commencer à générer du contenu
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <Alert className="border-green-200 bg-green-50">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertTitle className="text-green-800">Template copié avec succès !</AlertTitle>
-          <AlertDescription className="text-green-700">
-            Maintenant, collez l'URL de votre feuille Google Sheets ci-dessous.
-          </AlertDescription>
-        </Alert>
+      <ClientSelector
+        selectedClientId={selectedClient?.id}
+        onClientSelect={setSelectedClient}
+        showCreateOption={true}
+      />
 
-        <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Étape 2: Connecter votre feuille</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="sheetUrl" className="text-sm font-medium">
-              URL de votre feuille Google Sheets
-            </Label>
+            <Label htmlFor="sheet-url">URL de votre feuille Google Sheets</Label>
             <Input
-              id="sheetUrl"
+              id="sheet-url"
               type="url"
-              value={userSheetUrl}
-              onChange={(e) => setUserSheetUrl(e.target.value)}
-              placeholder="https://docs.google.com/spreadsheets/d/VOTRE_ID/edit"
-              className="mt-1"
+              placeholder="https://docs.google.com/spreadsheets/d/..."
+              value={sheetUrl}
+              onChange={(e) => setSheetUrl(e.target.value)}
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Assurez-vous que votre feuille est partagée avec l'accès "Toute personne avec le lien peut modifier"
+          </div>
+          
+          <div className="bg-amber-50 p-3 rounded-lg">
+            <p className="text-sm font-medium text-amber-900">⚠️ Permissions requises</p>
+            <p className="text-sm text-amber-800">
+              Assurez-vous que votre feuille est accessible à "Toute personne ayant le lien" 
+              ou partagée avec notre application.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button 
-              variant="outline" 
-              onClick={() => setCurrentStep('template')}
-              className="flex-1"
-            >
-              Retour au template
-            </Button>
-            <Button 
-              onClick={handleSubmitUrl}
-              className="flex-1 bg-blue-600 hover:bg-blue-700"
-              disabled={!userSheetUrl.trim()}
-            >
-              Connecter ma feuille
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+          <Button 
+            onClick={handleSubmit}
+            disabled={isSubmitting || !sheetUrl.trim()}
+            className="w-full"
+          >
+            {isSubmitting ? "Connexion en cours..." : "Connecter la feuille"}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

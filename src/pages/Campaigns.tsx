@@ -7,6 +7,7 @@ import { Sheet, sheetService } from "@/services/googleSheetsService";
 import CampaignsHeader from "@/components/campaign/CampaignsHeader";
 import CampaignsTabs from "@/components/campaign/CampaignsTabs";
 import TemplateGuide from "@/components/campaign/TemplateGuide";
+import { Client } from "@/services/types";
 
 const Campaigns = () => {
   const [sheets, setSheets] = useState<Sheet[]>([]);
@@ -80,15 +81,17 @@ const Campaigns = () => {
     toast.success("Données mises à jour avec succès");
   };
 
-  const handleTemplateSheetUrl = (url: string) => {
+  const handleTemplateSheetUrl = (url: string, client?: Client) => {
     const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     if (match) {
       const sheetId = match[1];
       const newSheet: Sheet = {
         id: sheetId,
-        name: "Feuille depuis template",
+        name: client ? `Campagnes - ${client.name}` : "Feuille depuis template",
         url: url,
-        lastModified: new Date().toISOString()
+        lastModified: new Date().toISOString(),
+        clientId: client?.id,
+        clientContext: client?.businessContext
       };
       
       setSelectedSheet(newSheet);

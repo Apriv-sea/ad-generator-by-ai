@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Sheet, Client, sheetService } from "@/services/googleSheetsService";
+import { getClientInfo } from "@/services/clientService";
 import { toast } from "sonner";
 
 export function useSheetData(sheet: Sheet | null) {
@@ -41,10 +42,40 @@ export function useSheetData(sheet: Sheet | null) {
     if (!sheet) return;
     
     try {
-      const client = await sheetService.getClientInfo(sheet.id);
-      setClientInfo(client);
+      let client: Client | null = null;
+
+      // Priorité 1: Client ID dans la feuille (nouvelles feuilles avec client sélectionné)
+      if (sheet.clientId) {
+        console.log("Chargement du client depuis sheet.clientId:", sheet.clientId);
+        client = await getClientInfo(sheet.clientId);
+      }
+
+      // Priorité 2: Contexte client direct dans la feuille (legacy)
+      if (!client && sheet.clientContext) {
+        console.log("Utilisation du contexte client legacy:", sheet.clientContext);
+        client = {
+          id: '',
+          name: 'Client (contexte legacy)',
+          businessContext: sheet.clientContext
+        };
+      }
+
+      // Priorité 3: Informations client dans l'onglet Google Sheets
+      if (!client) {
+        console.log("Tentative de récupération depuis l'onglet Google Sheets");
+        client = await sheetService.getClientInfo(sheet.id);
+      }
+
+      if (client) {
+        console.log("Client trouvé:", client);
+        setClientInfo(client);
+      } else {
+        console.log("Aucun client trouvé pour cette feuille");
+        setClientInfo(null);
+      }
     } catch (error) {
       console.error("Erreur lors du chargement des informations client:", error);
+      setClientInfo(null);
     }
   };
 
