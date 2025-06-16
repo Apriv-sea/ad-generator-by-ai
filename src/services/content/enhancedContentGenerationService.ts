@@ -1,6 +1,7 @@
 
 import { GenerationPrompt } from "../types";
-import { llmApiService, LLMConfig, LLMResponse } from "../llm/llmApiService";
+import { llmApiService, LLMResponse } from "../llm/llmApiService";
+import { LLMConfig } from "../llm/secureLLMService";
 import { contentValidationService, ValidationResult } from "../validation/contentValidationService";
 import { contentHistoryService } from "../history/contentHistoryService";
 import { toast } from "sonner";
@@ -30,49 +31,35 @@ export interface EnhancedGenerationResult {
 }
 
 class EnhancedContentGenerationService {
-  private getApiConfigs(): LLMConfig[] {
+  private async getApiConfigs(): Promise<LLMConfig[]> {
+    // Use the secure service to validate API keys and create configs
+    const validationResult = await llmApiService.validateApiKeys();
+    
     const configs: LLMConfig[] = [];
     
-    // Récupérer les clés API depuis localStorage (en attendant l'intégration Supabase)
-    const openaiKey = localStorage.getItem('openai_api_key');
-    const anthropicKey = localStorage.getItem('anthropic_api_key');
-    const googleKey = localStorage.getItem('google_api_key');
-    
-    // Ordre de priorité des modèles
-    if (openaiKey) {
+    // Ordre de priorité des modèles basé sur les clés API disponibles
+    if (validationResult.openai) {
       configs.push({
         provider: 'openai',
-        model: 'gpt-4',
-        apiKey: openaiKey,
-        maxTokens: 1500,
-        temperature: 0.7
+        model: 'gpt-4'
       });
       configs.push({
         provider: 'openai',
-        model: 'gpt-3.5-turbo',
-        apiKey: openaiKey,
-        maxTokens: 1500,
-        temperature: 0.7
+        model: 'gpt-3.5-turbo'
       });
     }
     
-    if (anthropicKey) {
+    if (validationResult.anthropic) {
       configs.push({
         provider: 'anthropic',
-        model: 'claude-3-sonnet-20240229',
-        apiKey: anthropicKey,
-        maxTokens: 1500,
-        temperature: 0.7
+        model: 'claude-3-sonnet-20240229'
       });
     }
     
-    if (googleKey) {
+    if (validationResult.google) {
       configs.push({
         provider: 'google',
-        model: 'gemini-pro',
-        apiKey: googleKey,
-        maxTokens: 1500,
-        temperature: 0.7
+        model: 'gemini-pro'
       });
     }
     
@@ -97,9 +84,9 @@ class EnhancedContentGenerationService {
       console.log("=== Début de la génération de contenu ===");
       
       // Vérifier les configurations disponibles
-      const configs = this.getApiConfigs();
+      const configs = await this.getApiConfigs();
       if (configs.length === 0) {
-        toast.error("Aucune clé API configurée. Veuillez configurer au moins une clé API.");
+        toast.error("Aucune clé API configurée. Veuillez configurer au moins une clé API dans les paramètres.");
         return {
           success: false,
           titles: [],
@@ -264,8 +251,9 @@ class EnhancedContentGenerationService {
     }
   }
 
-  getAvailableProviders(): string[] {
-    return this.getApiConfigs().map(config => config.provider);
+  async getAvailableProviders(): Promise<string[]> {
+    const configs = await this.getApiConfigs();
+    return configs.map(config => config.provider);
   }
 
   getHistoryForSheet(sheetId: string) {

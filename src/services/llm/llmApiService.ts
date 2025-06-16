@@ -17,6 +17,9 @@ export interface RetryOptions {
   maxDelay: number;
 }
 
+// Export LLMConfig from secureLLMService for backward compatibility
+export { LLMConfig } from "./secureLLMService";
+
 class LLMApiService {
   private defaultRetryOptions: RetryOptions = {
     maxRetries: 3,
