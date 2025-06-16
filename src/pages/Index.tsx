@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import AuthDebugDialog from "@/components/AuthDebugDialog";
 import { Zap, Brain, Users, Shield, ArrowRight, Sparkles, Target } from "lucide-react";
+
 const Index = () => {
   const navigate = useNavigate();
   const {
@@ -108,7 +109,7 @@ const Index = () => {
           <div className="text-center max-w-4xl mx-auto">
             <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-6">
               <Sparkles className="w-4 h-4 mr-2" />
-              Innovation IA pour le Marketing Digital
+              Innovation IA pour Google Ads
             </div>
             
             <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-slate-900 via-blue-800 to-slate-900 bg-clip-text text-transparent mb-6">
@@ -244,4 +245,5 @@ const Index = () => {
       </div>
     </div>;
 };
+
 export default Index;
