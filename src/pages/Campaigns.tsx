@@ -1,16 +1,12 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Sheet, sheetService } from "@/services/googleSheetsService";
-import SheetsList from "@/components/SheetsList";
-import CreateSheetDialog from "@/components/CreateSheetDialog";
-import CampaignManager from "@/components/CampaignManager";
+import CampaignsHeader from "@/components/campaign/CampaignsHeader";
+import CampaignsTabs from "@/components/campaign/CampaignsTabs";
 import TemplateGuide from "@/components/campaign/TemplateGuide";
-import { FileSpreadsheet, RefreshCw, ArrowLeft } from "lucide-react";
 
 const Campaigns = () => {
   const [sheets, setSheets] = useState<Sheet[]>([]);
@@ -63,15 +59,11 @@ const Campaigns = () => {
     try {
       const success = await sheetService.deleteSheet(sheetId);
       if (success) {
-        // Si la feuille supprimée est celle qui est sélectionnée,
-        // on désélectionne
         if (selectedSheet && selectedSheet.id === sheetId) {
           setSelectedSheet(null);
           localStorage.removeItem('selected_sheet');
           setActiveTab("sheets");
         }
-        
-        // Rafraîchir la liste des feuilles
         await fetchSheets();
       }
     } catch (error) {
@@ -89,7 +81,6 @@ const Campaigns = () => {
   };
 
   const handleTemplateSheetUrl = (url: string) => {
-    // Extraire l'ID de la feuille depuis l'URL
     const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     if (match) {
       const sheetId = match[1];
@@ -149,102 +140,20 @@ const Campaigns = () => {
     <>
       <Navigation />
       <div className="container mx-auto py-8 px-4">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Campagnes publicitaires</h1>
-          <Button 
-            variant="outline" 
-            onClick={handleBackToTemplate}
-            className="text-sm"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Utiliser le template
-          </Button>
-        </div>
+        <CampaignsHeader onBackToTemplate={handleBackToTemplate} />
         
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList className="mb-6">
-            <TabsTrigger value="sheets">Feuilles</TabsTrigger>
-            <TabsTrigger value="editor" disabled={!selectedSheet}>
-              Éditeur de Campagnes
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="sheets">
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle>Gestion des feuilles</CardTitle>
-                <CardDescription>
-                  Créez une nouvelle feuille ou sélectionnez une feuille existante
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col md:flex-row gap-4">
-                <CreateSheetDialog onSheetCreated={handleCreateSheet} />
-                <Button 
-                  variant="outline" 
-                  onClick={fetchSheets}
-                  disabled={isLoading}
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                  {isLoading ? "Chargement..." : "Rafraîchir la liste"}
-                </Button>
-              </CardContent>
-            </Card>
-            
-            <SheetsList 
-              sheets={sheets} 
-              onSelectSheet={handleSelectSheet}
-              onDeleteSheet={handleDeleteSheet}
-              isLoading={isLoading} 
-            />
-          </TabsContent>
-          
-          <TabsContent value="editor">
-            {selectedSheet ? (
-              <>
-                <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                  <div>
-                    <h2 className="text-xl font-semibold flex items-center">
-                      <FileSpreadsheet className="h-5 w-5 mr-2" />
-                      {selectedSheet.name}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      Dernière modification: {new Date(selectedSheet.lastModified).toLocaleDateString('fr-FR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setActiveTab("sheets")}
-                  >
-                    Retour aux Feuilles
-                  </Button>
-                </div>
-                
-                <CampaignManager 
-                  sheet={selectedSheet} 
-                  onUpdateComplete={handleCampaignUpdate} 
-                />
-              </>
-            ) : (
-              <Card>
-                <CardContent className="py-8 text-center">
-                  <p>Aucune feuille sélectionnée. Veuillez retourner à l'onglet Feuilles pour en sélectionner une.</p>
-                  <Button 
-                    onClick={() => setActiveTab("sheets")} 
-                    className="mt-4"
-                  >
-                    Voir les feuilles disponibles
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
+        <CampaignsTabs
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          selectedSheet={selectedSheet}
+          sheets={sheets}
+          isLoading={isLoading}
+          onSelectSheet={handleSelectSheet}
+          onDeleteSheet={handleDeleteSheet}
+          onSheetCreated={handleCreateSheet}
+          onRefreshSheets={fetchSheets}
+          onUpdateComplete={handleCampaignUpdate}
+        />
       </div>
     </>
   );
