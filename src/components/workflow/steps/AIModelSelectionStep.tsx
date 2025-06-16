@@ -1,0 +1,139 @@
+
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Bot, Zap, Brain } from 'lucide-react';
+
+interface AIModelSelectionStepProps {
+  data?: any;
+  onComplete: (data: any) => void;
+  previousData: Record<string, any>;
+}
+
+const AIModelSelectionStep: React.FC<AIModelSelectionStepProps> = ({
+  data,
+  onComplete,
+  previousData
+}) => {
+  const [selectedModel, setSelectedModel] = useState(data?.selectedModel || 'gpt-3.5-turbo');
+  const [customPrompt, setCustomPrompt] = useState(data?.customPrompt || '');
+
+  const models = [
+    {
+      id: 'gpt-3.5-turbo',
+      name: 'GPT-3.5 Turbo',
+      description: 'Rapide et économique, idéal pour la génération de contenu standard',
+      icon: Zap,
+      recommended: true
+    },
+    {
+      id: 'gpt-4',
+      name: 'GPT-4',
+      description: 'Plus précis et créatif, recommandé pour du contenu complexe',
+      icon: Brain,
+      premium: true
+    },
+    {
+      id: 'claude-3',
+      name: 'Claude 3',
+      description: 'Excellent pour l\'analyse et la génération de contenu publicitaire',
+      icon: Bot
+    }
+  ];
+
+  const defaultPrompt = `En tant qu'expert en marketing digital, générez du contenu publicitaire optimisé pour les campagnes Google Ads.
+
+Données de campagne disponibles :
+- Nom de la campagne : {campaign_name}
+- Groupe d'annonces : {ad_group_name}
+- Mots-clés : {keywords}
+
+Instructions :
+1. Créez des titres accrocheurs (max 30 caractères)
+2. Rédigez des descriptions persuasives (max 90 caractères)
+3. Utilisez les mots-clés de manière naturelle
+4. Adaptez le ton à la cible
+
+Format de sortie : JSON avec titres et descriptions numérotés.`;
+
+  const handleContinue = () => {
+    onComplete({
+      selectedModel,
+      customPrompt: customPrompt || defaultPrompt,
+      modelConfig: models.find(m => m.id === selectedModel)
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Sélection du modèle IA</h3>
+        <p className="text-sm text-gray-600">
+          Choisissez le modèle d'intelligence artificielle pour générer votre contenu
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Modèles disponibles</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup value={selectedModel} onValueChange={setSelectedModel}>
+            {models.map((model) => {
+              const IconComponent = model.icon;
+              return (
+                <div key={model.id} className="flex items-start space-x-3 p-3 border rounded-lg">
+                  <RadioGroupItem value={model.id} id={model.id} className="mt-1" />
+                  <div className="flex-1">
+                    <Label htmlFor={model.id} className="flex items-center cursor-pointer">
+                      <IconComponent className="w-4 h-4 mr-2" />
+                      {model.name}
+                      {model.recommended && (
+                        <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                          Recommandé
+                        </span>
+                      )}
+                      {model.premium && (
+                        <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">
+                          Premium
+                        </span>
+                      )}
+                    </Label>
+                    <p className="text-sm text-gray-600 mt-1">{model.description}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </RadioGroup>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Prompt personnalisé (optionnel)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            value={customPrompt}
+            onChange={(e) => setCustomPrompt(e.target.value)}
+            placeholder={defaultPrompt}
+            rows={8}
+            className="font-mono text-sm"
+          />
+          <p className="text-xs text-gray-500 mt-2">
+            Laissez vide pour utiliser le prompt par défaut optimisé pour Google Ads
+          </p>
+        </CardContent>
+      </Card>
+
+      <Button onClick={handleContinue} className="w-full" disabled={!selectedModel}>
+        Continuer vers la configuration des résultats
+      </Button>
+    </div>
+  );
+};
+
+export default AIModelSelectionStep;
