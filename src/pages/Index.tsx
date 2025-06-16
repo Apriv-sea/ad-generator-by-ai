@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
@@ -7,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import AuthDebugDialog from "@/components/AuthDebugDialog";
+import { Zap, Brain, Users, Shield, ArrowRight, Sparkles } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -85,84 +85,192 @@ const Index = () => {
     }
   }, [isAuthenticated, navigate, processingAuth]);
 
+  const features = [
+    {
+      icon: Brain,
+      title: "IA Multi-Modèles",
+      description: "Choisissez entre OpenAI, Anthropic ou Claude selon vos besoins"
+    },
+    {
+      icon: Zap,
+      title: "Génération Rapide",
+      description: "Créez des centaines d'annonces en quelques minutes"
+    },
+    {
+      icon: Shield,
+      title: "Données Sécurisées",
+      description: "Traitement local, vos données restent confidentielles"
+    },
+    {
+      icon: Users,
+      title: "Expertise SEA",
+      description: "Conçu par des spécialistes du marketing digital"
+    }
+  ];
+
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-6 text-center">Ad Content Generator</h1>
-        <p className="text-xl text-center mb-10">
-          Générez des titres et descriptions publicitaires efficaces grâce à l'IA
-        </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
         
-        {authError && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertDescription className="whitespace-pre-wrap">
-              {authError}
-              <div className="mt-2">
-                <AuthDebugDialog
-                  trigger={<Button variant="outline" size="sm">Afficher les informations de débogage</Button>}
-                />
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        <div className="bg-slate-50 p-6 rounded-lg mb-10 shadow-sm">
-          <p className="mb-4 text-center">
-            Cet outil a été imaginé par Antoine, consultant senior SEA de l'agence RESONEO, pour simplifier et optimiser la création de contenu publicitaire.
-          </p>
-          <p className="mb-4">
-            L'Ad Content Generator vous permet de générer automatiquement des titres et descriptions publicitaires optimisés pour vos campagnes SEA, en se basant sur les informations de vos clients et les mots-clés pertinents.
-          </p>
-          <p className="mb-4">
-            <strong>Un point fort majeur :</strong> Vous avez la liberté d'utiliser le modèle de langage (LLM) de votre choix (OpenAI, Anthropic, Claude). Pour cela, vous devrez vous munir au préalable des clés API correspondantes que vous pourrez configurer dans les paramètres. Cette flexibilité vous permet de générer des annonces ultra-pertinentes selon vos préférences et besoins spécifiques.
-          </p>
-          <p>
-            <strong>Stockage de données :</strong> L'outil stocke vos données localement et utilise un éditeur de type tableur intégré pour gérer vos campagnes publicitaires. Toutes les opérations sont effectuées dans votre navigateur pour garantir la confidentialité de vos données.
+        <div className="container mx-auto px-4 pt-16 pb-20">
+          <div className="text-center max-w-4xl mx-auto">
+            <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-6">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Créé par l'expertise RESONEO
+            </div>
+            
+            <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-slate-900 via-blue-800 to-slate-900 bg-clip-text text-transparent mb-6">
+              Ad Content Generator
+            </h1>
+            
+            <p className="text-xl md:text-2xl text-slate-600 mb-8 leading-relaxed">
+              Transformez vos campagnes publicitaires avec l'IA.<br />
+              <span className="text-blue-600 font-semibold">Générez des annonces performantes en quelques clics.</span>
+            </p>
+
+            {authError && (
+              <Alert variant="destructive" className="mb-8 max-w-2xl mx-auto">
+                <AlertDescription className="whitespace-pre-wrap">
+                  {authError}
+                  <div className="mt-2">
+                    <AuthDebugDialog
+                      trigger={<Button variant="outline" size="sm">Informations de débogage</Button>}
+                    />
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+              <Button 
+                size="lg"
+                onClick={() => navigate("/auth")}
+                className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                Commencer maintenant
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="lg"
+                onClick={() => navigate("/how-it-works")}
+                className="px-8 py-3 border-2 border-slate-300 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
+              >
+                Découvrir le processus
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Features Grid */}
+      <div className="container mx-auto px-4 py-16">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-slate-900 mb-4">
+            Pourquoi choisir notre solution ?
+          </h2>
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+            Une approche moderne et flexible pour optimiser vos campagnes publicitaires
           </p>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="shadow-md hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle>Commencez</CardTitle>
-              <CardDescription>Connectez-vous avec votre compte</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4">
-                Authentifiez-vous pour accéder à l'application
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          {features.map((feature, index) => {
+            const IconComponent = feature.icon;
+            return (
+              <Card key={index} className="border-0 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white/70 backdrop-blur-sm">
+                <CardHeader className="text-center pb-2">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <IconComponent className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <CardTitle className="text-lg">{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-slate-600 text-sm">{feature.description}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Main Action Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
+            <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-6">
+              <CardTitle className="text-white text-xl mb-2">Prêt à commencer ?</CardTitle>
+              <CardDescription className="text-blue-100">
+                Connectez-vous et lancez votre première campagne en quelques minutes
+              </CardDescription>
+            </div>
+            <CardContent className="p-6">
+              <p className="text-slate-600 mb-6">
+                Accédez à tous les outils de génération de contenu et configurez vos modèles IA préférés.
               </p>
               <Button 
-                className="w-full" 
+                className="w-full bg-blue-600 hover:bg-blue-700 group-hover:bg-blue-700 transition-colors" 
                 onClick={() => navigate("/auth")}
               >
-                Connexion
+                Se connecter
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </CardContent>
           </Card>
           
-          <Card className="shadow-md hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle>Comment ça marche</CardTitle>
-              <CardDescription>Découvrez notre processus</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4">
-                Intégration simple avec vos données et génération de contenu par IA
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
+            <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-6">
+              <CardTitle className="text-white text-xl mb-2">Comment ça fonctionne ?</CardTitle>
+              <CardDescription className="text-slate-300">
+                Découvrez notre méthodologie et les étapes du processus
+              </CardDescription>
+            </div>
+            <CardContent className="p-6">
+              <p className="text-slate-600 mb-6">
+                Intégration Google Sheets, génération IA intelligente et optimisation automatique.
               </p>
               <Button 
                 variant="outline" 
-                className="w-full" 
+                className="w-full border-2 border-slate-300 hover:border-slate-400 hover:bg-slate-50 group-hover:bg-slate-50 transition-colors" 
                 onClick={() => navigate("/how-it-works")}
               >
                 En savoir plus
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </CardContent>
           </Card>
         </div>
       </div>
-      <div className="mt-12 text-center text-sm text-muted-foreground">
-        <Link to="/privacy-policy" className="hover:underline">
-          Règles de confidentialité
+
+      {/* About Section */}
+      <div className="bg-slate-100/50 py-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center">
+            <h3 className="text-2xl font-bold text-slate-900 mb-6">
+              L'expertise RESONEO au service de vos campagnes
+            </h3>
+            <div className="bg-white rounded-2xl p-8 shadow-md">
+              <p className="text-slate-700 mb-4 leading-relaxed">
+                Développé par <strong>Antoine</strong>, consultant senior SEA de l'agence RESONEO, 
+                cet outil révolutionne la création de contenu publicitaire en alliant expertise humaine et intelligence artificielle.
+              </p>
+              <p className="text-slate-700 mb-4 leading-relaxed">
+                <strong>Flexibilité totale :</strong> Utilisez OpenAI, Anthropic, Claude ou d'autres modèles selon vos préférences. 
+                Configurez vos clés API et personnalisez les prompts pour des résultats ultra-pertinents.
+              </p>
+              <p className="text-slate-700 leading-relaxed">
+                <strong>Confidentialité garantie :</strong> Toutes les données sont traitées localement dans votre navigateur. 
+                Vos informations restent privées et sécurisées.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="py-8 text-center border-t border-slate-200 bg-white">
+        <Link to="/privacy-policy" className="text-slate-500 hover:text-blue-600 transition-colors text-sm">
+          Politique de confidentialité
         </Link>
       </div>
     </div>
