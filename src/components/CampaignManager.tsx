@@ -7,6 +7,7 @@ import LoadingState from "./campaign/LoadingState";
 import EmptyState from "./campaign/EmptyState";
 import ContentGenerator from "./campaign/ContentGenerator";
 import SpreadsheetSaver from "./campaign/SpreadsheetSaver";
+import CampaignExtractor from "./campaign/CampaignExtractor";
 import { useSheetData } from "@/hooks/useSheetData";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Campaign } from "@/services/types";
@@ -18,7 +19,7 @@ interface CampaignManagerProps {
 }
 
 const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComplete }) => {
-  const { clientInfo, isLoading, sheetData, setSheetData } = useSheetData(sheet);
+  const { clientInfo, isLoading, sheetData, setSheetData, refreshData } = useSheetData(sheet);
   const [extractedCampaigns, setExtractedCampaigns] = useState<Campaign[]>([]);
 
   // Extract campaigns from sheet data when data changes
@@ -47,11 +48,21 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
     <div className="space-y-6">
       <ClientInfoCard clientInfo={clientInfo} campaigns={extractedCampaigns} />
 
-      <Tabs defaultValue="spreadsheet" className="w-full">
+      <Tabs defaultValue="extraction" className="w-full">
         <TabsList className="mb-4">
+          <TabsTrigger value="extraction">Extraction de campagnes</TabsTrigger>
           <TabsTrigger value="spreadsheet">Google Sheets</TabsTrigger>
           <TabsTrigger value="content">Génération de contenu</TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="extraction" className="space-y-4">
+          <CampaignExtractor 
+            sheet={sheet}
+            sheetData={sheetData}
+            onUpdateComplete={onUpdateComplete}
+            refreshData={refreshData}
+          />
+        </TabsContent>
         
         <TabsContent value="spreadsheet" className="space-y-4">
           <Card>
