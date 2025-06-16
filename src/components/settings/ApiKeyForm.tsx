@@ -17,11 +17,31 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({ onSave }) => {
   const [apiKey, setApiKey] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   
+  const validateApiKey = (service: string, key: string): boolean => {
+    if (!key.trim()) return false;
+    
+    switch (service) {
+      case 'openai':
+        return key.startsWith('sk-') || key.startsWith('sk-proj-');
+      case 'anthropic':
+        return key.startsWith('sk-ant-');
+      case 'google':
+        return key.length > 20; // Google API keys are typically longer
+      default:
+        return false;
+    }
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!service || !apiKey) {
       toast.error("Veuillez remplir tous les champs");
+      return;
+    }
+    
+    if (!validateApiKey(service, apiKey)) {
+      toast.error("Format de clé API invalide pour ce service");
       return;
     }
     
@@ -34,20 +54,20 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({ onSave }) => {
         return;
       }
       
-      // Vérifier si une clé existe déjà pour ce service
+      // Check if a key already exists for this service
       const { data: existingKey, error: fetchError } = await supabase
         .from('api_keys')
         .select('id')
         .eq('user_id', userId)
         .eq('service', service)
-        .single();
+        .maybeSingle();
       
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = "no rows returned" (c'est OK si aucune clé n'existe)
+      if (fetchError) {
         throw fetchError;
       }
       
       if (existingKey) {
-        // Mettre à jour la clé existante
+        // Update existing key
         const { error: updateError } = await supabase
           .from('api_keys')
           .update({ api_key: apiKey })
@@ -58,22 +78,33 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({ onSave }) => {
         
         toast.success(`Clé API pour ${service} mise à jour avec succès`);
       } else {
-        // Insérer une nouvelle clé
+        // Insert new key
         const { error: insertError } = await supabase
           .from('api_keys')
-          .insert({ service, api_key: apiKey, user_id: userId });
+          .insert({ 
+            service, 
+            api_key: apiKey, 
+            user_id: userId 
+          });
           
         if (insertError) throw insertError;
         
         toast.success(`Clé API pour ${service} ajoutée avec succès`);
       }
       
-      // Réinitialiser le formulaire
+      // Reset form
       setApiKey("");
       onSave();
     } catch (error) {
       console.error("Erreur lors de l'enregistrement de la clé API:", error);
-      toast.error("Erreur lors de l'enregistrement de la clé API");
+      
+      if (error.message?.includes('Invalid user_id')) {
+        toast.error("Erreur de sécurité: ID utilisateur invalide");
+      } else if (error.message?.includes('Authentication required')) {
+        toast.error("Authentification requise");
+      } else {
+        toast.error("Erreur lors de l'enregistrement de la clé API");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -90,7 +121,7 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({ onSave }) => {
           <SelectContent>
             <SelectItem value="openai">OpenAI (GPT-4, GPT-3.5)</SelectItem>
             <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
-            <SelectItem value="gemini">Google Gemini</SelectItem>
+            <SelectItem value="google">Google Gemini</SelectItem>
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
@@ -104,11 +135,12 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({ onSave }) => {
           id="api-key" 
           value={apiKey} 
           onChange={(e) => setApiKey(e.target.value)} 
-          placeholder="sk-..." 
+          placeholder={service === 'openai' ? 'sk-...' : service === 'anthropic' ? 'sk-ant-...' : 'AIza...'} 
           className="font-mono"
+          type="password"
         />
         <p className="text-xs text-muted-foreground">
-          Votre clé API est stockée de manière sécurisée et n'est utilisée que pour les requêtes à l'API
+          Votre clé API est stockée de manière sécurisée et chiffrée
         </p>
       </div>
       
