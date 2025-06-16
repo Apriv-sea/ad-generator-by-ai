@@ -16,10 +16,49 @@ export function useSecureAuth() {
   const MAX_RETRY_ATTEMPTS = 3;
   const RETRY_DELAY = 2000;
 
+  const handleTokenRefreshError = async () => {
+    if (retryCount < MAX_RETRY_ATTEMPTS) {
+      console.log(`Token refresh failed, retrying... (${retryCount + 1}/${MAX_RETRY_ATTEMPTS})`);
+      setRetryCount(prev => prev + 1);
+      
+      const retryTimer = setTimeout(async () => {
+        try {
+          const { error } = await supabase.auth.refreshSession();
+          if (error) {
+            throw error;
+          }
+          console.log("Token refresh retry successful");
+          setRetryCount(0);
+        } catch (error) {
+          console.error("Token refresh retry failed:", error);
+          handleTokenRefreshError();
+        }
+      }, RETRY_DELAY * retryCount);
+      
+      return () => clearTimeout(retryTimer);
+    } else {
+      console.log("Max retry attempts reached, signing out");
+      toast.error("Erreur de session persistante. Veuillez vous reconnecter.");
+      handleSignOut();
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      // Clear all sensitive data
+      localStorage.removeItem('auth_connected');
+      localStorage.removeItem('user_data');
+      sessionStorage.removeItem('oauth_state');
+      sessionStorage.removeItem('google_auth_state');
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   useEffect(() => {
     let authSubscription: { unsubscribe: () => void } | null = null;
     let activityTimer: NodeJS.Timeout | null = null;
-    let retryTimer: NodeJS.Timeout | null = null;
 
     const checkSessionValidity = () => {
       const now = Date.now();
@@ -33,31 +72,6 @@ export function useSecureAuth() {
     const updateActivity = () => {
       setLastActivity(Date.now());
       setRetryCount(0); // Reset retry count on user activity
-    };
-
-    const handleTokenRefreshError = async () => {
-      if (retryCount < MAX_RETRY_ATTEMPTS) {
-        console.log(`Token refresh failed, retrying... (${retryCount + 1}/${MAX_RETRY_ATTEMPTS})`);
-        setRetryCount(prev => prev + 1);
-        
-        retryTimer = setTimeout(async () => {
-          try {
-            const { error } = await supabase.auth.refreshSession();
-            if (error) {
-              throw error;
-            }
-            console.log("Token refresh retry successful");
-            setRetryCount(0);
-          } catch (error) {
-            console.error("Token refresh retry failed:", error);
-            handleTokenRefreshError();
-          }
-        }, RETRY_DELAY * retryCount);
-      } else {
-        console.log("Max retry attempts reached, signing out");
-        toast.error("Erreur de session persistante. Veuillez vous reconnecter.");
-        handleSignOut();
-      }
     };
 
     const initAuth = async () => {
@@ -133,19 +147,6 @@ export function useSecureAuth() {
       }
     };
 
-    const handleSignOut = async () => {
-      try {
-        await supabase.auth.signOut();
-        // Clear all sensitive data
-        localStorage.removeItem('auth_connected');
-        localStorage.removeItem('user_data');
-        sessionStorage.removeItem('oauth_state');
-        sessionStorage.removeItem('google_auth_state');
-      } catch (error) {
-        console.error("Error signing out:", error);
-      }
-    };
-
     // Set up activity monitoring with security considerations
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
     events.forEach(event => {
@@ -163,9 +164,6 @@ export function useSecureAuth() {
       }
       if (activityTimer) {
         clearInterval(activityTimer);
-      }
-      if (retryTimer) {
-        clearTimeout(retryTimer);
       }
       events.forEach(event => {
         document.removeEventListener(event, updateActivity);

@@ -68,13 +68,16 @@ class SecureLLMService {
       try {
         console.log(`Tentative avec ${config.provider} - ${config.model}`);
         
+        // Get enhanced headers as an object
+        const enhancedRequest = SecurityHeadersService.enhanceRequest();
+        
         const { data, error } = await supabase.functions.invoke('llm-generation', {
           body: {
             prompt,
             provider: config.provider,
             model: config.model
           },
-          headers: SecurityHeadersService.enhanceRequest().headers
+          headers: enhancedRequest.headers as Record<string, string>
         });
 
         if (error) {
