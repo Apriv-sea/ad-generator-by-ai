@@ -11,24 +11,48 @@ class CampaignExtractorService {
    */
   extractCampaigns(sheetData: SheetData): Campaign[] {
     try {
+      console.log("Début de l'extraction des campagnes avec les données:", sheetData);
+      
       if (!sheetData || !sheetData.content || sheetData.content.length <= 1) {
+        console.log("Données insuffisantes pour l'extraction");
         return this.getDefaultCampaign();
       }
       
-      // Ignorer la ligne d'en-tête
+      const headers = sheetData.content[0] || [];
       const rows = sheetData.content.slice(1);
+      
+      console.log("En-têtes détectés:", headers);
+      console.log(`${rows.length} lignes de données à traiter`);
+      
+      // Trouver les indices des colonnes importantes
+      const campaignIndex = this.findColumnIndex(headers, ['campagne', 'campaign', 'nom de la campagne']);
+      const adGroupIndex = this.findColumnIndex(headers, ['groupe', 'adgroup', 'ad group', 'nom du groupe']);
+      const keywordsIndex = this.findColumnIndex(headers, ['mots-clés', 'keywords', 'mots clés', 'top 3 mots-clés']);
+      
+      console.log(`Indices trouvés - Campagne: ${campaignIndex}, Groupe: ${adGroupIndex}, Mots-clés: ${keywordsIndex}`);
+      
+      if (campaignIndex === -1 || adGroupIndex === -1 || keywordsIndex === -1) {
+        console.log("Colonnes requises non trouvées, structure par défaut");
+        return this.getDefaultCampaign();
+      }
       
       // Regrouper par campagne
       const campaignMap = new Map<string, any[]>();
-      rows.forEach((row: any[]) => {
-        if (row.length >= 3 && row[0]) {
-          const campaignName = row[0];
-          if (!campaignMap.has(campaignName)) {
-            campaignMap.set(campaignName, []);
+      
+      rows.forEach((row: any[], index) => {
+        if (row.length > Math.max(campaignIndex, adGroupIndex, keywordsIndex)) {
+          const campaignName = this.cleanText(row[campaignIndex]);
+          if (campaignName) {
+            if (!campaignMap.has(campaignName)) {
+              campaignMap.set(campaignName, []);
+            }
+            campaignMap.get(campaignName)?.push(row);
+            console.log(`Ligne ${index + 2}: ${campaignName} > ${this.cleanText(row[adGroupIndex])}`);
           }
-          campaignMap.get(campaignName)?.push(row);
         }
       });
+      
+      console.log(`${campaignMap.size} campagnes uniques trouvées`);
       
       // Convertir en structure de données
       const campaigns: Campaign[] = [];
@@ -37,12 +61,15 @@ class CampaignExtractorService {
         const processedAdGroups = new Set<string>();
         
         rows.forEach(row => {
-          if (row.length >= 3 && row[1] && !processedAdGroups.has(row[1])) {
-            const adGroupName = row[1];
+          const adGroupName = this.cleanText(row[adGroupIndex]);
+          if (adGroupName && !processedAdGroups.has(adGroupName)) {
             processedAdGroups.add(adGroupName);
             
             // Extraire les mots-clés
-            const keywords = row[2] ? String(row[2]).split(',').map(k => k.trim()).filter(k => k) : [];
+            const keywordsText = this.cleanText(row[keywordsIndex]);
+            const keywords = keywordsText 
+              ? keywordsText.split(/[,;|\n]/).map(k => k.trim()).filter(k => k.length > 0)
+              : [];
             
             adGroups.push({
               name: adGroupName,
@@ -59,11 +86,37 @@ class CampaignExtractorService {
         });
       });
       
+      console.log(`Extraction terminée: ${campaigns.length} campagnes générées`);
       return campaigns.length > 0 ? campaigns : this.getDefaultCampaign();
     } catch (error) {
       console.error("Erreur lors de l'extraction des campagnes:", error);
       return this.getDefaultCampaign();
     }
+  }
+
+  /**
+   * Find column index by searching for partial matches in headers
+   */
+  private findColumnIndex(headers: string[], searchTerms: string[]): number {
+    for (let i = 0; i < headers.length; i++) {
+      const header = (headers[i] || '').toLowerCase().trim();
+      for (const term of searchTerms) {
+        if (header.includes(term.toLowerCase())) {
+          return i;
+        }
+      }
+    }
+    return -1;
+  }
+
+  /**
+   * Clean and normalize text
+   */
+  private cleanText(text: any): string {
+    if (typeof text !== 'string') {
+      text = String(text || '');
+    }
+    return text.trim();
   }
 
   /**
