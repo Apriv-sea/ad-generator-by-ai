@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
@@ -6,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import AuthDebugDialog from "@/components/AuthDebugDialog";
-import { Zap, Brain, Users, Shield, ArrowRight, Sparkles } from "lucide-react";
+import { Zap, Brain, Users, Shield, ArrowRight, Sparkles, Target } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -102,9 +103,9 @@ const Index = () => {
       description: "Traitement local, vos données restent confidentielles"
     },
     {
-      icon: Users,
-      title: "Expertise SEA",
-      description: "Conçu par des spécialistes du marketing digital"
+      icon: Target,
+      title: "Optimisation SEA",
+      description: "Conçu pour maximiser vos performances publicitaires"
     }
   ];
 
@@ -118,7 +119,7 @@ const Index = () => {
           <div className="text-center max-w-4xl mx-auto">
             <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-6">
               <Sparkles className="w-4 h-4 mr-2" />
-              Créé par l'expertise RESONEO
+              Innovation IA pour le Marketing Digital
             </div>
             
             <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-slate-900 via-blue-800 to-slate-900 bg-clip-text text-transparent mb-6">
@@ -126,8 +127,8 @@ const Index = () => {
             </h1>
             
             <p className="text-xl md:text-2xl text-slate-600 mb-8 leading-relaxed">
-              Transformez vos campagnes publicitaires avec l'IA.<br />
-              <span className="text-blue-600 font-semibold">Générez des annonces performantes en quelques clics.</span>
+              Révolutionnez vos campagnes publicitaires avec l'intelligence artificielle.<br />
+              <span className="text-blue-600 font-semibold">Générez du contenu performant en quelques clics.</span>
             </p>
 
             {authError && (
@@ -169,10 +170,10 @@ const Index = () => {
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-slate-900 mb-4">
-            Pourquoi choisir notre solution ?
+            Une solution complète et innovante
           </h2>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Une approche moderne et flexible pour optimiser vos campagnes publicitaires
+            Technologie de pointe au service de vos objectifs marketing
           </p>
         </div>
 
@@ -247,12 +248,13 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
             <h3 className="text-2xl font-bold text-slate-900 mb-6">
-              L'expertise RESONEO au service de vos campagnes
+              Une approche moderne du marketing digital
             </h3>
             <div className="bg-white rounded-2xl p-8 shadow-md">
               <p className="text-slate-700 mb-4 leading-relaxed">
-                Développé par <strong>Antoine</strong>, consultant senior SEA de l'agence RESONEO, 
-                cet outil révolutionne la création de contenu publicitaire en alliant expertise humaine et intelligence artificielle.
+                Cette solution révolutionne la création de contenu publicitaire en combinant 
+                les dernières avancées en intelligence artificielle avec une interface intuitive 
+                et des fonctionnalités avancées.
               </p>
               <p className="text-slate-700 mb-4 leading-relaxed">
                 <strong>Flexibilité totale :</strong> Utilisez OpenAI, Anthropic, Claude ou d'autres modèles selon vos préférences. 
