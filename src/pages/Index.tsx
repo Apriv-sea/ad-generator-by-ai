@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
@@ -8,10 +7,12 @@ import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import AuthDebugDialog from "@/components/AuthDebugDialog";
 import { Zap, Brain, Users, Shield, ArrowRight, Sparkles, Target } from "lucide-react";
-
 const Index = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, processAuthTokens } = useAuth();
+  const {
+    isAuthenticated,
+    processAuthTokens
+  } = useAuth();
   const [authError, setAuthError] = useState<string | null>(null);
   const [processingAuth, setProcessingAuth] = useState<boolean>(false);
 
@@ -21,7 +22,6 @@ const Index = () => {
     const checkLocalhostAuth = () => {
       const hasHashToken = window.location.hash && window.location.hash.includes('access_token');
       const isLocalhost = window.location.hostname === 'localhost';
-      
       if (isLocalhost && hasHashToken) {
         console.log("Détection de jetons d'authentification sur localhost, redirection...");
         navigate('/localhost-redirect');
@@ -29,27 +29,25 @@ const Index = () => {
       }
       return false;
     };
-    
+
     // Si redirection vers localhost effectuée, on arrête le traitement
     if (checkLocalhostAuth()) {
       return;
     }
-    
+
     // Traiter les jetons d'authentification s'ils sont présents dans l'URL
     const handleTokensInRoot = async () => {
       // Vérifier si l'URL contient des jetons d'authentification
       if (window.location.hash && window.location.hash.includes('access_token')) {
         console.log("Jetons d'authentification détectés dans la page d'accueil");
         setProcessingAuth(true);
-        
         try {
           const tokenProcessed = await processAuthTokens();
-          
           if (tokenProcessed) {
             toast.success("Authentification réussie!");
             // Nettoyer l'URL après traitement du jeton
             window.history.replaceState({}, document.title, window.location.pathname);
-            
+
             // Si l'authentification a réussi, rediriger vers le tableau de bord
             setTimeout(() => {
               if (isAuthenticated) {
@@ -75,7 +73,6 @@ const Index = () => {
         setAuthError(`Erreur d'authentification: ${error}. ${errorDesc || ''}`);
       }
     };
-
     handleTokensInRoot();
   }, [isAuthenticated, navigate, processAuthTokens]);
 
@@ -85,37 +82,29 @@ const Index = () => {
       navigate("/dashboard");
     }
   }, [isAuthenticated, navigate, processingAuth]);
-
-  const features = [
-    {
-      icon: Brain,
-      title: "IA Multi-Modèles",
-      description: "Choisissez entre OpenAI, Anthropic ou Claude selon vos besoins"
-    },
-    {
-      icon: Zap,
-      title: "Génération Rapide",
-      description: "Créez des centaines d'annonces en quelques minutes"
-    },
-    {
-      icon: Shield,
-      title: "Données Sécurisées",
-      description: "Traitement local, vos données restent confidentielles"
-    },
-    {
-      icon: Target,
-      title: "Optimisation SEA",
-      description: "Conçu pour maximiser vos performances publicitaires"
-    }
-  ];
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+  const features = [{
+    icon: Brain,
+    title: "IA Multi-Modèles",
+    description: "Choisissez entre OpenAI, Anthropic ou Claude selon vos besoins"
+  }, {
+    icon: Zap,
+    title: "Génération Rapide",
+    description: "Créez des centaines d'annonces en quelques minutes"
+  }, {
+    icon: Shield,
+    title: "Données Sécurisées",
+    description: "Traitement local, vos données restent confidentielles"
+  }, {
+    icon: Target,
+    title: "Optimisation SEA",
+    description: "Conçu pour maximiser vos performances publicitaires"
+  }];
+  return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
         
-        <div className="container mx-auto px-4 pt-16 pb-20">
+        <div className="container mx-auto px-4 pt-16 pb-20 py-[24px]">
           <div className="text-center max-w-4xl mx-auto">
             <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-6">
               <Sparkles className="w-4 h-4 mr-2" />
@@ -131,34 +120,21 @@ const Index = () => {
               <span className="text-blue-600 font-semibold">Générez du contenu performant en quelques clics.</span>
             </p>
 
-            {authError && (
-              <Alert variant="destructive" className="mb-8 max-w-2xl mx-auto">
+            {authError && <Alert variant="destructive" className="mb-8 max-w-2xl mx-auto">
                 <AlertDescription className="whitespace-pre-wrap">
                   {authError}
                   <div className="mt-2">
-                    <AuthDebugDialog
-                      trigger={<Button variant="outline" size="sm">Informations de débogage</Button>}
-                    />
+                    <AuthDebugDialog trigger={<Button variant="outline" size="sm">Informations de débogage</Button>} />
                   </div>
                 </AlertDescription>
-              </Alert>
-            )}
+              </Alert>}
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-              <Button 
-                size="lg"
-                onClick={() => navigate("/auth")}
-                className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
-              >
+              <Button size="lg" onClick={() => navigate("/auth")} className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200">
                 Commencer maintenant
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-              <Button 
-                variant="outline" 
-                size="lg"
-                onClick={() => navigate("/how-it-works")}
-                className="px-8 py-3 border-2 border-slate-300 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
-              >
+              <Button variant="outline" size="lg" onClick={() => navigate("/how-it-works")} className="px-8 py-3 border-2 border-slate-300 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200">
                 Découvrir le processus
               </Button>
             </div>
@@ -179,9 +155,8 @@ const Index = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {features.map((feature, index) => {
-            const IconComponent = feature.icon;
-            return (
-              <Card key={index} className="border-0 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white/70 backdrop-blur-sm">
+          const IconComponent = feature.icon;
+          return <Card key={index} className="border-0 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white/70 backdrop-blur-sm">
                 <CardHeader className="text-center pb-2">
                   <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
                     <IconComponent className="w-6 h-6 text-blue-600" />
@@ -191,9 +166,8 @@ const Index = () => {
                 <CardContent className="text-center">
                   <p className="text-slate-600 text-sm">{feature.description}</p>
                 </CardContent>
-              </Card>
-            );
-          })}
+              </Card>;
+        })}
         </div>
 
         {/* Main Action Cards */}
@@ -209,10 +183,7 @@ const Index = () => {
               <p className="text-slate-600 mb-6">
                 Accédez à tous les outils de génération de contenu et configurez vos modèles IA préférés.
               </p>
-              <Button 
-                className="w-full bg-blue-600 hover:bg-blue-700 group-hover:bg-blue-700 transition-colors" 
-                onClick={() => navigate("/auth")}
-              >
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 group-hover:bg-blue-700 transition-colors" onClick={() => navigate("/auth")}>
                 Se connecter
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
@@ -230,11 +201,7 @@ const Index = () => {
               <p className="text-slate-600 mb-6">
                 Intégration Google Sheets, génération IA intelligente et optimisation automatique.
               </p>
-              <Button 
-                variant="outline" 
-                className="w-full border-2 border-slate-300 hover:border-slate-400 hover:bg-slate-50 group-hover:bg-slate-50 transition-colors" 
-                onClick={() => navigate("/how-it-works")}
-              >
+              <Button variant="outline" className="w-full border-2 border-slate-300 hover:border-slate-400 hover:bg-slate-50 group-hover:bg-slate-50 transition-colors" onClick={() => navigate("/how-it-works")}>
                 En savoir plus
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
@@ -275,8 +242,6 @@ const Index = () => {
           Politique de confidentialité
         </Link>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
