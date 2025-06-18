@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from "sonner";
@@ -11,6 +11,11 @@ export function useSecureAuth() {
   const [lastActivity, setLastActivity] = useState<number>(Date.now());
   const [retryCount, setRetryCount] = useState<number>(0);
 
+  // Use refs to prevent unnecessary re-renders
+  const sessionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const activityListenersSetup = useRef<boolean>(false);
+  const authSubscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
+
   // Session timeout (30 minutes)
   const SESSION_TIMEOUT = 30 * 60 * 1000;
   const MAX_RETRY_ATTEMPTS = 3;
@@ -21,25 +26,21 @@ export function useSecureAuth() {
       console.log(`Token refresh failed, retrying... (${retryCount + 1}/${MAX_RETRY_ATTEMPTS})`);
       setRetryCount(prev => prev + 1);
       
-      const retryTimer = setTimeout(async () => {
+      setTimeout(async () => {
         try {
           const { error } = await supabase.auth.refreshSession();
-          if (error) {
-            throw error;
-          }
+          if (error) throw error;
           console.log("Token refresh retry successful");
           setRetryCount(0);
         } catch (error) {
           console.error("Token refresh retry failed:", error);
-          handleTokenRefreshError();
+          if (retryCount + 1 >= MAX_RETRY_ATTEMPTS) {
+            console.log("Max retry attempts reached, signing out");
+            toast.error("Erreur de session persistante. Veuillez vous reconnecter.");
+            handleSignOut();
+          }
         }
       }, RETRY_DELAY * retryCount);
-      
-      return () => clearTimeout(retryTimer);
-    } else {
-      console.log("Max retry attempts reached, signing out");
-      toast.error("Erreur de session persistante. Veuillez vous reconnecter.");
-      handleSignOut();
     }
   };
 
@@ -56,64 +57,70 @@ export function useSecureAuth() {
     }
   };
 
-  useEffect(() => {
-    let authSubscription: { unsubscribe: () => void } | null = null;
-    let activityTimer: NodeJS.Timeout | null = null;
+  const checkSessionValidity = () => {
+    const now = Date.now();
+    if (session && (now - lastActivity > SESSION_TIMEOUT)) {
+      console.log("Session expired due to inactivity");
+      toast.info("Session expirée. Veuillez vous reconnecter.");
+      handleSignOut();
+    }
+  };
 
-    const checkSessionValidity = () => {
-      const now = Date.now();
-      if (session && (now - lastActivity > SESSION_TIMEOUT)) {
-        console.log("Session expired due to inactivity");
-        toast.info("Session expirée. Veuillez vous reconnecter.");
-        handleSignOut();
-      }
-    };
-
-    const updateActivity = () => {
-      setLastActivity(Date.now());
+  const updateActivity = () => {
+    setLastActivity(Date.now());
+    if (retryCount > 0) {
       setRetryCount(0); // Reset retry count on user activity
-    };
+    }
+  };
+
+  // Initialize auth only once
+  useEffect(() => {
+    let mounted = true;
 
     const initAuth = async () => {
       try {
         // Set up auth state listener with enhanced error handling
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, session) => {
-            console.log("Auth state changed:", event);
-            
-            // Enhanced security logging
-            if (event === 'TOKEN_REFRESHED' && session) {
-              console.log("Token refreshed successfully");
-              setLastActivity(Date.now());
-              setRetryCount(0);
-            } else if (event === 'SIGNED_IN' && session?.user) {
-              console.log("User signed in:", session.user.id);
-              setLastActivity(Date.now());
-              setRetryCount(0);
-              localStorage.setItem('auth_connected', 'true');
+        if (!authSubscriptionRef.current) {
+          const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            async (event, session) => {
+              if (!mounted) return;
               
-              // Security audit log
-              console.log("Security audit: User authentication successful", {
-                userId: session.user.id,
-                timestamp: new Date().toISOString(),
-                provider: session.user.app_metadata?.provider
-              });
-            } else if (event === 'SIGNED_OUT') {
-              console.log("User signed out");
-              localStorage.removeItem('auth_connected');
-              localStorage.removeItem('user_data');
+              console.log("Auth state changed:", event);
               
-              // Clear sensitive data from sessionStorage
-              sessionStorage.removeItem('oauth_state');
-              sessionStorage.removeItem('google_auth_state');
+              // Enhanced security logging
+              if (event === 'TOKEN_REFRESHED' && session) {
+                console.log("Token refreshed successfully");
+                setLastActivity(Date.now());
+                setRetryCount(0);
+              } else if (event === 'SIGNED_IN' && session?.user) {
+                console.log("User signed in:", session.user.id);
+                setLastActivity(Date.now());
+                setRetryCount(0);
+                localStorage.setItem('auth_connected', 'true');
+                
+                // Security audit log
+                console.log("Security audit: User authentication successful", {
+                  userId: session.user.id,
+                  timestamp: new Date().toISOString(),
+                  provider: session.user.app_metadata?.provider
+                });
+              } else if (event === 'SIGNED_OUT') {
+                console.log("User signed out");
+                localStorage.removeItem('auth_connected');
+                localStorage.removeItem('user_data');
+                
+                // Clear sensitive data from sessionStorage
+                sessionStorage.removeItem('oauth_state');
+                sessionStorage.removeItem('google_auth_state');
+              }
+              
+              setSession(session);
+              setUser(session?.user || null);
             }
-            
-            setSession(session);
-            setUser(session?.user || null);
-          }
-        );
-        
-        authSubscription = subscription;
+          );
+          
+          authSubscriptionRef.current = subscription;
+        }
         
         // Check for existing session with error handling
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -124,52 +131,65 @@ export function useSecureAuth() {
             console.log("Invalid refresh token detected, clearing session");
             await handleSignOut();
           }
-          throw error;
-        }
-        
-        setSession(session);
-        setUser(session?.user || null);
-        
-        if (session?.user) {
-          setLastActivity(Date.now());
-          localStorage.setItem('auth_connected', 'true');
+        } else {
+          if (mounted) {
+            setSession(session);
+            setUser(session?.user || null);
+            
+            if (session?.user) {
+              setLastActivity(Date.now());
+              localStorage.setItem('auth_connected', 'true');
+            }
+          }
         }
         
       } catch (error) {
         console.error("Error initializing authentication:", error);
-        // Don't show error toast on initialization to avoid spam
         if (error?.message?.includes('refresh_token_not_found')) {
-          // Silently handle refresh token errors on init
           await handleSignOut();
         }
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    // Set up activity monitoring with security considerations
+    initAuth();
+
+    return () => {
+      mounted = false;
+      if (authSubscriptionRef.current) {
+        authSubscriptionRef.current.unsubscribe();
+        authSubscriptionRef.current = null;
+      }
+    };
+  }, []); // Remove all dependencies to prevent re-initialization
+
+  // Set up activity monitoring separately
+  useEffect(() => {
+    if (activityListenersSetup.current) return;
+
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
     events.forEach(event => {
       document.addEventListener(event, updateActivity, { passive: true });
     });
 
     // Set up session check timer
-    activityTimer = setInterval(checkSessionValidity, 60000); // Check every minute
+    sessionTimeoutRef.current = setInterval(checkSessionValidity, 60000); // Check every minute
 
-    initAuth();
+    activityListenersSetup.current = true;
 
     return () => {
-      if (authSubscription) {
-        authSubscription.unsubscribe();
-      }
-      if (activityTimer) {
-        clearInterval(activityTimer);
-      }
       events.forEach(event => {
         document.removeEventListener(event, updateActivity);
       });
+      if (sessionTimeoutRef.current) {
+        clearInterval(sessionTimeoutRef.current);
+      }
+      activityListenersSetup.current = false;
     };
-  }, [session, lastActivity, retryCount]);
+  }, [session?.user?.id]); // Only depend on user ID change
 
   const refreshSession = async () => {
     try {

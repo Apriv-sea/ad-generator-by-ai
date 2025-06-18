@@ -10,97 +10,112 @@ import { Zap, Brain, Users, Shield, ArrowRight, Sparkles, Target } from "lucide-
 
 const Index = () => {
   const navigate = useNavigate();
-  const {
-    isAuthenticated,
-    processAuthTokens
-  } = useAuth();
+  const { isAuthenticated, processAuthTokens } = useAuth();
   const [authError, setAuthError] = useState<string | null>(null);
   const [processingAuth, setProcessingAuth] = useState<boolean>(false);
+  const [tokenProcessed, setTokenProcessed] = useState<boolean>(false);
 
-  // Vérifier si l'URL contient des tokens d'authentification
+  // Check for authentication tokens in URL only once
   useEffect(() => {
-    // Vérifier si nous sommes sur localhost et avons des tokens
-    const checkLocalhostAuth = () => {
+    let isMounted = true;
+
+    const handleAuthTokens = async () => {
+      // Prevent multiple processing attempts
+      if (tokenProcessed) return;
+
+      // Check if we're on localhost and have tokens
       const hasHashToken = window.location.hash && window.location.hash.includes('access_token');
       const isLocalhost = window.location.hostname === 'localhost';
+      
       if (isLocalhost && hasHashToken) {
         console.log("Détection de jetons d'authentification sur localhost, redirection...");
         navigate('/localhost-redirect');
-        return true;
+        return;
       }
-      return false;
-    };
 
-    // Si redirection vers localhost effectuée, on arrête le traitement
-    if (checkLocalhostAuth()) {
-      return;
-    }
-
-    // Traiter les jetons d'authentification s'ils sont présents dans l'URL
-    const handleTokensInRoot = async () => {
-      // Vérifier si l'URL contient des jetons d'authentification
-      if (window.location.hash && window.location.hash.includes('access_token')) {
+      // Process authentication tokens if present
+      if (hasHashToken && !tokenProcessed) {
         console.log("Jetons d'authentification détectés dans la page d'accueil");
         setProcessingAuth(true);
+        setTokenProcessed(true);
+        
         try {
-          const tokenProcessed = await processAuthTokens();
-          if (tokenProcessed) {
+          const processed = await processAuthTokens();
+          if (processed && isMounted) {
             toast.success("Authentification réussie!");
-            // Nettoyer l'URL après traitement du jeton
+            // Clean URL after processing
             window.history.replaceState({}, document.title, window.location.pathname);
-
-            // Si l'authentification a réussi, rediriger vers le tableau de bord
+            
             setTimeout(() => {
               if (isAuthenticated) {
                 navigate("/dashboard");
               }
             }, 1000);
-          } else {
+          } else if (isMounted) {
             console.error("Échec du traitement du jeton");
             setAuthError("Échec du traitement du jeton d'authentification.");
           }
         } catch (error) {
-          console.error("Erreur lors du traitement des jetons:", error);
-          setAuthError(`Erreur d'authentification: ${error instanceof Error ? error.message : String(error)}`);
+          if (isMounted) {
+            console.error("Erreur lors du traitement des jetons:", error);
+            setAuthError(`Erreur d'authentification: ${error instanceof Error ? error.message : String(error)}`);
+          }
         } finally {
-          setProcessingAuth(false);
+          if (isMounted) {
+            setProcessingAuth(false);
+          }
         }
-      } else if (location.search && location.search.includes('error')) {
+      } else if (location.search && location.search.includes('error') && !tokenProcessed) {
         // Extract error from query params
         const params = new URLSearchParams(location.search);
         const error = params.get('error');
         const errorDesc = params.get('error_description');
         console.error(`Erreur OAuth: ${error}: ${errorDesc}`);
-        setAuthError(`Erreur d'authentification: ${error}. ${errorDesc || ''}`);
+        if (isMounted) {
+          setAuthError(`Erreur d'authentification: ${error}. ${errorDesc || ''}`);
+        }
       }
     };
-    handleTokensInRoot();
-  }, [isAuthenticated, navigate, processAuthTokens]);
 
-  // Si l'utilisateur est déjà authentifié, rediriger vers le tableau de bord
+    handleAuthTokens();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Remove dependencies to prevent re-processing
+
+  // Redirect authenticated users only once
   useEffect(() => {
-    if (isAuthenticated && !processingAuth) {
+    if (isAuthenticated && !processingAuth && !tokenProcessed) {
       navigate("/dashboard");
     }
-  }, [isAuthenticated, navigate, processingAuth]);
-  const features = [{
-    icon: Brain,
-    title: "IA Multi-Modèles",
-    description: "Choisissez entre OpenAI, Anthropic ou Claude selon vos besoins"
-  }, {
-    icon: Zap,
-    title: "Génération Rapide",
-    description: "Créez des centaines d'annonces en quelques minutes"
-  }, {
-    icon: Shield,
-    title: "Données Sécurisées",
-    description: "Traitement local, vos données restent confidentielles"
-  }, {
-    icon: Target,
-    title: "Optimisation SEA",
-    description: "Conçu pour maximiser vos performances publicitaires"
-  }];
-  return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+  }, [isAuthenticated, processingAuth, navigate, tokenProcessed]);
+
+  const features = [
+    {
+      icon: Brain,
+      title: "IA Multi-Modèles",
+      description: "Choisissez entre OpenAI, Anthropic ou Claude selon vos besoins"
+    },
+    {
+      icon: Zap,
+      title: "Génération Rapide",
+      description: "Créez des centaines d'annonces en quelques minutes"
+    },
+    {
+      icon: Shield,
+      title: "Données Sécurisées",
+      description: "Traitement local, vos données restent confidentielles"
+    },
+    {
+      icon: Target,
+      title: "Optimisation SEA",
+      description: "Conçu pour maximiser vos performances publicitaires"
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
@@ -121,21 +136,32 @@ const Index = () => {
               <span className="text-blue-600 font-semibold">Générez du contenu performant en quelques clics.</span>
             </p>
 
-            {authError && <Alert variant="destructive" className="mb-8 max-w-2xl mx-auto">
+            {authError && (
+              <Alert variant="destructive" className="mb-8 max-w-2xl mx-auto">
                 <AlertDescription className="whitespace-pre-wrap">
                   {authError}
                   <div className="mt-2">
                     <AuthDebugDialog trigger={<Button variant="outline" size="sm">Informations de débogage</Button>} />
                   </div>
                 </AlertDescription>
-              </Alert>}
+              </Alert>
+            )}
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-              <Button size="lg" onClick={() => navigate("/auth")} className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200">
+              <Button 
+                size="lg" 
+                onClick={() => navigate("/auth")} 
+                className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+              >
                 Commencer maintenant
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-              <Button variant="outline" size="lg" onClick={() => navigate("/how-it-works")} className="px-8 py-3 border-2 border-slate-300 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                onClick={() => navigate("/how-it-works")} 
+                className="px-8 py-3 border-2 border-slate-300 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
+              >
                 Découvrir le processus
               </Button>
             </div>
@@ -157,7 +183,7 @@ const Index = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {features.map((feature, index) => {
           const IconComponent = feature.icon;
-          return <Card key={index} className="border-0 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white/70 backdrop-blur-sm">
+          return <Card key={index} className="border-0 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white/70">
                 <CardHeader className="text-center pb-2">
                   <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
                     <IconComponent className="w-6 h-6 text-blue-600" />
@@ -243,7 +269,8 @@ const Index = () => {
           Politique de confidentialité
         </Link>
       </div>
-    </div>;
+    </div>
+  );
 };
 
 export default Index;
