@@ -1,4 +1,3 @@
-
 import { GoogleTokenResponse, StoredGoogleAuth } from "../types/googleAuthTypes";
 import { secureStorageService } from "@/services/security/secureStorageService";
 import { googleAuthConfig } from "../config/googleAuthConfig";
@@ -12,8 +11,10 @@ export class GoogleTokenManager {
     console.log("Code à échanger:", code?.substring(0, 20) + "...");
     
     const config = googleAuthConfig.getConfig();
-    console.log("Client ID:", config.clientId);
-    console.log("Redirect URI:", config.redirectUri);
+    console.log("Configuration utilisée:", {
+      clientId: config.clientId,
+      redirectUri: config.redirectUri
+    });
     
     const requestBody = new URLSearchParams({
       client_id: config.clientId,
@@ -24,37 +25,59 @@ export class GoogleTokenManager {
 
     console.log("Corps de la requête:", requestBody.toString());
     
-    const response = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: requestBody
-    });
-
-    console.log("Statut de la réponse:", response.status);
-    console.log("Headers de la réponse:", Object.fromEntries(response.headers.entries()));
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("ERREUR LORS DE L'ECHANGE:", error);
-      console.error("Détails de l'erreur:", {
-        error: error.error,
-        description: error.error_description,
-        status: response.status
+    try {
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: requestBody
       });
-      throw new Error(`Erreur lors de l'échange de tokens: ${error.error_description || error.error}`);
-    }
 
-    const tokenData = await response.json();
-    console.log("Tokens obtenus avec succès:", {
-      hasAccessToken: !!tokenData.access_token,
-      hasRefreshToken: !!tokenData.refresh_token,
-      expiresIn: tokenData.expires_in,
-      scopes: tokenData.scope
-    });
-    
-    return tokenData;
+      console.log("Statut de la réponse:", response.status);
+      console.log("Headers de la réponse:", Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error("ERREUR LORS DE L'ECHANGE:", error);
+        console.error("Détails de l'erreur:", {
+          error: error.error,
+          description: error.error_description,
+          status: response.status,
+          configUsed: {
+            clientId: config.clientId,
+            redirectUri: config.redirectUri,
+            currentOrigin: window.location.origin
+          }
+        });
+        
+        // Messages d'erreur plus spécifiques
+        let errorMessage = `Erreur lors de l'échange de tokens: ${error.error_description || error.error}`;
+        
+        if (error.error === 'redirect_uri_mismatch') {
+          errorMessage += `\n\nProblème de configuration OAuth:\n- URI configurée: ${config.redirectUri}\n- Origin actuel: ${window.location.origin}\n\nVérifiez que cette URI exacte est dans Google Cloud Console.`;
+        } else if (error.error === 'invalid_client') {
+          errorMessage += '\n\nClient ID invalide. Vérifiez votre configuration Google Cloud.';
+        } else if (error.error === 'invalid_grant') {
+          errorMessage += '\n\nCode d\'autorisation invalide ou expiré. Réessayez la connexion.';
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      const tokenData = await response.json();
+      console.log("Tokens obtenus avec succès:", {
+        hasAccessToken: !!tokenData.access_token,
+        hasRefreshToken: !!tokenData.refresh_token,
+        expiresIn: tokenData.expires_in,
+        scopes: tokenData.scope
+      });
+      
+      return tokenData;
+    } catch (fetchError) {
+      console.error("Erreur réseau lors de l'échange de tokens:", fetchError);
+      throw new Error(`Erreur de connexion lors de l'échange de tokens: ${fetchError.message}`);
+    }
   }
 
   // Rafraîchir le token d'accès

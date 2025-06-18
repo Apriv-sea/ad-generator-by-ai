@@ -21,19 +21,22 @@ export function useAuthCallbackProcessor() {
 
   const processStandardAuth = useCallback(async (): Promise<boolean> => {
     try {
+      console.log("=== TRAITEMENT AUTH STANDARD ===");
       setStatus({ type: 'loading', message: 'Traitement de l\'authentification...' });
       
       const success = await processAuthTokens();
       
       if (success) {
+        console.log("Authentification standard réussie");
         setStatus({ type: 'success', message: 'Authentification réussie !' });
         return true;
       } else {
+        console.error("Échec de l'authentification standard");
         setStatus({ type: 'error', message: 'Échec de l\'authentification' });
         setErrorDetails('Tokens d\'authentification manquants ou invalides');
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors du traitement de l\'authentification standard:', error);
       setStatus({ type: 'error', message: 'Erreur lors de l\'authentification' });
       setErrorDetails(error.message || 'Une erreur inattendue s\'est produite');
@@ -43,6 +46,7 @@ export function useAuthCallbackProcessor() {
 
   const processGoogleSheetsAuth = useCallback((): boolean => {
     try {
+      console.log("=== TRAITEMENT AUTH GOOGLE SHEETS ===");
       setStatus({ type: 'loading', message: 'Traitement de l\'authentification Google Sheets...' });
       
       // Extraire les paramètres de l'URL
@@ -51,6 +55,15 @@ export function useAuthCallbackProcessor() {
       const state = urlParams.get('state');
       const error = urlParams.get('error');
       
+      console.log("Paramètres extraits:", {
+        hasCode: !!code,
+        hasState: !!state,
+        hasError: !!error,
+        code: code?.substring(0, 20) + "...",
+        state: state?.substring(0, 20) + "...",
+        error
+      });
+      
       if (error) {
         let errorMessage = `Erreur Google: ${error}`;
         const errorDescription = urlParams.get('error_description');
@@ -58,37 +71,56 @@ export function useAuthCallbackProcessor() {
           errorMessage += ` - ${errorDescription}`;
         }
         
+        console.error("Erreur Google OAuth:", { error, errorDescription });
         setStatus({ type: 'error', message: 'Authentification Google refusée' });
         setErrorDetails(errorMessage);
         return false;
       }
       
       if (!code || !state) {
+        console.error("Paramètres OAuth manquants:", { code: !!code, state: !!state });
         setStatus({ type: 'error', message: 'Paramètres d\'authentification manquants' });
         setErrorDetails('Code d\'autorisation ou état OAuth manquant');
         return false;
       }
       
-      // Traiter le callback de manière asynchrone
-      googleAuthService.handleCallback(code, state).then(success => {
-        if (success) {
-          setStatus({ type: 'success', message: 'Connexion Google Sheets réussie !' });
-          // Rediriger vers la page précédente après un délai
-          setTimeout(() => {
-            navigate(-1);
-          }, 1500);
-        } else {
-          setStatus({ type: 'error', message: 'Échec de la connexion Google Sheets' });
-          setErrorDetails('Erreur lors du traitement des tokens Google');
-        }
-      }).catch(error => {
-        console.error('Erreur lors du traitement du callback Google:', error);
-        setStatus({ type: 'error', message: 'Erreur lors de la connexion Google Sheets' });
-        setErrorDetails(error.message || 'Une erreur inattendue s\'est produite');
-      });
+      // Traiter le callback de manière asynchrone avec gestion d'erreur améliorée
+      googleAuthService.handleCallback(code, state)
+        .then(success => {
+          if (success) {
+            console.log("Callback Google traité avec succès");
+            setStatus({ type: 'success', message: 'Connexion Google Sheets réussie !' });
+            // Rediriger vers la page précédente après un délai
+            setTimeout(() => {
+              navigate(-1);
+            }, 1500);
+          } else {
+            console.error("Échec du traitement du callback Google");
+            setStatus({ type: 'error', message: 'Échec de la connexion Google Sheets' });
+            setErrorDetails('Erreur lors du traitement des tokens Google. Vérifiez la configuration OAuth.');
+          }
+        })
+        .catch(error => {
+          console.error('Erreur lors du traitement du callback Google:', error);
+          
+          // Messages d'erreur plus spécifiques
+          let userMessage = 'Erreur lors de la connexion Google Sheets';
+          let details = error.message || 'Une erreur inattendue s\'est produite';
+          
+          if (error.message?.includes('redirect_uri_mismatch')) {
+            userMessage = 'Erreur de configuration OAuth';
+            details = `URI de redirection incorrecte. Vérifiez que ${window.location.origin}/auth/callback est configuré dans Google Cloud Console.`;
+          } else if (error.message?.includes('invalid_client')) {
+            userMessage = 'Client ID invalide';
+            details = 'Vérifiez votre configuration dans Google Cloud Console.';
+          }
+          
+          setStatus({ type: 'error', message: userMessage });
+          setErrorDetails(details);
+        });
       
       return true; // Retourner true car le traitement est en cours
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors du traitement du callback Google Sheets:', error);
       setStatus({ type: 'error', message: 'Erreur lors de la connexion Google Sheets' });
       setErrorDetails(error.message || 'Une erreur inattendue s\'est produite');

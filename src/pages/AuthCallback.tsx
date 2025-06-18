@@ -26,36 +26,57 @@ const AuthCallback: React.FC = () => {
   useEffect(() => {
     const processCallback = async () => {
       try {
-        // First check for errors in URL parameters
+        console.log("=== DEBUT TRAITEMENT CALLBACK ===");
+        console.log("URL complète:", window.location.href);
+        console.log("Pathname:", location.pathname);
+        console.log("Search:", location.search);
+        console.log("Hash:", location.hash);
+        
+        // Vérifier d'abord les erreurs dans les paramètres URL
         const { hasError, errorMessage } = extractUrlErrors();
         if (hasError && errorMessage) {
+          console.error("Erreur détectée dans l'URL:", errorMessage);
           setIsProcessing(false);
           return;
         }
 
-        // Check if it's a Google Sheets callback
-        const isGoogleSheetsCallback = location.pathname.includes('/google');
+        // Détecter le type de callback en analysant les paramètres
+        const urlParams = new URLSearchParams(location.search);
+        const hasGoogleParams = urlParams.has('code') && urlParams.has('state');
+        const hasSupabaseTokens = location.hash.includes('access_token');
         
-        if (isGoogleSheetsCallback) {
+        console.log("Type de callback détecté:", {
+          hasGoogleParams,
+          hasSupabaseTokens,
+          code: urlParams.get('code'),
+          state: urlParams.get('state')
+        });
+        
+        if (hasGoogleParams) {
+          console.log("Traitement du callback Google Sheets");
           // Process Google Sheets authentication
           const success = processGoogleSheetsAuth();
           
           if (success) {
-            // Redirect to previous page after a short delay
+            // Rediriger vers la page précédente après un court délai
             setTimeout(() => {
               navigate(-1);
             }, 1500);
           }
-        } else {
+        } else if (hasSupabaseTokens) {
+          console.log("Traitement du callback Supabase standard");
           // Process standard app authentication
           const success = await processStandardAuth();
           
           if (success) {
-            // Redirect to dashboard after a short delay
+            // Rediriger vers le dashboard après un court délai
             setTimeout(() => {
               navigate('/dashboard');
             }, 1500);
           }
+        } else {
+          console.warn("Aucun paramètre d'authentification reconnu");
+          setIsProcessing(false);
         }
         
         setIsProcessing(false);
@@ -69,12 +90,21 @@ const AuthCallback: React.FC = () => {
     processCallback();
   }, [navigate, location, processStandardAuth, processGoogleSheetsAuth]);
 
-  // Determine if we're handling a Google Sheets callback
-  const isGoogleCallback = location.pathname.includes('/google');
+  // Déterminer si on traite un callback Google
+  const urlParams = new URLSearchParams(location.search);
+  const isGoogleCallback = urlParams.has('code') && urlParams.has('state');
   
-  // Check if token is found in URL
+  // Vérifier si un token est trouvé dans l'URL
   const isTokenFound = location.hash.includes('access_token') || 
-                      location.search.includes('access_token');
+                      location.search.includes('access_token') ||
+                      isGoogleCallback;
+
+  console.log("Rendu du composant:", {
+    isGoogleCallback,
+    isTokenFound,
+    status,
+    isProcessing
+  });
 
   return (
     <>
