@@ -14,6 +14,7 @@ const AuthCallback: React.FC = () => {
   
   const {
     status,
+    statusMessage,
     errorDetails,
     processStandardAuth,
     processGoogleSheetsAuth,
@@ -79,13 +80,13 @@ const AuthCallback: React.FC = () => {
     <>
       {isGoogleCallback ? (
         <GoogleCallbackContent 
-          status={status}
+          status={{ type: status, message: statusMessage }}
           errorDetails={errorDetails}
           goBack={goBack}
         />
       ) : (
         <AuthCallbackContent
-          status={status}
+          status={{ type: status, message: statusMessage }}
           errorDetails={errorDetails}
           isTokenFound={isTokenFound}
           manualRedirectToRoot={redirectToRoot}
