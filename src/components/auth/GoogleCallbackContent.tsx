@@ -19,7 +19,7 @@ const GoogleCallbackContent: React.FC<GoogleCallbackContentProps> = ({
 }) => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="shadow-lg rounded-lg max-w-lg w-full">
+      <Card className="shadow-lg rounded-lg max-w-2xl w-full">
         <CardContent className="p-6">
           <div className="text-center">
             {status.type === "processing" && (
@@ -59,6 +59,33 @@ const GoogleCallbackContent: React.FC<GoogleCallbackContentProps> = ({
                     </AlertDescription>
                   </Alert>
                 )}
+
+                <div className="mt-6 mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-left">
+                  <h3 className="font-semibold text-blue-800 mb-3">Instructions pour résoudre le problème :</h3>
+                  <div className="space-y-2 text-sm text-blue-700">
+                    <p><strong>1. Allez dans votre Console Google Cloud :</strong></p>
+                    <a 
+                      href="https://console.cloud.google.com/apis/credentials" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline hover:text-blue-800"
+                    >
+                      → Ouvrir la Console Google Cloud
+                    </a>
+                    
+                    <p className="mt-3"><strong>2. Dans "URI de redirection autorisés", ajoutez exactement :</strong></p>
+                    <code className="block bg-gray-100 p-2 rounded mt-1 font-mono text-xs">
+                      {window.location.origin}/auth/callback/google
+                    </code>
+                    
+                    <p className="mt-3"><strong>3. Dans "Origines JavaScript autorisées", ajoutez :</strong></p>
+                    <code className="block bg-gray-100 p-2 rounded mt-1 font-mono text-xs">
+                      {window.location.origin}
+                    </code>
+                    
+                    <p className="mt-3 text-amber-700"><strong>⚠️ Important :</strong> Les URLs doivent être exactement identiques (http/https, avec/sans www)</p>
+                  </div>
+                </div>
 
                 <div className="mt-6">
                   <Button 
