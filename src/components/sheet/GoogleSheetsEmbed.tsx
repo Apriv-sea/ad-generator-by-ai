@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -44,9 +43,7 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
       return;
     }
     
-    const embedUrl = generateEmbedUrl(sh
-
-);
+    const embedUrl = generateEmbedUrl(sheetId);
     onSheetUrlChange(embedUrl);
     setValidUrl(true);
     toast.success("Feuille Google Sheets intégrée avec succès");

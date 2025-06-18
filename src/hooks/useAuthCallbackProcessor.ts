@@ -114,8 +114,25 @@ export function useAuthCallbackProcessor() {
     navigate(-1);
   }, [navigate]);
 
+  // Convertir les types pour la compatibilité avec AuthCallback.tsx
+  const getCompatibleStatus = () => {
+    switch (status.type) {
+      case 'loading':
+        return 'processing';
+      case 'success':
+        return 'success';
+      case 'error':
+        return 'error';
+      default:
+        return 'processing';
+    }
+  };
+
   return {
-    status,
+    status: {
+      type: getCompatibleStatus(),
+      message: status.message
+    },
     errorDetails,
     processStandardAuth,
     processGoogleSheetsAuth,
