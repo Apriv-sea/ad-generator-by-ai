@@ -7,7 +7,7 @@ import AuthError from "@/components/auth/AuthError";
 import AuthLoading from "@/components/auth/AuthLoading";
 
 interface AuthCallbackContentProps {
-  status: string;
+  status: { type: string; message: string };
   errorDetails: string | null;
   isTokenFound: boolean;
   manualRedirectToRoot: () => void;
@@ -26,7 +26,7 @@ const AuthCallbackContent: React.FC<AuthCallbackContentProps> = ({
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="text-center max-w-lg p-6 bg-white rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold mb-4">{status}</h1>
+        <h1 className="text-2xl font-bold mb-4">{status.message}</h1>
         
         {errorDetails && (
           <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md text-left mb-4">
