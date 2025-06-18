@@ -16,6 +16,9 @@ import { toast } from "sonner";
 import { sheetService, Client } from "@/services/googleSheetsService";
 import ClientSelector from "./ClientSelector";
 import { getClients } from "@/services/clientQuery";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 interface CreateSheetDialogProps {
   onSheetCreated: () => void;
@@ -29,6 +32,8 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [selectedClientData, setSelectedClientData] = useState<Client | null>(null);
   const [isLoadingClients, setIsLoadingClients] = useState(false);
+
+  const { isAuthenticated, signIn } = useGoogleAuth();
 
   useEffect(() => {
     if (isOpen) {
@@ -75,6 +80,11 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
   };
 
   const handleCreateSheet = async () => {
+    if (!isAuthenticated) {
+      toast.error("Veuillez vous connecter à Google Sheets d'abord.");
+      return;
+    }
+
     if (!sheetName.trim()) {
       toast.error("Veuillez entrer un nom pour la feuille.");
       return;
@@ -104,7 +114,7 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
       }
     } catch (error) {
       console.error("Erreur lors de la création de la feuille:", error);
-      toast.error("Impossible de créer la feuille. Veuillez réessayer.");
+      toast.error("Impossible de créer la feuille. Veuillez vérifier votre connexion Google Sheets.");
     } finally {
       setIsCreating(false);
     }
@@ -122,6 +132,23 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
             Sélectionnez un client et personnalisez le nom de la feuille
           </DialogDescription>
         </DialogHeader>
+
+        {!isAuthenticated && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Vous devez être connecté à Google Sheets pour créer une nouvelle feuille.
+              <Button 
+                variant="link" 
+                className="p-0 h-auto ml-2 text-destructive underline"
+                onClick={signIn}
+              >
+                Se connecter maintenant
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="client" className="text-right">
@@ -158,7 +185,7 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
           </Button>
           <Button 
             onClick={handleCreateSheet}
-            disabled={isCreating}
+            disabled={isCreating || !isAuthenticated}
           >
             {isCreating ? (
               <>
