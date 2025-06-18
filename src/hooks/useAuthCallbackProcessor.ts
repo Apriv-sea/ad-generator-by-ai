@@ -1,134 +1,118 @@
 
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { toast } from "sonner";
-import { processAuthTokens } from "@/utils/authUtils";
+import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { googleAuthService } from '@/services/google/googleAuthService';
+import { processAuthTokens } from '@/utils/authUtils';
+import { extractUrlErrors } from '@/utils/authCallbackUtils';
 
-type AuthStatus = "processing" | "success" | "error";
+interface CallbackStatus {
+  type: 'loading' | 'success' | 'error';
+  message: string;
+}
 
-export const useAuthCallbackProcessor = () => {
-  const [status, setStatus] = useState<AuthStatus>("processing");
+export function useAuthCallbackProcessor() {
+  const [status, setStatus] = useState<CallbackStatus>({
+    type: 'loading',
+    message: 'Traitement en cours...'
+  });
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // Function to handle standard app authentication callback
-  const processStandardAuth = async (): Promise<boolean> => {
+  const processStandardAuth = useCallback(async (): Promise<boolean> => {
     try {
+      setStatus({ type: 'loading', message: 'Traitement de l\'authentification...' });
+      
       const success = await processAuthTokens();
+      
       if (success) {
-        setStatus("success");
+        setStatus({ type: 'success', message: 'Authentification réussie !' });
         return true;
       } else {
-        setStatus("error");
-        setErrorDetails("Aucun jeton d'authentification trouvé dans l'URL.");
+        setStatus({ type: 'error', message: 'Échec de l\'authentification' });
+        setErrorDetails('Tokens d\'authentification manquants ou invalides');
         return false;
       }
-    } catch (error: any) {
-      console.error("Erreur lors du traitement de l'authentification standard:", error);
-      setStatus("error");
-      setErrorDetails(error.message || "Une erreur s'est produite");
+    } catch (error) {
+      console.error('Erreur lors du traitement de l\'authentification standard:', error);
+      setStatus({ type: 'error', message: 'Erreur lors de l\'authentification' });
+      setErrorDetails(error.message || 'Une erreur inattendue s\'est produite');
       return false;
     }
-  };
+  }, []);
 
-  // Function to handle Google Sheets authentication callback
-  const processGoogleSheetsAuth = (): boolean => {
+  const processGoogleSheetsAuth = useCallback((): boolean => {
     try {
-      // Extract URL parameters from hash for OAuth2 implicit grant
-      const fragment = window.location.hash.substring(1);
-      const params = new URLSearchParams(fragment);
+      setStatus({ type: 'loading', message: 'Traitement de l\'authentification Google Sheets...' });
       
-      const accessToken = params.get('access_token');
-      const expiresIn = params.get('expires_in');
-      const state = params.get('state');
+      // Extraire les paramètres de l'URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      const state = urlParams.get('state');
+      const error = urlParams.get('error');
       
-      // Verify that the state matches the one stored
-      const savedState = localStorage.getItem('google_auth_state');
-      
-      console.log("Saved state:", savedState);
-      console.log("Received state:", state);
-      
-      if (!accessToken) {
-        console.error("Erreur d'authentification: token manquant");
-        setStatus("error");
-        setErrorDetails("Token manquant. Veuillez réessayer l'authentification.");
-        toast.error("Échec de l'authentification Google");
+      if (error) {
+        let errorMessage = `Erreur Google: ${error}`;
+        const errorDescription = urlParams.get('error_description');
+        if (errorDescription) {
+          errorMessage += ` - ${errorDescription}`;
+        }
+        
+        setStatus({ type: 'error', message: 'Authentification Google refusée' });
+        setErrorDetails(errorMessage);
         return false;
       }
       
-      if (!state || !savedState) {
-        console.error("Erreur d'authentification: état manquant");
-        setStatus("error");
-        setErrorDetails("État de sécurité manquant. Veuillez vider le cache du navigateur et réessayer l'authentification.");
-        toast.error("Échec de l'authentification Google");
+      if (!code || !state) {
+        setStatus({ type: 'error', message: 'Paramètres d\'authentification manquants' });
+        setErrorDetails('Code d\'autorisation ou état OAuth manquant');
         return false;
       }
       
-      if (state !== savedState) {
-        console.error("Erreur d'authentification: état non valide");
-        setStatus("error");
-        setErrorDetails(`État de sécurité non valide. Reçu: ${state}, Attendu: ${savedState}. Veuillez réessayer l'authentification.`);
-        toast.error("Échec de l'authentification Google - Problème de sécurité");
-        return false;
-      }
+      // Traiter le callback de manière asynchrone
+      googleAuthService.handleCallback(code, state).then(success => {
+        if (success) {
+          setStatus({ type: 'success', message: 'Connexion Google Sheets réussie !' });
+          // Rediriger vers la page précédente après un délai
+          setTimeout(() => {
+            navigate(-1);
+          }, 1500);
+        } else {
+          setStatus({ type: 'error', message: 'Échec de la connexion Google Sheets' });
+          setErrorDetails('Erreur lors du traitement des tokens Google');
+        }
+      }).catch(error => {
+        console.error('Erreur lors du traitement du callback Google:', error);
+        setStatus({ type: 'error', message: 'Erreur lors de la connexion Google Sheets' });
+        setErrorDetails(error.message || 'Une erreur inattendue s\'est produite');
+      });
       
-      // Store the access token
-      localStorage.setItem('google_access_token', accessToken);
-      localStorage.removeItem('google_auth_state'); // Clean up the state
-      
-      // Calculate the expiration date
-      if (expiresIn) {
-        const expiryTime = new Date().getTime() + parseInt(expiresIn) * 1000;
-        localStorage.setItem('google_token_expiry', expiryTime.toString());
-      }
-      
-      setStatus("success");
-      toast.success("Authentification Google réussie");
-      return true;
-    } catch (error: any) {
-      console.error("Erreur lors du traitement du callback Google:", error);
-      setStatus("error");
-      setErrorDetails(error.message || "Une erreur s'est produite lors de l'authentification Google Sheets");
+      return true; // Retourner true car le traitement est en cours
+    } catch (error) {
+      console.error('Erreur lors du traitement du callback Google Sheets:', error);
+      setStatus({ type: 'error', message: 'Erreur lors de la connexion Google Sheets' });
+      setErrorDetails(error.message || 'Une erreur inattendue s\'est produite');
       return false;
     }
-  };
+  }, [navigate]);
 
-  // Check for errors in URL parameters
-  const checkForErrors = (): boolean => {
-    const searchParams = new URLSearchParams(location.search);
-    const error = searchParams.get('error');
-    const errorDescription = searchParams.get('error_description');
-    
-    if (error) {
-      setStatus("error");
-      let errorMessage = `Erreur: ${error}`;
-      if (errorDescription) {
-        errorMessage += `\nDescription: ${errorDescription}`;
-      }
-      
-      // Handle specific error for redirect URI mismatch
-      if (error === 'redirect_uri_mismatch') {
-        errorMessage += `\n\nL'URI de redirection utilisée ne correspond pas à celles configurées dans votre console Google Cloud.\n`;
-        errorMessage += `URI attendue pour l'environnement actuel: ${window.location.origin}/auth/callback/google\n`;
-        errorMessage += `Assurez-vous d'ajouter cette URI exacte dans votre console Google Cloud.`;
-      }
-      
-      setErrorDetails(errorMessage);
+  const checkForErrors = useCallback(() => {
+    const { hasError, errorMessage } = extractUrlErrors();
+    if (hasError) {
+      setStatus({ type: 'error', message: 'Erreur d\'authentification détectée' });
+      setErrorDetails(errorMessage || 'Erreur inconnue');
       return true;
     }
     return false;
-  };
+  }, []);
 
-  // Function to redirect to root
-  const redirectToRoot = () => {
-    navigate('/dashboard');
-  };
+  const redirectToRoot = useCallback(() => {
+    navigate('/');
+  }, [navigate]);
 
-  // Function to go back to the previous page 
-  const goBack = () => {
+  const goBack = useCallback(() => {
     navigate(-1);
-  };
+  }, [navigate]);
 
   return {
     status,
@@ -137,6 +121,6 @@ export const useAuthCallbackProcessor = () => {
     processGoogleSheetsAuth,
     checkForErrors,
     redirectToRoot,
-    goBack,
+    goBack
   };
-};
+}

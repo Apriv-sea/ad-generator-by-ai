@@ -3,18 +3,21 @@ import { useState, useEffect } from "react";
 import { Sheet, Client, sheetService } from "@/services/googleSheetsService";
 import { getClientInfo } from "@/services/clientService";
 import { toast } from "sonner";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 
 export function useSheetData(sheet: Sheet | null) {
   const [clientInfo, setClientInfo] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [sheetData, setSheetData] = useState<any[][] | null>(null);
+  
+  const { isAuthenticated, getAccessToken } = useGoogleAuth();
 
   useEffect(() => {
     if (sheet) {
       loadInitialData();
       loadClientInfo();
     }
-  }, [sheet]);
+  }, [sheet, isAuthenticated]);
 
   const loadInitialData = async () => {
     if (!sheet) return;
@@ -23,16 +26,24 @@ export function useSheetData(sheet: Sheet | null) {
     setIsLoading(true);
     
     try {
-      // Vérifier d'abord si on a un token d'accès Google
-      const accessToken = localStorage.getItem('google_access_token');
-      if (!accessToken) {
-        console.log("❌ Aucun token d'accès Google trouvé");
+      // Vérifier l'authentification Google
+      if (!isAuthenticated) {
+        console.log("❌ Utilisateur non authentifié avec Google");
         toast.error("Veuillez vous connecter à Google Sheets dans l'onglet 'Google Sheets'");
         setSheetData([]);
         return;
       }
 
-      console.log("✅ Token d'accès Google trouvé, tentative de récupération des données...");
+      // Obtenir un token d'accès valide
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        console.log("❌ Impossible d'obtenir un token d'accès valide");
+        toast.error("Session Google expirée. Veuillez vous reconnecter.");
+        setSheetData([]);
+        return;
+      }
+
+      console.log("✅ Token d'accès Google valide obtenu, récupération des données...");
       
       // Essayer plusieurs noms d'onglets possibles
       const possibleSheetNames = [
@@ -68,6 +79,12 @@ export function useSheetData(sheet: Sheet | null) {
               console.log(`✅ Données trouvées dans l'onglet "${sheetName}":`, result.values.length, "lignes");
               break;
             }
+          } else if (response.status === 401) {
+            console.log("❌ Token expiré, tentative de rafraîchissement...");
+            // Le hook useGoogleAuth gère automatiquement le rafraîchissement
+            toast.error("Session expirée. Veuillez actualiser la page.");
+            setSheetData([]);
+            return;
           } else {
             console.log(`❌ Échec pour l'onglet "${sheetName}":`, response.status);
           }
@@ -97,7 +114,6 @@ export function useSheetData(sheet: Sheet | null) {
       
       if (error.message?.includes('401') || error.message?.includes('403')) {
         toast.error("Erreur d'authentification. Veuillez vous reconnecter à Google Sheets.");
-        localStorage.removeItem('google_access_token');
       } else {
         toast.error("Impossible de charger les données de la feuille. Vérifiez que la feuille est accessible et contient des données.");
       }

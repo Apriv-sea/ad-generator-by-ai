@@ -1,68 +1,67 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, ExternalLink, Check } from "lucide-react";
-import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
+import { ExternalLink, Plus, CheckCircle, User } from "lucide-react";
 
 interface GoogleSheetHeaderProps {
   isAuthenticated: boolean;
   validUrl: boolean;
   onOpenInNewTab: () => void;
   onCreateNewSheet: () => void;
+  userInfo?: { email: string; scopes: string[] } | null;
 }
 
 const GoogleSheetHeader: React.FC<GoogleSheetHeaderProps> = ({
   isAuthenticated,
   validUrl,
   onOpenInNewTab,
-  onCreateNewSheet
+  onCreateNewSheet,
+  userInfo
 }) => {
   return (
-    <div className="bg-primary/5 p-3 flex justify-between items-center">
-      <div className="flex items-center">
-        <FileSpreadsheet className="h-5 w-5 mr-2 text-primary" />
-        <h3 className="font-medium">Google Sheets</h3>
-      </div>
-      <div className="flex gap-2">
+    <div className="flex flex-col space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <h3 className="text-lg font-medium">Google Sheets</h3>
+          {isAuthenticated && (
+            <Badge variant="secondary" className="bg-green-100 text-green-800">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Connecté
+            </Badge>
+          )}
+        </div>
+        
         {validUrl && (
-          <Button 
-            size="sm" 
+          <Button
             variant="outline"
+            size="sm"
             onClick={onOpenInNewTab}
-            className="gap-1"
+            className="flex items-center"
           >
-            <ExternalLink className="h-4 w-4" />
-            Ouvrir dans Google Sheets
+            <ExternalLink className="h-4 w-4 mr-1" />
+            Ouvrir
           </Button>
         )}
       </div>
-    </div>
-  );
-};
-
-export const GoogleAuthHeader: React.FC<{ onCreateNewSheet: () => void }> = ({ onCreateNewSheet }) => {
-  return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center">
-        <Check className="h-5 w-5 mr-2 text-green-500" />
-        <span className="text-sm font-medium">Connecté à Google Sheets</span>
-      </div>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onCreateNewSheet}
-            >
-              Créer une nouvelle feuille
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Créer une nouvelle feuille Google Sheets avec votre compte</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      
+      {isAuthenticated && userInfo && (
+        <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+          <div className="flex items-center space-x-2 text-sm text-green-700">
+            <User className="h-4 w-4" />
+            <span>{userInfo.email}</span>
+          </div>
+          
+          <Button
+            onClick={onCreateNewSheet}
+            size="sm"
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Nouvelle feuille
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

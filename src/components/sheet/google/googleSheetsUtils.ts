@@ -1,7 +1,10 @@
 
 /**
  * Utility functions for Google Sheets integration
+ * Version sécurisée avec gestion d'état OAuth robuste
  */
+
+import { googleAuthService } from '@/services/google/googleAuthService';
 
 /**
  * Extract the Sheet ID from a Google Sheets URL
@@ -29,26 +32,12 @@ export const generateEmbedUrl = (sheetId: string): string => {
 };
 
 /**
- * Generate a secure random state string for OAuth
- * @returns A secure random state string
- */
-export const generateSecureState = (): string => {
-  const array = new Uint32Array(8);
-  window.crypto.getRandomValues(array);
-  return Array.from(array, dec => dec.toString(16).padStart(8, '0')).join('');
-};
-
-/**
  * Check if the user is authenticated with Google Sheets
  * @returns Promise resolving to boolean indicating if authenticated
  */
 export const checkGoogleAuth = async (): Promise<boolean> => {
-  const token = localStorage.getItem('google_access_token');
-  if (!token) return false;
-  
   try {
-    const response = await fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${token}`);
-    return response.ok;
+    return await googleAuthService.isAuthenticated();
   } catch (error) {
     console.error("Error checking Google auth:", error);
     return false;
@@ -56,22 +45,61 @@ export const checkGoogleAuth = async (): Promise<boolean> => {
 };
 
 /**
- * Initialize the Google OAuth flow
- * @returns The auth URL to redirect to
+ * Initialize the Google OAuth flow using the secure service
+ * @returns void (redirects to Google)
  */
-export const initGoogleAuth = (): string => {
-  // Configuration pour l'authentification OAuth2
-  const clientId = "135447600769-22vd8jk726t5f8gp58robppv0v8eeme7.apps.googleusercontent.com";
-  const redirectUri = encodeURIComponent(window.location.origin + '/auth/callback/google');
-  const scope = encodeURIComponent('https://www.googleapis.com/auth/spreadsheets');
-  
-  // Generate and store secure state
-  const state = generateSecureState();
-  localStorage.setItem('google_auth_state', state);
-  
-  console.log("URL de redirection:", window.location.origin + '/auth/callback/google');
-  console.log("État de sécurité généré:", state);
-  
-  // Rediriger vers l'URL d'authentification Google avec prompt=consent pour forcer le dialogue de consentement
-  return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&state=${state}&prompt=consent`;
+export const initGoogleAuth = (): void => {
+  try {
+    googleAuthService.initiateAuth();
+  } catch (error) {
+    console.error("Error initiating Google auth:", error);
+    throw new Error("Impossible d'initier l'authentification Google");
+  }
+};
+
+/**
+ * Get a valid Google access token
+ * @returns Promise resolving to access token or null
+ */
+export const getGoogleAccessToken = async (): Promise<string | null> => {
+  try {
+    return await googleAuthService.getValidAccessToken();
+  } catch (error) {
+    console.error("Error getting Google access token:", error);
+    return null;
+  }
+};
+
+/**
+ * Sign out from Google Sheets
+ * @returns Promise that resolves when sign out is complete
+ */
+export const signOutFromGoogle = async (): Promise<void> => {
+  try {
+    await googleAuthService.signOut();
+  } catch (error) {
+    console.error("Error signing out from Google:", error);
+    throw new Error("Erreur lors de la déconnexion de Google");
+  }
+};
+
+/**
+ * Get authenticated user information
+ * @returns User info or null if not authenticated
+ */
+export const getGoogleUserInfo = (): { email: string; scopes: string[] } | null => {
+  try {
+    return googleAuthService.getAuthenticatedUser();
+  } catch (error) {
+    console.error("Error getting Google user info:", error);
+    return null;
+  }
+};
+
+// Fonctions de compatibilité avec l'ancien code
+export const generateSecureState = (): string => {
+  console.warn("generateSecureState is deprecated. Use GoogleAuthService directly.");
+  const array = new Uint32Array(8);
+  window.crypto.getRandomValues(array);
+  return Array.from(array, dec => dec.toString(16).padStart(8, '0')).join('');
 };

@@ -8,12 +8,8 @@ import GoogleSheetUrlInput from './google/GoogleSheetUrlInput';
 import GoogleSheetEmbed from './google/GoogleSheetEmbed';
 import GoogleSheetPlaceholder from './google/GoogleSheetPlaceholder';
 import GoogleAuthPrompt from './google/GoogleAuthPrompt';
-import {
-  extractSheetId,
-  generateEmbedUrl,
-  checkGoogleAuth,
-  initGoogleAuth
-} from './google/googleSheetsUtils';
+import { extractSheetId, generateEmbedUrl } from './google/googleSheetsUtils';
+import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 
 interface GoogleSheetsEmbedProps {
   sheetUrl?: string;
@@ -28,24 +24,16 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
 }) => {
   const [inputUrl, setInputUrl] = useState(sheetUrl || '');
   const [validUrl, setValidUrl] = useState(!!sheetUrl);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-
-  // Vérifier si l'utilisateur est déjà authentifié avec Google
-  useEffect(() => {
-    const verifyAuthentication = async () => {
-      const isAuth = await checkGoogleAuth();
-      setIsAuthenticated(isAuth);
-      if (!isAuth) {
-        localStorage.removeItem('google_access_token');
-      } else {
-        setAuthError(null);
-      }
-    };
-    
-    verifyAuthentication();
-  }, []);
+  
+  const { 
+    isAuthenticated, 
+    isLoading, 
+    userInfo, 
+    error, 
+    signIn, 
+    signOut, 
+    getAccessToken 
+  } = useGoogleAuth();
 
   // Fonction pour gérer la soumission de l'URL
   const handleSubmit = () => {
@@ -56,7 +44,9 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
       return;
     }
     
-    const embedUrl = generateEmbedUrl(sheetId);
+    const embedUrl = generateEmbedUrl(sh
+
+);
     onSheetUrlChange(embedUrl);
     setValidUrl(true);
     toast.success("Feuille Google Sheets intégrée avec succès");
@@ -69,15 +59,6 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
     }
   };
 
-  // Fonction pour gérer l'authentification Google
-  const handleGoogleAuth = () => {
-    setIsAuthenticating(true);
-    setAuthError(null);
-    
-    const authUrl = initGoogleAuth();
-    window.location.href = authUrl;
-  };
-
   // Fonction pour créer une nouvelle feuille Google
   const createNewSheet = async () => {
     if (!isAuthenticated) {
@@ -86,9 +67,9 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
     }
     
     try {
-      const accessToken = localStorage.getItem('google_access_token');
+      const accessToken = await getAccessToken();
       if (!accessToken) {
-        toast.error("Token d'accès Google non trouvé");
+        toast.error("Token d'accès Google non disponible");
         return;
       }
       
@@ -140,26 +121,15 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
     }
   };
 
-  // Vérifier si l'utilisateur vient d'être redirigé après une erreur d'authentification
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const error = urlParams.get('error');
-    
-    if (error) {
-      setAuthError(`Erreur d'authentification: ${error}`);
-      toast.error(`Erreur d'authentification Google: ${error}`);
-    }
-  }, []);
-
   return (
     <Card className="overflow-hidden border shadow-lg">
       <CardContent className="p-4">
         <div className="space-y-4">
           {!isAuthenticated ? (
             <GoogleAuthPrompt 
-              authError={authError}
-              isAuthenticating={isAuthenticating}
-              onGoogleAuth={handleGoogleAuth}
+              authError={error}
+              isAuthenticating={isLoading}
+              onGoogleAuth={signIn}
             />
           ) : (
             <>
@@ -168,6 +138,7 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
                 validUrl={validUrl}
                 onOpenInNewTab={openInNewTab}
                 onCreateNewSheet={createNewSheet}
+                userInfo={userInfo}
               />
               
               <GoogleSheetUrlInput 
