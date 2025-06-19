@@ -84,10 +84,18 @@ const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns, setCampaigns }
                 key={row.id}
                 row={row}
                 index={index}
-                onCellChange={(e, rowIndex, field) => handleCellChange(rowIndex, field as keyof typeof row, (e.target as HTMLInputElement).value)}
+                onCellChange={(rowIndex, field, value) => {
+                  // Map the field names back to the original format
+                  const mappedField = field === 'campaignName' ? 'campaign' : 
+                                    field === 'adGroupName' ? 'adGroup' : field;
+                  handleCellChange(rowIndex, mappedField, value);
+                }}
                 onCellPaste={(e, rowIndex, field) => {
                   const pastedData = e.clipboardData.getData('text');
-                  handleCellPaste(rowIndex, field as keyof typeof row, pastedData);
+                  // Map the field names back to the original format
+                  const mappedField = field === 'campaignName' ? 'campaign' : 
+                                    field === 'adGroupName' ? 'adGroup' : field;
+                  handleCellPaste(rowIndex, mappedField, pastedData);
                 }}
                 onRemove={removeRow}
               />
