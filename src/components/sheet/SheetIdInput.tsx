@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FileSpreadsheet, ExternalLink, Info } from "lucide-react";
+import { FileSpreadsheet, Info } from "lucide-react";
 import { toast } from "sonner";
 import { publicSheetsService } from "@/services/google/publicSheetsService";
 
@@ -18,48 +18,15 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>('');
 
-  const testSheetAccess = async (sheetId: string) => {
-    console.log('🔍 Test d\'accès à la feuille:', sheetId);
-    
-    // Test direct avec l'API Google
-    const testUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A:Z?key=AIzaSyBvOyisPCYH8IuFK-HuQUQy_MXA5UL6GSQ`;
-    
-    try {
-      const response = await fetch(testUrl);
-      console.log('📊 Réponse de l\'API:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-      
-      const responseText = await response.text();
-      console.log('📄 Contenu de la réponse:', responseText.substring(0, 500));
-      
-      if (!response.ok) {
-        setDebugInfo(`Erreur ${response.status}: ${response.statusText}\nRéponse: ${responseText.substring(0, 200)}`);
-        
-        if (response.status === 403) {
-          throw new Error('🔒 Feuille non accessible publiquement. Statut: 403 Forbidden');
-        }
-        if (response.status === 400) {
-          throw new Error('📝 Requête invalide. Vérifiez l\'ID de la feuille. Statut: 400 Bad Request');
-        }
-        if (response.status === 404) {
-          throw new Error('❌ Feuille introuvable. Statut: 404 Not Found');
-        }
-        
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = JSON.parse(responseText);
-      setDebugInfo(`✅ Succès! ${data.values?.length || 0} lignes trouvées`);
-      return data;
-      
-    } catch (error) {
-      console.error('❌ Erreur lors du test:', error);
-      setDebugInfo(`Erreur: ${error.message}`);
-      throw error;
+  const extractSheetId = (input: string): string | null => {
+    // Si c'est déjà juste un ID
+    if (!input.includes('docs.google.com')) {
+      return input.trim();
     }
+    
+    // Extraction depuis l'URL complète
+    const match = input.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    return match ? match[1] : null;
   };
 
   const handleSubmit = async () => {
@@ -69,59 +36,61 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
     }
 
     setIsLoading(true);
-    setDebugInfo('🔄 Test en cours...');
+    setDebugInfo('🔄 Extraction de l\'ID...');
     
     try {
-      // Extraire l'ID si c'est une URL complète
-      let sheetId = input.trim();
-      if (input.includes('docs.google.com')) {
-        const extractedId = publicSheetsService.extractSheetId(input);
-        if (!extractedId) {
-          toast.error('URL Google Sheets invalide');
-          setDebugInfo('❌ URL invalide');
-          return;
-        }
-        sheetId = extractedId;
+      // Extraire l'ID
+      const sheetId = extractSheetId(input);
+      if (!sheetId) {
+        toast.error('URL ou ID invalide');
+        setDebugInfo('❌ Impossible d\'extraire l\'ID');
+        return;
       }
 
       console.log('🎯 ID extrait:', sheetId);
-      setDebugInfo(`ID extrait: ${sheetId}`);
+      setDebugInfo(`✅ ID extrait: ${sheetId}`);
 
-      // Test d'accès direct
-      const testResult = await testSheetAccess(sheetId);
-      
-      // Si le test réussit, charger via le service
+      // Charger les données via le service
+      setDebugInfo('📊 Chargement des données...');
       const sheetData = await publicSheetsService.getSheetData(sheetId);
-      const sheetInfo = await publicSheetsService.getSheetInfo(sheetId);
-
+      
       if (!sheetData.values || sheetData.values.length === 0) {
         toast.error('La feuille semble vide');
         setDebugInfo('⚠️ Feuille vide');
         return;
       }
 
+      // Charger les infos de la feuille
+      const sheetInfo = await publicSheetsService.getSheetInfo(sheetId);
+
       toast.success(`Feuille "${sheetInfo.title}" chargée avec succès`);
-      setDebugInfo(`✅ Chargée: ${sheetInfo.title}`);
+      setDebugInfo(`✅ Chargée: ${sheetInfo.title} (${sheetData.values.length} lignes)`);
       onSheetLoaded(sheetId, { ...sheetData, info: sheetInfo });
+      
     } catch (error) {
       console.error('Erreur lors du chargement:', error);
-      toast.error(error.message || 'Erreur lors du chargement de la feuille');
+      
+      let errorMessage = 'Erreur lors du chargement de la feuille';
+      if (error.message?.includes('403')) {
+        errorMessage = 'Feuille non accessible. Vérifiez qu\'elle est partagée publiquement.';
+      } else if (error.message?.includes('404')) {
+        errorMessage = 'Feuille introuvable. Vérifiez l\'ID de la feuille.';
+      } else if (error.message?.includes('400')) {
+        errorMessage = 'Requête invalide. Vérifiez que la feuille est bien partagée publiquement.';
+      }
+      
+      toast.error(errorMessage);
+      setDebugInfo(`❌ Erreur: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Test avec l'URL fournie par l'utilisateur
-  const testUserSheet = async () => {
+  // Test rapide avec l'ID utilisateur
+  const testUserSheet = () => {
     const userSheetId = '1uawoG2RorJDRrWtdLHEe9AD7sIoRWmp9h_vAAtr5vVI';
     setInput(userSheetId);
-    setDebugInfo('🎯 Test de la feuille utilisateur...');
-    
-    try {
-      await testSheetAccess(userSheetId);
-    } catch (error) {
-      console.error('Test de la feuille utilisateur échoué:', error);
-    }
+    setDebugInfo('🎯 ID utilisateur prêt pour le test');
   };
 
   return (
@@ -180,7 +149,7 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
             variant="outline"
             size="sm"
           >
-            Test feuille utilisateur
+            Test ID utilisateur
           </Button>
         </div>
 
@@ -196,7 +165,7 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
         <div className="text-xs text-muted-foreground space-y-1">
           <p>• L'URL ressemble à : https://docs.google.com/spreadsheets/d/1ABC...xyz/edit</p>
           <p>• L'ID est la partie entre /d/ et /edit</p>
-          <p>• ID de votre feuille: 1uawoG2RorJDRrWtdLHEe9AD7sIoRWmp9h_vAAtr5vVI</p>
+          <p>• Votre ID: 1uawoG2RorJDRrWtdLHEe9AD7sIoRWmp9h_vAAtr5vVI</p>
         </div>
       </CardContent>
     </Card>
