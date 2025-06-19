@@ -15,7 +15,7 @@ class CampaignExtractorService {
       
       if (!sheetData || !sheetData.content || sheetData.content.length <= 1) {
         console.log("Données insuffisantes pour l'extraction");
-        return this.getDefaultCampaign();
+        return this.getDefaultCampaign(sheetData.id || '');
       }
       
       const headers = sheetData.content[0] || [];
@@ -33,7 +33,7 @@ class CampaignExtractorService {
       
       if (campaignIndex === -1 || adGroupIndex === -1 || keywordsIndex === -1) {
         console.log("Colonnes requises non trouvées, structure par défaut");
-        return this.getDefaultCampaign();
+        return this.getDefaultCampaign(sheetData.id || '');
       }
       
       // Regrouper par campagne
@@ -54,43 +54,54 @@ class CampaignExtractorService {
       
       console.log(`${campaignMap.size} campagnes uniques trouvées`);
       
-      // Convertir en structure de données
+      // Convertir en structure de données conforme à l'interface Campaign
       const campaigns: Campaign[] = [];
+      let campaignCounter = 0;
+      
       campaignMap.forEach((rows, campaignName) => {
-        const adGroups: AdGroup[] = [];
-        const processedAdGroups = new Set<string>();
-        
-        rows.forEach(row => {
+        rows.forEach((row, rowIndex) => {
           const adGroupName = this.cleanText(row[adGroupIndex]);
-          if (adGroupName && !processedAdGroups.has(adGroupName)) {
-            processedAdGroups.add(adGroupName);
-            
+          if (adGroupName) {
             // Extraire les mots-clés
             const keywordsText = this.cleanText(row[keywordsIndex]);
             const keywords = keywordsText 
               ? keywordsText.split(/[,;|\n]/).map(k => k.trim()).filter(k => k.length > 0)
               : [];
-            
-            adGroups.push({
-              name: adGroupName,
-              keywords: keywords.length > 0 ? keywords : [""],
-              context: ""
+
+            campaigns.push({
+              id: `${sheetData.id}-campaign-${campaignCounter}-${rowIndex}`,
+              sheetId: sheetData.id || '',
+              name: campaignName,
+              campaignName: campaignName,
+              adGroupName: adGroupName,
+              keywords: keywords.join(', '),
+              titles: ['', '', ''],
+              descriptions: ['', ''],
+              finalUrls: [''],
+              displayPaths: ['', ''],
+              targetedKeywords: keywords.join(', '),
+              negativeKeywords: '',
+              targetedAudiences: '',
+              adExtensions: '',
+              lastModified: sheetData.lastModified || new Date().toISOString(),
+              clientInfo: sheetData.clientInfo || null,
+              context: '',
+              adGroups: [{
+                name: adGroupName,
+                keywords: keywords.length > 0 ? keywords : [""],
+                context: ""
+              }]
             });
           }
         });
-        
-        campaigns.push({
-          name: campaignName,
-          adGroups,
-          context: ""
-        });
+        campaignCounter++;
       });
       
       console.log(`Extraction terminée: ${campaigns.length} campagnes générées`);
-      return campaigns.length > 0 ? campaigns : this.getDefaultCampaign();
+      return campaigns.length > 0 ? campaigns : this.getDefaultCampaign(sheetData.id || '');
     } catch (error) {
       console.error("Erreur lors de l'extraction des campagnes:", error);
-      return this.getDefaultCampaign();
+      return this.getDefaultCampaign(sheetData.id || '');
     }
   }
 
@@ -122,9 +133,24 @@ class CampaignExtractorService {
   /**
    * Get a default campaign structure
    */
-  private getDefaultCampaign(): Campaign[] {
+  private getDefaultCampaign(sheetId: string): Campaign[] {
     return [{
+      id: `${sheetId}-default-campaign`,
+      sheetId: sheetId,
       name: "",
+      campaignName: "",
+      adGroupName: "",
+      keywords: "",
+      titles: ["", "", ""],
+      descriptions: ["", ""],
+      finalUrls: [""],
+      displayPaths: ["", ""],
+      targetedKeywords: "",
+      negativeKeywords: "",
+      targetedAudiences: "",
+      adExtensions: "",
+      lastModified: new Date().toISOString(),
+      clientInfo: null,
       context: "",
       adGroups: [{
         name: "",

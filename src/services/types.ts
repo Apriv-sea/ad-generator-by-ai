@@ -26,7 +26,7 @@ export interface Campaign {
   targetedAudiences: string;
   adExtensions: string;
   lastModified: string;
-  clientInfo?: Client | null;
+  clientInfo?: import('./types/client').Client | null;
   adGroups?: AdGroup[];
   context?: string;
 }
