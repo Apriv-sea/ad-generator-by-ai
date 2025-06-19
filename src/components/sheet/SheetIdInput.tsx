@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FileSpreadsheet, Info } from "lucide-react";
+import { FileSpreadsheet, Info, Settings } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserId } from "@/services/utils/supabaseUtils";
 
 interface SheetIdInputProps {
   onSheetLoaded: (sheetId: string, data: any) => void;
@@ -20,12 +22,10 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
   const extractSheetId = (input: string): string | null => {
     const trimmed = input.trim();
     
-    // Si c'est déjà juste un ID (pas d'URL)
     if (!trimmed.includes('docs.google.com') && !trimmed.includes('http')) {
       return trimmed;
     }
     
-    // Extraction depuis l'URL complète
     const match = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     return match ? match[1] : null;
   };
@@ -34,10 +34,34 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
     return /^[a-zA-Z0-9-_]{40,}$/.test(sheetId);
   };
 
+  const getGoogleApiKey = async (): Promise<string | null> => {
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) return null;
+
+      const { data, error } = await supabase
+        .from('api_keys')
+        .select('api_key')
+        .eq('user_id', userId)
+        .eq('service', 'google')
+        .maybeSingle();
+
+      if (error || !data) return null;
+      return data.api_key;
+    } catch (error) {
+      console.error('Erreur lors de la récupération de la clé API:', error);
+      return null;
+    }
+  };
+
   const getSheetData = async (sheetId: string): Promise<any> => {
-    const range = 'Sheet1';
-    const apiKey = 'AIzaSyBvOyisPCYH8IuFK-HuQUQy_MXA5UL6GSQ';
+    const apiKey = await getGoogleApiKey();
     
+    if (!apiKey) {
+      throw new Error('Clé API Google non configurée. Veuillez ajouter votre clé API Google dans les paramètres.');
+    }
+
+    const range = 'Sheet1';
     const baseUrl = 'https://sheets.googleapis.com/v4/spreadsheets';
     const url = `${baseUrl}/${encodeURIComponent(sheetId)}/values/${encodeURIComponent(range)}?key=${apiKey}`;
     
@@ -80,7 +104,12 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
   };
 
   const getSheetInfo = async (sheetId: string): Promise<any> => {
-    const apiKey = 'AIzaSyBvOyisPCYH8IuFK-HuQUQy_MXA5UL6GSQ';
+    const apiKey = await getGoogleApiKey();
+    
+    if (!apiKey) {
+      throw new Error('Clé API Google non configurée.');
+    }
+
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}?key=${apiKey}`;
     
     const response = await fetch(url);
@@ -141,8 +170,14 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
       
     } catch (error) {
       console.error('Erreur lors du chargement:', error);
-      toast.error(error.message || 'Erreur lors du chargement de la feuille');
-      setDebugInfo(`❌ Erreur: ${error.message}`);
+      
+      if (error.message?.includes('Clé API Google non configurée')) {
+        toast.error('Veuillez configurer votre clé API Google dans les paramètres');
+        setDebugInfo('❌ Clé API Google manquante');
+      } else {
+        toast.error(error.message || 'Erreur lors du chargement de la feuille');
+        setDebugInfo(`❌ Erreur: ${error.message}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -152,6 +187,10 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
     const userSheetId = '1uawoG2RorJDRrWtdLHEe9AD7sIoRWmp9h_vAAtr5vVI';
     setInput(userSheetId);
     setDebugInfo('🎯 ID utilisateur prêt pour le test');
+  };
+
+  const goToSettings = () => {
+    window.location.href = '/settings';
   };
 
   return (
@@ -166,8 +205,9 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            <strong>Comment rendre votre feuille accessible :</strong>
+            <strong>Prérequis :</strong>
             <ol className="list-decimal list-inside mt-2 space-y-1 text-sm">
+              <li>Configurez votre clé API Google dans les paramètres</li>
               <li>Ouvrez votre Google Sheets</li>
               <li>Cliquez sur "Partager" en haut à droite</li>
               <li>Changez l'accès en "Visible par toute personne ayant le lien"</li>
@@ -211,6 +251,14 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
             size="sm"
           >
             Test ID utilisateur
+          </Button>
+
+          <Button 
+            onClick={goToSettings}
+            variant="outline"
+            size="sm"
+          >
+            <Settings className="h-4 w-4" />
           </Button>
         </div>
 
