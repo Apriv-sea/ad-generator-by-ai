@@ -1,3 +1,4 @@
+
 import React from "react";
 import { 
   Table, 
@@ -7,7 +8,7 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Campaign } from "@/services/googleSheetsService";
+import { Campaign } from "@/services/types";
 import { useCampaignTable } from "@/hooks/useCampaignTable";
 import CampaignTableHeader from "./CampaignTableHeader";
 import CampaignTableRow from "./CampaignTableRow";

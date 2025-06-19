@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Trash, PlusCircle } from "lucide-react";
 import AdGroupForm from "./AdGroupForm";
-import { Campaign } from "@/services/googleSheetsService";
+import { Campaign } from "@/services/types";
 
 interface CampaignFormProps {
   campaign: Campaign;

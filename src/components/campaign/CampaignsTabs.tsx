@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sheet } from "@/services/googleSheetsService";
+import { Sheet } from "@/services/types";
 import SheetsTab from "./SheetsTab";
 import EditorTab from "./EditorTab";
 

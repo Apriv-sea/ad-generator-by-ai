@@ -13,7 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { sheetService, Client } from "@/services/googleSheetsService";
+import { sheetService, Client } from "@/services/sheetService";
 import ClientSelector from "./ClientSelector";
 import { getClients } from "@/services/clientQuery";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -121,14 +121,14 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
         <DialogHeader>
           <DialogTitle>Créer un nouveau projet</DialogTitle>
           <DialogDescription>
-            Créez un projet local que vous pourrez connecter à vos Google Sheets
+            Créez un projet local que vous pourrez connecter à vos feuilles CryptPad
           </DialogDescription>
         </DialogHeader>
 
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            Un projet vous permet d'organiser vos campagnes. Vous pourrez ensuite connecter vos Google Sheets à ce projet.
+            Un projet vous permet d'organiser vos campagnes. Vous pourrez ensuite connecter vos feuilles CryptPad à ce projet.
           </AlertDescription>
         </Alert>
 
@@ -139,10 +139,9 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
             </Label>
             <div className="col-span-3">
               <ClientSelector
-                clients={clients}
-                selectedClient={selectedClient}
-                onClientSelect={handleClientSelect}
-                isLoading={isLoadingClients}
+                selectedClientId={selectedClient}
+                onClientSelect={(client) => handleClientSelect(client.id, client)}
+                showCreateOption={true}
               />
             </div>
           </div>

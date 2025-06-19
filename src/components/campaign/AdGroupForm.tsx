@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Trash } from "lucide-react";
 import KeywordsInput from "./KeywordsInput";
-import { AdGroup } from "@/services/googleSheetsService";
+import { AdGroup } from "@/services/types";
 
 interface AdGroupFormProps {
   adGroup: AdGroup;

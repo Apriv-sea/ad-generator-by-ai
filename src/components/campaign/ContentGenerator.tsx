@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Sheet, Client } from "@/services/googleSheetsService";
+import { Sheet, Client } from "@/services/types";
 import { Card, CardContent } from "@/components/ui/card";
 import CampaignExtractor from "./CampaignExtractor";
 import ContentGeneratorHeader from "./ContentGeneratorHeader";

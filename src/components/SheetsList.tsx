@@ -3,7 +3,7 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Sheet } from "@/services/googleSheetsService";
+import { Sheet } from "@/services/types";
 import { FileSpreadsheet, Trash } from "lucide-react";
 import { toast } from "sonner";
 

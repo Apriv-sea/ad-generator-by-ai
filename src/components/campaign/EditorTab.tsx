@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sheet } from "@/services/googleSheetsService";
+import { Sheet } from "@/services/types";
 import CampaignManager from "@/components/CampaignManager";
 import { FileSpreadsheet } from "lucide-react";
 

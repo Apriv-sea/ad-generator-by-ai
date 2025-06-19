@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sheet } from "@/services/googleSheetsService";
+import { Sheet } from "@/services/types";
 import ClientInfoCard from "./campaign/ClientInfoCard";
 import LoadingState from "./campaign/LoadingState";
 import EmptyState from "./campaign/EmptyState";
@@ -51,7 +51,7 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
       <Tabs defaultValue="extraction" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="extraction">Extraction de campagnes</TabsTrigger>
-          <TabsTrigger value="spreadsheet">Google Sheets</TabsTrigger>
+          <TabsTrigger value="spreadsheet">CryptPad</TabsTrigger>
           <TabsTrigger value="content">Génération de contenu</TabsTrigger>
         </TabsList>
         
@@ -67,7 +67,7 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
         <TabsContent value="spreadsheet" className="space-y-4">
           <Card>
             <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-4">Tableur Google Sheets</h2>
+              <h2 className="text-xl font-semibold mb-4">Feuille CryptPad</h2>
               <SpreadsheetSaver 
                 sheet={sheet}
                 sheetData={sheetData}

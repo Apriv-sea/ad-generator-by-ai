@@ -2,20 +2,18 @@
 import { useState, useCallback } from 'react';
 import { WorkflowDefinition, WorkflowExecution } from '@/services/workflow/types';
 import { workflowEngine } from '@/services/workflow/WorkflowEngine';
-import { SheetValidationStep } from '@/services/workflow/steps/SheetValidationStep';
 
 export function useWorkflow() {
   const [currentExecution, setCurrentExecution] = useState<WorkflowExecution | null>(null);
   const [isRunning, setIsRunning] = useState(false);
 
-  const createGoogleSheetsWorkflow = (): WorkflowDefinition => {
+  const createCryptPadWorkflow = (): WorkflowDefinition => {
     return {
-      id: 'google-sheets-ai-workflow',
-      name: 'Workflow Google Sheets → IA',
-      description: 'Extraction, traitement et génération de contenu via IA',
+      id: 'cryptpad-ai-workflow',
+      name: 'Workflow CryptPad → IA',
+      description: 'Extraction, traitement et génération de contenu via IA avec CryptPad',
       steps: [
-        new SheetValidationStep(),
-        // Les autres étapes seront ajoutées progressivement
+        // Les étapes seront ajoutées progressivement
       ]
     };
   };
@@ -23,7 +21,7 @@ export function useWorkflow() {
   const executeWorkflow = useCallback(async (initialInput: any) => {
     setIsRunning(true);
     try {
-      const workflow = createGoogleSheetsWorkflow();
+      const workflow = createCryptPadWorkflow();
       const execution = await workflowEngine.executeWorkflow(workflow, initialInput);
       setCurrentExecution(execution);
       return execution;
@@ -41,6 +39,6 @@ export function useWorkflow() {
     isRunning,
     executeWorkflow,
     getExecutionStatus,
-    createGoogleSheetsWorkflow
+    createCryptPadWorkflow
   };
 }

@@ -67,21 +67,21 @@ export const useContentGeneration = ({
         // Utiliser le service amélioré pour générer du contenu
         const result = await enhancedContentGenerationService.generateContent(
           {
+            model: selectedModel,
             clientContext,
             campaignContext: campaign,
             adGroupContext: adGroup,
             keywords: keywords.slice(0, 3)
-          },
-          selectedModel
+          }
         );
 
-        if (result.success && result.content) {
+        if (result.success && result.titles && result.descriptions) {
           // Mettre à jour la ligne avec le contenu généré
           const updatedRow = [...row];
           
           // Colonnes pour les titres (index 3, 4, 5)
-          if (result.content.titles && result.content.titles.length > 0) {
-            result.content.titles.slice(0, 3).forEach((title, idx) => {
+          if (result.titles && result.titles.length > 0) {
+            result.titles.slice(0, 3).forEach((title, idx) => {
               if (title && title.trim()) {
                 updatedRow[3 + idx] = title.trim();
               }
@@ -89,8 +89,8 @@ export const useContentGeneration = ({
           }
 
           // Colonnes pour les descriptions (index 6, 7)  
-          if (result.content.descriptions && result.content.descriptions.length > 0) {
-            result.content.descriptions.slice(0, 2).forEach((desc, idx) => {
+          if (result.descriptions && result.descriptions.length > 0) {
+            result.descriptions.slice(0, 2).forEach((desc, idx) => {
               if (desc && desc.trim()) {
                 updatedRow[6 + idx] = desc.trim();
               }

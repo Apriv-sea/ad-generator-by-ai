@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
-import SheetValidationStep from './steps/SheetValidationStep';
 import DataPreviewStep from './steps/DataPreviewStep';
 import AIModelSelectionStep from './steps/AIModelSelectionStep';
 import ResultMappingStep from './steps/ResultMappingStep';
@@ -18,11 +17,6 @@ const WorkflowWizard: React.FC<WorkflowWizardProps> = ({ onComplete }) => {
   const [stepData, setStepData] = useState<Record<string, any>>({});
 
   const steps = [
-    {
-      id: 'sheet-validation',
-      title: 'Configuration de la feuille',
-      component: SheetValidationStep
-    },
     {
       id: 'data-preview',
       title: 'Aperçu des données',

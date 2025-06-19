@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sheet } from "@/services/googleSheetsService";
+import { Sheet } from "@/services/types";
 import SheetsList from "@/components/SheetsList";
 import CreateSheetDialog from "@/components/CreateSheetDialog";
 import { RefreshCw } from "lucide-react";
