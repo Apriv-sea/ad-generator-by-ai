@@ -1,20 +1,18 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, Settings } from "lucide-react";
+import { FileSpreadsheet, ExternalLink } from "lucide-react";
 
-interface SheetActionButtonsProps {
+interface CryptPadActionButtonsProps {
   onSubmit: () => void;
-  onTestUserSheet: () => void;
-  onGoToSettings: () => void;
+  onOpenCryptPad: () => void;
   isLoading: boolean;
   hasInput: boolean;
 }
 
-const SheetActionButtons: React.FC<SheetActionButtonsProps> = ({
+const CryptPadActionButtons: React.FC<CryptPadActionButtonsProps> = ({
   onSubmit,
-  onTestUserSheet,
-  onGoToSettings,
+  onOpenCryptPad,
   isLoading,
   hasInput
 }) => {
@@ -39,22 +37,15 @@ const SheetActionButtons: React.FC<SheetActionButtonsProps> = ({
       </Button>
       
       <Button 
-        onClick={onTestUserSheet}
+        onClick={onOpenCryptPad}
         variant="outline"
         size="sm"
       >
-        Test ID utilisateur
-      </Button>
-
-      <Button 
-        onClick={onGoToSettings}
-        variant="outline"
-        size="sm"
-      >
-        <Settings className="h-4 w-4" />
+        <ExternalLink className="h-4 w-4 mr-2" />
+        Ouvrir CryptPad
       </Button>
     </div>
   );
 };
 
-export default SheetActionButtons;
+export default CryptPadActionButtons;

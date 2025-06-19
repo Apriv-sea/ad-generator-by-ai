@@ -2,36 +2,37 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Sheet } from "@/services/googleSheetsService";
-import SheetIdInput from './SheetIdInput';
+import { Sheet } from "@/services/types";
+import CryptPadIdInput from './CryptPadIdInput';
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ExternalLink } from "lucide-react";
+import { cryptpadService } from "@/services/cryptpad/cryptpadService";
 
-interface GoogleSheetsEmbedProps {
+interface CryptPadEmbedProps {
   sheetUrl?: string;
   onSheetUrlChange: (url: string) => void;
   sheet?: Sheet;
 }
 
-const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
+const CryptPadEmbed: React.FC<CryptPadEmbedProps> = ({
   sheetUrl,
   onSheetUrlChange,
   sheet
 }) => {
   const [sheetData, setSheetData] = useState<any>(null);
-  const [currentSheetId, setCurrentSheetId] = useState<string | null>(null);
+  const [currentPadId, setCurrentPadId] = useState<string | null>(null);
 
-  const handleSheetLoaded = (sheetId: string, data: any) => {
+  const handleSheetLoaded = (padId: string, data: any) => {
     setSheetData(data);
-    setCurrentSheetId(sheetId);
-    onSheetUrlChange(`https://docs.google.com/spreadsheets/d/${sheetId}/edit`);
-    toast.success("Feuille connectée avec succès");
+    setCurrentPadId(padId);
+    onSheetUrlChange(`https://cryptpad.fr/sheet/#/2/sheet/edit/${padId}`);
+    toast.success("Feuille CryptPad connectée avec succès");
   };
 
   const openInNewTab = () => {
-    if (currentSheetId) {
-      window.open(`https://docs.google.com/spreadsheets/d/${currentSheetId}/edit`, '_blank');
+    if (currentPadId) {
+      window.open(`https://cryptpad.fr/sheet/#/2/sheet/edit/${currentPadId}`, '_blank');
     }
   };
 
@@ -39,7 +40,7 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
     return (
       <Card>
         <CardContent className="p-6">
-          <SheetIdInput onSheetLoaded={handleSheetLoaded} />
+          <CryptPadIdInput onSheetLoaded={handleSheetLoaded} />
         </CardContent>
       </Card>
     );
@@ -54,7 +55,7 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold">{sheetData.info?.title || 'Feuille Google Sheets'}</h3>
+              <h3 className="text-lg font-semibold">{sheetData.info?.title || 'Feuille CryptPad'}</h3>
               <p className="text-sm text-muted-foreground">
                 {rows.length} lignes de données • {headers.length} colonnes
               </p>
@@ -62,7 +63,7 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
             
             <Button variant="outline" size="sm" onClick={openInNewTab}>
               <ExternalLink className="h-4 w-4 mr-2" />
-              Ouvrir dans Google Sheets
+              Ouvrir dans CryptPad
             </Button>
           </div>
 
@@ -101,7 +102,7 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
             variant="outline" 
             onClick={() => {
               setSheetData(null);
-              setCurrentSheetId(null);
+              setCurrentPadId(null);
             }}
           >
             Changer de feuille
@@ -112,4 +113,4 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
   );
 };
 
-export default GoogleSheetsEmbed;
+export default CryptPadEmbed;

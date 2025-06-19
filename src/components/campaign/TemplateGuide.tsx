@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { ExternalLink, Download, FileSpreadsheet } from "lucide-react";
+import { ExternalLink, FileSpreadsheet } from "lucide-react";
 import ClientSelector from "./ClientSelector";
 import { Client } from "@/services/types";
 
@@ -18,11 +18,9 @@ const TemplateGuide: React.FC<TemplateGuideProps> = ({ onSheetUrlSubmitted }) =>
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const templateUrl = "https://docs.google.com/spreadsheets/d/1uawoG2RorJDnWtdLHEe9AD7sloRWmp9h_vAAtr5vVJedit/edit#gid=0";
-
   const handleSubmit = async () => {
     if (!sheetUrl.trim()) {
-      toast.error("Veuillez saisir l'URL de votre feuille Google Sheets");
+      toast.error("Veuillez saisir l'URL de votre feuille CryptPad");
       return;
     }
 
@@ -43,33 +41,28 @@ const TemplateGuide: React.FC<TemplateGuideProps> = ({ onSheetUrlSubmitted }) =>
         <CardHeader>
           <CardTitle className="flex items-center">
             <FileSpreadsheet className="h-5 w-5 mr-2" />
-            Étape 1: Copier le template
+            Étape 1: Créer votre feuille CryptPad
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Commencez par faire une copie du template Google Sheets pour vos campagnes publicitaires.
+            Créez une nouvelle feuille de calcul sur CryptPad pour vos campagnes publicitaires.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
-              onClick={() => window.open(templateUrl, '_blank')}
+              onClick={() => window.open('https://cryptpad.fr/sheet/', '_blank')}
               className="flex items-center"
             >
               <ExternalLink className="h-4 w-4 mr-2" />
-              Ouvrir le template
-            </Button>
-            
-            <Button variant="outline" className="flex items-center">
-              <Download className="h-4 w-4 mr-2" />
-              Fichier → Faire une copie
+              Créer une feuille CryptPad
             </Button>
           </div>
           
           <div className="bg-blue-50 p-3 rounded-lg">
             <p className="text-sm font-medium text-blue-900">💡 Conseil</p>
             <p className="text-sm text-blue-800">
-              Renommez votre copie avec un nom descriptif, par exemple "Campagnes - [Nom du client]"
+              Utilisez les colonnes: Nom de la campagne, Nom du groupe d'annonces, Top 3 mots-clés, Titre 1, Titre 2, Titre 3, Description 1, Description 2
             </p>
           </div>
         </CardContent>
@@ -87,21 +80,21 @@ const TemplateGuide: React.FC<TemplateGuideProps> = ({ onSheetUrlSubmitted }) =>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="sheet-url">URL de votre feuille Google Sheets</Label>
+            <Label htmlFor="sheet-url">URL de votre feuille CryptPad</Label>
             <Input
               id="sheet-url"
               type="url"
-              placeholder="https://docs.google.com/spreadsheets/d/..."
+              placeholder="https://cryptpad.fr/sheet/#/2/sheet/edit/..."
               value={sheetUrl}
               onChange={(e) => setSheetUrl(e.target.value)}
             />
           </div>
           
-          <div className="bg-amber-50 p-3 rounded-lg">
-            <p className="text-sm font-medium text-amber-900">⚠️ Permissions requises</p>
-            <p className="text-sm text-amber-800">
-              Assurez-vous que votre feuille est accessible à "Toute personne ayant le lien" 
-              ou partagée avec notre application.
+          <div className="bg-green-50 p-3 rounded-lg">
+            <p className="text-sm font-medium text-green-900">🔒 Sécurité</p>
+            <p className="text-sm text-green-800">
+              CryptPad offre un chiffrement de bout en bout pour protéger vos données.
+              Vos campagnes restent privées et sécurisées.
             </p>
           </div>
 

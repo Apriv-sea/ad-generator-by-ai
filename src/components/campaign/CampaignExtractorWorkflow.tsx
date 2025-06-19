@@ -102,7 +102,7 @@ const CampaignExtractorWorkflow: React.FC<CampaignExtractorWorkflowProps> = ({
       {/* État des données */}
       <Card>
         <CardHeader>
-          <CardTitle>Analyse de la feuille Google Sheets</CardTitle>
+          <CardTitle>Analyse de la feuille CryptPad</CardTitle>
         </CardHeader>
         <CardContent>
           <div className={`p-4 rounded-lg ${dataStatus.bg}`}>

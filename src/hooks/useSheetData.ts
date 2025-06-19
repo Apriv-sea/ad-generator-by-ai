@@ -1,9 +1,9 @@
 
 import { useState, useEffect } from "react";
-import { Sheet, Client } from "@/services/googleSheetsService";
+import { Sheet, Client } from "@/services/types";
 import { getClientInfo } from "@/services/clientService";
 import { toast } from "sonner";
-import { publicSheetsService } from "@/services/google/publicSheetsService";
+import { cryptpadService } from "@/services/cryptpad/cryptpadService";
 
 export function useSheetData(sheet: Sheet | null) {
   const [clientInfo, setClientInfo] = useState<Client | null>(null);
@@ -38,10 +38,10 @@ export function useSheetData(sheet: Sheet | null) {
         return;
       }
 
-      // Pour les feuilles Google Sheets, utiliser l'API publique
-      console.log("✅ Récupération des données via l'API publique Google Sheets...");
+      // Pour les feuilles CryptPad, utiliser le service
+      console.log("✅ Récupération des données via CryptPad...");
       
-      const data = await publicSheetsService.getSheetData(sheet.id);
+      const data = await cryptpadService.getSheetData(sheet.id);
       
       if (data && data.values && data.values.length > 0) {
         console.log(`📊 Données chargées:`, {
@@ -54,21 +54,13 @@ export function useSheetData(sheet: Sheet | null) {
         toast.success(`Données chargées avec succès (${data.values.length} lignes)`);
       } else {
         console.log("❌ Aucune donnée trouvée dans la feuille");
-        toast.error("Aucune donnée trouvée dans la feuille. Vérifiez que votre feuille contient des données et qu'elle est partagée publiquement.");
+        toast.error("Aucune donnée trouvée dans la feuille. Vérifiez que votre feuille contient des données.");
         setSheetData([]);
       }
       
     } catch (error) {
       console.error("❌ Erreur lors du chargement des données:", error);
-      
-      if (error.message?.includes('403')) {
-        toast.error("Feuille non accessible. Assurez-vous qu'elle est partagée publiquement.");
-      } else if (error.message?.includes('404')) {
-        toast.error("Feuille introuvable. Vérifiez l'ID de la feuille.");
-      } else {
-        toast.error("Impossible de charger les données de la feuille.");
-      }
-      
+      toast.error("Impossible de charger les données de la feuille.");
       setSheetData([]);
     } finally {
       setIsLoading(false);

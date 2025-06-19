@@ -1,6 +1,5 @@
-
-import { publicSheetsService } from '@/services/google/publicSheetsService';
-import { type Sheet, type Client, type Campaign, type AdGroup } from '../types';
+import { cryptpadService } from './cryptpadService';
+import { type Sheet, type Client, type Campaign } from '../types';
 
 export const VALIDATED_COLUMNS = [
   'Nom de la campagne',
@@ -23,13 +22,14 @@ export const VALIDATED_COLUMNS = [
   'Extensions d\'annonces'
 ];
 
-class ConsolidatedSheetService {
-  // Créer une feuille fictive (plus besoin de créer via API)
+class CryptPadSheetService {
+  // Créer une feuille
   async createSheet(name: string, clientInfo?: Client): Promise<Sheet> {
-    // Simuler la création d'une feuille avec un ID généré
+    const cryptpadSheet = await cryptpadService.createPad(name);
+    
     const sheet: Sheet = {
-      id: `sheet_${Date.now()}`,
-      name,
+      id: cryptpadSheet.id,
+      name: cryptpadSheet.name,
       lastModified: new Date().toISOString(),
       clientId: clientInfo?.id
     };
@@ -55,7 +55,7 @@ class ConsolidatedSheetService {
     return true;
   }
 
-  // Récupérer les données d'une feuille via l'API publique
+  // Récupérer les données d'une feuille
   async getSheetData(sheetId: string): Promise<any> {
     // Si c'est un ID de feuille local, retourner les données stockées
     if (sheetId.startsWith('sheet_')) {
@@ -63,24 +63,19 @@ class ConsolidatedSheetService {
       return storedData ? JSON.parse(storedData) : null;
     }
 
-    // Sinon, utiliser l'API publique Google Sheets
-    return await publicSheetsService.getSheetData(sheetId);
+    // Sinon, utiliser le service CryptPad
+    return await cryptpadService.getSheetData(sheetId);
   }
 
-  // Stocker les données d'une feuille connectée
-  async connectSheet(sheetId: string, data: any): Promise<void> {
-    localStorage.setItem(`sheet_data_${sheetId}`, JSON.stringify(data));
-  }
-
-  // Écrire des données dans une feuille (seulement local maintenant)
+  // Écrire des données dans une feuille
   async writeSheetData(sheetId: string, data: any[][]): Promise<boolean> {
     if (sheetId.startsWith('sheet_')) {
       localStorage.setItem(`sheet_data_${sheetId}`, JSON.stringify({ values: data }));
       return true;
     }
     
-    // Pour les feuilles Google réelles, on ne peut plus écrire
-    throw new Error('Impossible d\'écrire dans une feuille Google Sheets en mode lecture seule');
+    // Pour les feuilles CryptPad réelles
+    return await cryptpadService.saveSheetData(sheetId, data);
   }
 
   // Obtenir les informations client d'une feuille
@@ -159,4 +154,4 @@ class ConsolidatedSheetService {
   }
 }
 
-export const consolidatedSheetService = new ConsolidatedSheetService();
+export const cryptpadSheetService = new CryptPadSheetService();

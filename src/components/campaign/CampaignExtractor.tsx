@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sheet, Campaign } from "@/services/googleSheetsService";
+import { Sheet, Campaign } from "@/services/sheetService";
 import { toast } from "sonner";
 import CampaignTable from "./CampaignTable";
 import { ArrowRight, AlertCircle, RefreshCw, CheckCircle } from "lucide-react";
@@ -46,7 +46,7 @@ const CampaignExtractor: React.FC<CampaignExtractorProps> = ({
           return; // L'extraction se relancera automatiquement quand les données seront chargées
         }
         
-        toast.error("Aucune donnée disponible. Veuillez d'abord vous connecter à Google Sheets et vérifier que votre feuille contient des données.");
+        toast.error("Aucune donnée disponible. Veuillez d'abord vous connecter à CryptPad et vérifier que votre feuille contient des données.");
         return;
       }
 
@@ -117,7 +117,6 @@ const CampaignExtractor: React.FC<CampaignExtractorProps> = ({
         <CardTitle>Extraire les campagnes</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Informations de diagnostic améliorées */}
         <div className={`text-sm p-3 rounded-lg ${dataStatus.bg}`}>
           <div className="flex items-start space-x-2">
             <StatusIcon className={`h-4 w-4 mt-0.5 ${dataStatus.color}`} />
@@ -144,9 +143,9 @@ const CampaignExtractor: React.FC<CampaignExtractorProps> = ({
                 <div className="space-y-1 text-sm">
                   <p>Problème de données détecté:</p>
                   <ul className="list-disc list-inside space-y-1 ml-2">
-                    <li>Vérifiez que vous êtes connecté à Google Sheets (onglet "Google Sheets")</li>
+                    <li>Vérifiez que vous êtes connecté à CryptPad</li>
                     <li>Assurez-vous que votre feuille contient des données</li>
-                    <li>Vérifiez que l'onglet s'appelle "Campagnes publicitaires" ou "Campagnes"</li>
+                    <li>Vérifiez que l'onglet contient vos campagnes</li>
                   </ul>
                 </div>
               </div>

@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Sheet, Client, sheetService } from "@/services/googleSheetsService";
+import { Sheet, Client, sheetService } from "@/services/sheetService";
 import { enhancedContentGenerationService } from "@/services/content/enhancedContentGenerationService";
 
 interface UseContentGenerationProps {
@@ -48,7 +48,6 @@ export const useContentGeneration = ({
       const headers = sheetData[0];
       const dataRows = sheetData.slice(1);
       let updatedRows = [...dataRows];
-      let rowIndex = 2; // Commencer à la ligne 2 (après les en-têtes)
 
       // Créer un backup des données actuelles
       const backupData = JSON.parse(JSON.stringify(sheetData));
@@ -71,86 +70,59 @@ export const useContentGeneration = ({
             clientContext,
             campaignContext: campaign,
             adGroupContext: adGroup,
-            keywords,
-            model: selectedModel
+            keywords: keywords.slice(0, 3)
           },
-          sheet.id,
-          backupData,
-          {
-            validateContent: true,
-            saveToHistory: true,
-            createBackup: i === 0, // Créer un backup seulement pour la première ligne
-            autoCleanContent: true,
-            maxRegenerateAttempts: 1 // Limiter pour éviter les timeouts
-          }
+          selectedModel
         );
 
-        if (!result.success) {
-          console.error(`Échec de génération pour ${campaign} > ${adGroup}`);
-          continue;
-        }
-
-        // Mettre à jour la ligne avec les titres et descriptions générés
-        const updatedRow = [...row];
-        
-        // Ajouter les titres aux colonnes 3 à 12
-        result.titles.forEach((title, index) => {
-          if (index < 10) updatedRow[index + 3] = title;
-        });
-        
-        // Ajouter les descriptions aux colonnes 13 à 17
-        result.descriptions.forEach((desc, index) => {
-          if (index < 5) updatedRow[index + 13] = desc;
-        });
-        
-        updatedRows[i] = updatedRow;
-        
-        // Mettre à jour le tableau en temps réel
-        try {
-          const range = `Campagnes publicitaires!A${rowIndex}:R${rowIndex}`;
-          await sheetService.writeSheetData(sheet.id, range, [updatedRow]);
-        } catch (writeError) {
-          console.error("Erreur d'écriture dans le sheet:", writeError);
-          // Continuer même si l'écriture échoue
-        }
-        
-        rowIndex++;
-
-        // Afficher les résultats de validation s'il y en a
-        if (result.validationResults) {
-          const warnings = [
-            ...result.validationResults.titles.warnings,
-            ...result.validationResults.descriptions.warnings
-          ];
+        if (result.success && result.content) {
+          // Mettre à jour la ligne avec le contenu généré
+          const updatedRow = [...row];
           
-          if (warnings.length > 0) {
-            console.log(`Avertissements pour ${campaign} > ${adGroup}:`, warnings);
+          // Colonnes pour les titres (index 3, 4, 5)
+          if (result.content.titles && result.content.titles.length > 0) {
+            result.content.titles.slice(0, 3).forEach((title, idx) => {
+              if (title && title.trim()) {
+                updatedRow[3 + idx] = title.trim();
+              }
+            });
           }
+
+          // Colonnes pour les descriptions (index 6, 7)  
+          if (result.content.descriptions && result.content.descriptions.length > 0) {
+            result.content.descriptions.slice(0, 2).forEach((desc, idx) => {
+              if (desc && desc.trim()) {
+                updatedRow[6 + idx] = desc.trim();
+              }
+            });
+          }
+
+          updatedRows[i] = updatedRow;
         }
       }
+
+      // Mettre à jour les données dans l'état et sauvegarder
+      const newSheetData = [headers, ...updatedRows];
+      setSheetData(newSheetData);
       
-      // Mettre à jour les données du tableur localement
-      setSheetData([headers, ...updatedRows]);
+      // Sauvegarder dans CryptPad
+      await sheetService.writeSheetData(sheet.id, newSheetData);
       
-      // Afficher les statistiques
-      const stats = enhancedContentGenerationService.getStatsForSheet(sheet.id);
-      console.log("Statistiques de génération:", stats);
-      
-      toast.success(`Contenu généré avec succès ! ${stats.totalGenerations} générations au total.`);
+      toast.success("Contenu généré et sauvegardé avec succès !");
       onUpdateComplete();
       
     } catch (error) {
-      console.error("Erreur lors de la génération du contenu:", error);
-      toast.error(`Erreur lors de la génération du contenu: ${error.message}`);
+      console.error("Erreur lors de la génération:", error);
+      toast.error("Erreur lors de la génération du contenu");
     } finally {
       setIsSaving(false);
     }
   };
 
   return {
+    generateContent,
     isSaving,
     selectedModel,
-    setSelectedModel,
-    generateContent
+    setSelectedModel
   };
 };
