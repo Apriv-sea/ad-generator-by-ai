@@ -19,12 +19,12 @@ export function useCampaignTable(
 
   // Convert campaigns to table data
   const tableData: TableRow[] = campaigns.flatMap((campaign) =>
-    campaign.adGroups.map((adGroup, index) => ({
+    campaign.adGroups?.map((adGroup, index) => ({
       id: `${campaign.id}-${index}`,
-      campaign: campaign.name,
+      campaign: campaign.campaignName || campaign.name || '',
       adGroup: adGroup.name,
       keywords: adGroup.keywords.join(", ")
-    }))
+    })) || []
   );
 
   const handleCellChange = useCallback((rowIndex: number, field: keyof TableRow, value: string) => {
@@ -41,9 +41,22 @@ export function useCampaignTable(
   }, [handleCellChange]);
 
   const addRow = useCallback(() => {
-    // Add a new campaign with empty data
+    // Add a new campaign with correct Campaign interface
     const newCampaign: Campaign = {
       id: `campaign-${Date.now()}`,
+      sheetId: '',
+      campaignName: "",
+      adGroupName: "",
+      keywords: "",
+      titles: [],
+      descriptions: [],
+      finalUrls: [],
+      displayPaths: [],
+      targetedKeywords: "",
+      negativeKeywords: "",
+      targetedAudiences: "",
+      adExtensions: "",
+      lastModified: new Date().toISOString(),
       name: "",
       context: "",
       adGroups: [{
@@ -77,6 +90,19 @@ export function useCampaignTable(
         const [campaign, adGroup, keywords] = line.split('\t');
         return {
           id: `bulk-${Date.now()}-${index}`,
+          sheetId: '',
+          campaignName: campaign || `Campagne ${index + 1}`,
+          adGroupName: adGroup || `Groupe ${index + 1}`,
+          keywords: keywords || "",
+          titles: [],
+          descriptions: [],
+          finalUrls: [],
+          displayPaths: [],
+          targetedKeywords: "",
+          negativeKeywords: "",
+          targetedAudiences: "",
+          adExtensions: "",
+          lastModified: new Date().toISOString(),
           name: campaign || `Campagne ${index + 1}`,
           context: "",
           adGroups: [{

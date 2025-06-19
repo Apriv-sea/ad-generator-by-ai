@@ -7,7 +7,6 @@ import { Progress } from "@/components/ui/progress";
 import { Wand2, CheckCircle, AlertCircle } from "lucide-react";
 import { Campaign, Client } from "@/services/types";
 import { enhancedContentGenerationService } from "@/services/content/enhancedContentGenerationService";
-import { publicSheetsService } from "@/services/google/publicSheetsService";
 import { toast } from "sonner";
 import ModelSelector from "./ModelSelector";
 
@@ -204,7 +203,7 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
             <Alert>
               <CheckCircle className="h-4 w-4" />
               <AlertDescription>
-                ✅ Génération terminée avec succès ! Le contenu a été intégré dans votre feuille Google Sheets.
+                ✅ Génération terminée avec succès ! Le contenu a été intégré dans votre feuille CryptPad.
                 <br/>
                 <span className="text-sm text-gray-600">
                   Vous pouvez maintenant consulter votre feuille pour voir les titres et descriptions générés.

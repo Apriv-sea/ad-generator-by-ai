@@ -67,12 +67,14 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
     setSelectedClient(clientId);
     if (client) {
       setSelectedClientData(client);
-    }
-    
-    // Mettre à jour le nom de la feuille en fonction du client sélectionné
-    const selectedClientName = clients.find(client => client.id === clientId)?.name;
-    if (selectedClientName) {
-      setSheetName(`Campagne - ${selectedClientName}`);
+      setSheetName(`Campagne - ${client.name}`);
+    } else {
+      // Trouver le client dans la liste
+      const foundClient = clients.find(c => c.id === clientId);
+      if (foundClient) {
+        setSelectedClientData(foundClient);
+        setSheetName(`Campagne - ${foundClient.name}`);
+      }
     }
   };
 
@@ -139,9 +141,10 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
             </Label>
             <div className="col-span-3">
               <ClientSelector
-                selectedClientId={selectedClient}
-                onClientSelect={(client) => handleClientSelect(client.id, client)}
-                showCreateOption={true}
+                clients={clients}
+                selectedClient={selectedClient}
+                onClientSelect={handleClientSelect}
+                isLoading={isLoadingClients}
               />
             </div>
           </div>

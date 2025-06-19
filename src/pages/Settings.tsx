@@ -1,10 +1,41 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import ApiKeysSection from "@/components/settings/ApiKeysSection";
+import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserId } from "@/services/utils/supabaseUtils";
+import { ApiKey } from "@/types/supabase-extensions";
 
 const Settings = () => {
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const loadApiKeys = async () => {
+    setIsLoading(true);
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) return;
+
+      const { data, error } = await supabase
+        .from('api_keys')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      
+      setApiKeys(data || []);
+    } catch (error) {
+      console.error("Erreur lors du chargement des clés API:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadApiKeys();
+  }, []);
+
   return (
     <>
       <Navigation />
@@ -17,7 +48,11 @@ const Settings = () => {
         </div>
         
         <div className="space-y-6">
-          <ApiKeysSection />
+          <ApiKeysSection 
+            apiKeys={apiKeys}
+            isLoading={isLoading}
+            onApiKeySaved={loadApiKeys}
+          />
           
           <Card>
             <CardHeader>

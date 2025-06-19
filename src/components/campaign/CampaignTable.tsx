@@ -20,6 +20,13 @@ interface CampaignTableProps {
   setCampaigns: React.Dispatch<React.SetStateAction<Campaign[]>>;
 }
 
+interface TableRow {
+  id: string;
+  campaignName: string;
+  adGroupName: string;
+  keywords: string;
+}
+
 const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns, setCampaigns }) => {
   const {
     tableData,
@@ -33,6 +40,14 @@ const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns, setCampaigns }
     removeRow,
     handleBulkImport
   } = useCampaignTable(campaigns, setCampaigns);
+
+  // Convertir les données en format TableRow
+  const convertedTableData: TableRow[] = tableData.map(row => ({
+    id: row.id,
+    campaignName: row.campaign || '',
+    adGroupName: row.adGroup || '',
+    keywords: row.keywords || ''
+  }));
 
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -64,13 +79,16 @@ const CampaignTable: React.FC<CampaignTableProps> = ({ campaigns, setCampaigns }
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tableData.map((row, index) => (
+            {convertedTableData.map((row, index) => (
               <CampaignTableRow
                 key={row.id}
                 row={row}
                 index={index}
-                onCellChange={handleCellChange}
-                onCellPaste={handleCellPaste}
+                onCellChange={(e, rowIndex, field) => handleCellChange(rowIndex, field as keyof typeof row, (e.target as HTMLInputElement).value)}
+                onCellPaste={(e, rowIndex, field) => {
+                  const pastedData = e.clipboardData.getData('text');
+                  handleCellPaste(rowIndex, field as keyof typeof row, pastedData);
+                }}
                 onRemove={removeRow}
               />
             ))}

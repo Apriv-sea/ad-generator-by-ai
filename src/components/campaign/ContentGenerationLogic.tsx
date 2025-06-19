@@ -72,7 +72,9 @@ export const useContentGeneration = ({
             campaignContext: campaign,
             adGroupContext: adGroup,
             keywords: keywords.slice(0, 3)
-          }
+          },
+          sheet.id,
+          backupData
         );
 
         if (result.success && result.titles && result.descriptions) {
