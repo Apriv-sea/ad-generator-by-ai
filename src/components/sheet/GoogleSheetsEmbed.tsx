@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Sheet } from "@/services/googleSheetsService";
-import GoogleSheetHeader from './google/GoogleSheetHeader';
-import GoogleSheetUrlInput from './google/GoogleSheetUrlInput';
-import GoogleSheetEmbed from './google/GoogleSheetEmbed';
-import GoogleSheetPlaceholder from './google/GoogleSheetPlaceholder';
-import GoogleAuthPrompt from './google/GoogleAuthPrompt';
-import { extractSheetId, generateEmbedUrl } from './google/googleSheetsUtils';
-import { useGoogleAuth } from '@/hooks/useGoogleAuth';
+import SheetIdInput from './SheetIdInput';
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ExternalLink } from "lucide-react";
 
 interface GoogleSheetsEmbedProps {
   sheetUrl?: string;
@@ -21,136 +19,93 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
   onSheetUrlChange,
   sheet
 }) => {
-  const [inputUrl, setInputUrl] = useState(sheetUrl || '');
-  const [validUrl, setValidUrl] = useState(!!sheetUrl);
-  
-  const { 
-    isAuthenticated, 
-    isLoading, 
-    userInfo, 
-    error, 
-    signIn, 
-    signOut, 
-    getAccessToken 
-  } = useGoogleAuth();
+  const [sheetData, setSheetData] = useState<any>(null);
+  const [currentSheetId, setCurrentSheetId] = useState<string | null>(null);
 
-  // Fonction pour gérer la soumission de l'URL
-  const handleSubmit = () => {
-    const sheetId = extractSheetId(inputUrl);
-    
-    if (!sheetId) {
-      toast.error("URL Google Sheets invalide. Veuillez vérifier le format.");
-      return;
-    }
-    
-    const embedUrl = generateEmbedUrl(sheetId);
-    onSheetUrlChange(embedUrl);
-    setValidUrl(true);
-    toast.success("Feuille Google Sheets intégrée avec succès");
+  const handleSheetLoaded = (sheetId: string, data: any) => {
+    setSheetData(data);
+    setCurrentSheetId(sheetId);
+    onSheetUrlChange(`https://docs.google.com/spreadsheets/d/${sheetId}/edit`);
+    toast.success("Feuille connectée avec succès");
   };
 
-  // Fonction pour ouvrir la feuille dans un nouvel onglet
   const openInNewTab = () => {
-    if (sheetUrl) {
-      window.open(sheetUrl, '_blank');
+    if (currentSheetId) {
+      window.open(`https://docs.google.com/spreadsheets/d/${currentSheetId}/edit`, '_blank');
     }
   };
 
-  // Fonction pour créer une nouvelle feuille Google
-  const createNewSheet = async () => {
-    if (!isAuthenticated) {
-      toast.error("Veuillez vous connecter à Google Sheets d'abord");
-      return;
-    }
-    
-    try {
-      const accessToken = await getAccessToken();
-      if (!accessToken) {
-        toast.error("Token d'accès Google non disponible");
-        return;
-      }
-      
-      // Titre de la feuille (utiliser le nom de la feuille actuelle ou un défaut)
-      const sheetTitle = sheet ? sheet.name : `Nouvelle feuille ${new Date().toLocaleDateString()}`;
-      
-      const response = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          properties: {
-            title: sheetTitle
-          },
-          sheets: [
-            {
-              properties: {
-                title: "Campagnes publicitaires",
-                gridProperties: {
-                  rowCount: 100,
-                  columnCount: 18
-                }
-              }
-            }
-          ]
-        })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        toast.error(`Erreur lors de la création: ${errorData.error?.message || "Erreur inconnue"}`);
-        return;
-      }
-      
-      const data = await response.json();
-      const newSheetUrl = generateEmbedUrl(data.spreadsheetId);
-      
-      // Mettre à jour l'URL et notifier
-      setInputUrl(newSheetUrl);
-      onSheetUrlChange(newSheetUrl);
-      setValidUrl(true);
-      toast.success("Nouvelle feuille Google Sheets créée avec succès");
-      
-    } catch (error) {
-      console.error("Erreur lors de la création de la feuille:", error);
-      toast.error("Impossible de créer une nouvelle feuille Google Sheets");
-    }
-  };
+  if (!sheetData) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <SheetIdInput onSheetLoaded={handleSheetLoaded} />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const headers = sheetData.values?.[0] || [];
+  const rows = sheetData.values?.slice(1) || [];
 
   return (
-    <Card className="overflow-hidden border shadow-lg">
-      <CardContent className="p-4">
+    <Card>
+      <CardContent className="p-6">
         <div className="space-y-4">
-          {!isAuthenticated ? (
-            <GoogleAuthPrompt 
-              authError={error}
-              isAuthenticating={isLoading}
-              onGoogleAuth={signIn}
-            />
-          ) : (
-            <>
-              <GoogleSheetHeader 
-                isAuthenticated={isAuthenticated}
-                validUrl={validUrl}
-                onOpenInNewTab={openInNewTab}
-                onCreateNewSheet={createNewSheet}
-                userInfo={userInfo}
-              />
-              
-              <GoogleSheetUrlInput 
-                inputUrl={inputUrl}
-                onInputChange={setInputUrl}
-                onSubmit={handleSubmit}
-              />
-              
-              {validUrl && sheetUrl ? (
-                <GoogleSheetEmbed sheetUrl={sheetUrl} />
-              ) : (
-                <GoogleSheetPlaceholder />
-              )}
-            </>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">{sheetData.info?.title || 'Feuille Google Sheets'}</h3>
+              <p className="text-sm text-muted-foreground">
+                {rows.length} lignes de données • {headers.length} colonnes
+              </p>
+            </div>
+            
+            <Button variant="outline" size="sm" onClick={openInNewTab}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Ouvrir dans Google Sheets
+            </Button>
+          </div>
+
+          <div className="max-h-96 overflow-auto border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {headers.map((header: string, index: number) => (
+                    <TableHead key={index} className="whitespace-nowrap">
+                      {header}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.slice(0, 10).map((row: string[], index: number) => (
+                  <TableRow key={index}>
+                    {headers.map((_, cellIndex: number) => (
+                      <TableCell key={cellIndex} className="whitespace-nowrap">
+                        {row[cellIndex] || '-'}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          
+          {rows.length > 10 && (
+            <p className="text-xs text-muted-foreground text-center">
+              ... et {rows.length - 10} autres lignes
+            </p>
           )}
+
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              setSheetData(null);
+              setCurrentSheetId(null);
+            }}
+          >
+            Changer de feuille
+          </Button>
         </div>
       </CardContent>
     </Card>

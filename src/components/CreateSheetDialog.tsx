@@ -16,9 +16,8 @@ import { toast } from "sonner";
 import { sheetService, Client } from "@/services/googleSheetsService";
 import ClientSelector from "./ClientSelector";
 import { getClients } from "@/services/clientQuery";
-import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { Info } from "lucide-react";
 
 interface CreateSheetDialogProps {
   onSheetCreated: () => void;
@@ -32,8 +31,6 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [selectedClientData, setSelectedClientData] = useState<Client | null>(null);
   const [isLoadingClients, setIsLoadingClients] = useState(false);
-
-  const { isAuthenticated, signIn } = useGoogleAuth();
 
   useEffect(() => {
     if (isOpen) {
@@ -80,11 +77,6 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
   };
 
   const handleCreateSheet = async () => {
-    if (!isAuthenticated) {
-      toast.error("Veuillez vous connecter à Google Sheets d'abord.");
-      return;
-    }
-
     if (!sheetName.trim()) {
       toast.error("Veuillez entrer un nom pour la feuille.");
       return;
@@ -92,10 +84,10 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
 
     setIsCreating(true);
     try {
-      // Passer les informations du client pour les stocker dans la feuille
+      // Créer une feuille locale (plus besoin d'API Google)
       const newSheet = await sheetService.createSheet(sheetName, selectedClientData);
       if (newSheet) {
-        toast.success(`Feuille "${sheetName}" créée avec succès!`);
+        toast.success(`Projet "${sheetName}" créé avec succès!`);
         setIsOpen(false);
         
         // Réinitialiser le formulaire
@@ -114,7 +106,7 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
       }
     } catch (error) {
       console.error("Erreur lors de la création de la feuille:", error);
-      toast.error("Impossible de créer la feuille. Veuillez vérifier votre connexion Google Sheets.");
+      toast.error("Impossible de créer le projet.");
     } finally {
       setIsCreating(false);
     }
@@ -123,31 +115,22 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>Créer une nouvelle feuille</Button>
+        <Button>Créer un nouveau projet</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Créer une nouvelle feuille</DialogTitle>
+          <DialogTitle>Créer un nouveau projet</DialogTitle>
           <DialogDescription>
-            Sélectionnez un client et personnalisez le nom de la feuille
+            Créez un projet local que vous pourrez connecter à vos Google Sheets
           </DialogDescription>
         </DialogHeader>
 
-        {!isAuthenticated && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              Vous devez être connecté à Google Sheets pour créer une nouvelle feuille.
-              <Button 
-                variant="link" 
-                className="p-0 h-auto ml-2 text-destructive underline"
-                onClick={signIn}
-              >
-                Se connecter maintenant
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Un projet vous permet d'organiser vos campagnes. Vous pourrez ensuite connecter vos Google Sheets à ce projet.
+          </AlertDescription>
+        </Alert>
 
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
@@ -185,7 +168,7 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
           </Button>
           <Button 
             onClick={handleCreateSheet}
-            disabled={isCreating || !isAuthenticated}
+            disabled={isCreating}
           >
             {isCreating ? (
               <>
