@@ -1,3 +1,4 @@
+
 import { publicSheetsService } from '@/services/google/publicSheetsService';
 import { type Sheet, type Client, type Campaign, type AdGroup } from '../types';
 
@@ -30,7 +31,7 @@ class ConsolidatedSheetService {
       id: `sheet_${Date.now()}`,
       name,
       lastModified: new Date().toISOString(),
-      clientInfo
+      clientId: clientInfo?.id
     };
     
     // Stocker dans le localStorage pour la persistance

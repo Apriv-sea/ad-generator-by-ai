@@ -2,7 +2,7 @@
 export interface Sheet {
   id: string;
   name: string;
-  url: string;
+  url?: string;
   lastModified: string;
   clientId?: string;
   clientContext?: string;
@@ -11,9 +11,24 @@ export interface Sheet {
 export type { Client } from './types/client';
 
 export interface Campaign {
-  name: string;
-  adGroups: AdGroup[];
-  context: string;
+  id: string;
+  sheetId: string;
+  name?: string;
+  campaignName: string;
+  adGroupName: string;
+  keywords: string;
+  titles: string[];
+  descriptions: string[];
+  finalUrls: string[];
+  displayPaths: string[];
+  targetedKeywords: string;
+  negativeKeywords: string;
+  targetedAudiences: string;
+  adExtensions: string;
+  lastModified: string;
+  clientInfo?: Client | null;
+  adGroups?: AdGroup[];
+  context?: string;
 }
 
 export interface AdGroup {

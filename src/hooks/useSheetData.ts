@@ -1,23 +1,21 @@
 
 import { useState, useEffect } from "react";
-import { Sheet, Client, sheetService } from "@/services/googleSheetsService";
+import { Sheet, Client } from "@/services/googleSheetsService";
 import { getClientInfo } from "@/services/clientService";
 import { toast } from "sonner";
-import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import { publicSheetsService } from "@/services/google/publicSheetsService";
 
 export function useSheetData(sheet: Sheet | null) {
   const [clientInfo, setClientInfo] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [sheetData, setSheetData] = useState<any[][] | null>(null);
-  
-  const { isAuthenticated, getAccessToken } = useGoogleAuth();
 
   useEffect(() => {
     if (sheet) {
       loadInitialData();
       loadClientInfo();
     }
-  }, [sheet, isAuthenticated]);
+  }, [sheet]);
 
   const loadInitialData = async () => {
     if (!sheet) return;
@@ -26,96 +24,49 @@ export function useSheetData(sheet: Sheet | null) {
     setIsLoading(true);
     
     try {
-      // Vérifier l'authentification Google
-      if (!isAuthenticated) {
-        console.log("❌ Utilisateur non authentifié avec Google");
-        toast.error("Veuillez vous connecter à Google Sheets dans l'onglet 'Google Sheets'");
-        setSheetData([]);
-        return;
-      }
-
-      // Obtenir un token d'accès valide
-      const accessToken = await getAccessToken();
-      if (!accessToken) {
-        console.log("❌ Impossible d'obtenir un token d'accès valide");
-        toast.error("Session Google expirée. Veuillez vous reconnecter.");
-        setSheetData([]);
-        return;
-      }
-
-      console.log("✅ Token d'accès Google valide obtenu, récupération des données...");
-      
-      // Essayer plusieurs noms d'onglets possibles
-      const possibleSheetNames = [
-        'Campagnes publicitaires',
-        'Campagnes',
-        'Sheet1',
-        'Feuil1',
-        'Campaign',
-        'Campaigns'
-      ];
-
-      let data = null;
-      let usedSheetName = '';
-
-      for (const sheetName of possibleSheetNames) {
-        try {
-          console.log(`🔍 Tentative avec l'onglet: "${sheetName}"`);
-          
-          const response = await fetch(
-            `https://sheets.googleapis.com/v4/spreadsheets/${sheet.id}/values/${encodeURIComponent(sheetName)}!A1:Z1000`,
-            {
-              headers: {
-                'Authorization': `Bearer ${accessToken}`
-              }
-            }
-          );
-
-          if (response.ok) {
-            const result = await response.json();
-            if (result.values && result.values.length > 0) {
-              data = result;
-              usedSheetName = sheetName;
-              console.log(`✅ Données trouvées dans l'onglet "${sheetName}":`, result.values.length, "lignes");
-              break;
-            }
-          } else if (response.status === 401) {
-            console.log("❌ Token expiré, tentative de rafraîchissement...");
-            // Le hook useGoogleAuth gère automatiquement le rafraîchissement
-            toast.error("Session expirée. Veuillez actualiser la page.");
-            setSheetData([]);
-            return;
-          } else {
-            console.log(`❌ Échec pour l'onglet "${sheetName}":`, response.status);
-          }
-        } catch (error) {
-          console.log(`❌ Erreur pour l'onglet "${sheetName}":`, error);
-          continue;
+      // Pour les feuilles locales, récupérer depuis le localStorage
+      if (sheet.id.startsWith('sheet_')) {
+        const storedData = localStorage.getItem(`sheet_data_${sheet.id}`);
+        if (storedData) {
+          const data = JSON.parse(storedData);
+          setSheetData(data.values || []);
+          toast.success("Données chargées depuis le stockage local");
+        } else {
+          setSheetData([]);
+          toast.info("Aucune donnée trouvée pour cette feuille locale");
         }
+        return;
       }
 
+      // Pour les feuilles Google Sheets, utiliser l'API publique
+      console.log("✅ Récupération des données via l'API publique Google Sheets...");
+      
+      const data = await publicSheetsService.getSheetData(sheet.id);
+      
       if (data && data.values && data.values.length > 0) {
-        console.log(`📊 Données chargées depuis l'onglet "${usedSheetName}":`, {
+        console.log(`📊 Données chargées:`, {
           totalRows: data.values.length,
           firstRow: data.values[0],
           sampleData: data.values.slice(0, 3)
         });
         
         setSheetData(data.values);
-        toast.success(`Données chargées avec succès depuis l'onglet "${usedSheetName}" (${data.values.length} lignes)`);
+        toast.success(`Données chargées avec succès (${data.values.length} lignes)`);
       } else {
-        console.log("❌ Aucune donnée trouvée dans aucun onglet");
-        toast.error("Aucune donnée trouvée dans la feuille. Vérifiez que votre feuille contient des données et que les onglets sont nommés correctement.");
+        console.log("❌ Aucune donnée trouvée dans la feuille");
+        toast.error("Aucune donnée trouvée dans la feuille. Vérifiez que votre feuille contient des données et qu'elle est partagée publiquement.");
         setSheetData([]);
       }
       
     } catch (error) {
       console.error("❌ Erreur lors du chargement des données:", error);
       
-      if (error.message?.includes('401') || error.message?.includes('403')) {
-        toast.error("Erreur d'authentification. Veuillez vous reconnecter à Google Sheets.");
+      if (error.message?.includes('403')) {
+        toast.error("Feuille non accessible. Assurez-vous qu'elle est partagée publiquement.");
+      } else if (error.message?.includes('404')) {
+        toast.error("Feuille introuvable. Vérifiez l'ID de la feuille.");
       } else {
-        toast.error("Impossible de charger les données de la feuille. Vérifiez que la feuille est accessible et contient des données.");
+        toast.error("Impossible de charger les données de la feuille.");
       }
       
       setSheetData([]);
@@ -144,12 +95,6 @@ export function useSheetData(sheet: Sheet | null) {
           name: 'Client (contexte legacy)',
           businessContext: sheet.clientContext
         };
-      }
-
-      // Priorité 3: Informations client dans l'onglet Google Sheets
-      if (!client) {
-        console.log("Tentative de récupération depuis l'onglet Google Sheets");
-        client = await sheetService.getClientInfo(sheet.id);
       }
 
       if (client) {

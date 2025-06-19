@@ -9,7 +9,7 @@ import { CheckCircle, AlertTriangle, FileSpreadsheet, Download } from 'lucide-re
 import { toast } from 'sonner';
 import { SheetValidationStep as ValidationStep } from '@/services/workflow/steps/SheetValidationStep';
 import { getTemplateByType } from '@/services/workflow/templates/SheetTemplates';
-import { extractSheetId } from '@/components/sheet/google/googleSheetsUtils';
+import { extractSheetId } from '@/utils/sheetUtils';
 
 interface SheetValidationStepProps {
   data?: any;
