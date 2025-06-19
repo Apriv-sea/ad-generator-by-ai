@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FileSpreadsheet, Info } from "lucide-react";
 import { toast } from "sonner";
-import { publicSheetsService } from "@/services/google/publicSheetsService";
 
 interface SheetIdInputProps {
   onSheetLoaded: (sheetId: string, data: any) => void;
@@ -19,14 +18,87 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
   const [debugInfo, setDebugInfo] = useState<string>('');
 
   const extractSheetId = (input: string): string | null => {
-    // Si c'est déjà juste un ID
-    if (!input.includes('docs.google.com')) {
-      return input.trim();
+    const trimmed = input.trim();
+    
+    // Si c'est déjà juste un ID (pas d'URL)
+    if (!trimmed.includes('docs.google.com') && !trimmed.includes('http')) {
+      return trimmed;
     }
     
     // Extraction depuis l'URL complète
-    const match = input.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    const match = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     return match ? match[1] : null;
+  };
+
+  const validateSheetId = (sheetId: string): boolean => {
+    return /^[a-zA-Z0-9-_]{40,}$/.test(sheetId);
+  };
+
+  const getSheetData = async (sheetId: string): Promise<any> => {
+    // Utiliser un range plus simple et sûr
+    const range = 'Sheet1'; // Au lieu de A:Z
+    const apiKey = 'AIzaSyBvOyisPCYH8IuFK-HuQUQy_MXA5UL6GSQ';
+    
+    // Construction de l'URL avec encodage approprié
+    const baseUrl = 'https://sheets.googleapis.com/v4/spreadsheets';
+    const url = `${baseUrl}/${encodeURIComponent(sheetId)}/values/${encodeURIComponent(range)}?key=${apiKey}`;
+    
+    console.log('🔗 URL de requête:', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    console.log('📡 Statut de la réponse:', response.status);
+    console.log('📡 Headers de la réponse:', Object.fromEntries(response.headers));
+
+    if (!response.ok) {
+      // Récupérer le détail de l'erreur
+      let errorDetail = '';
+      try {
+        const errorBody = await response.text();
+        console.log('❌ Corps de l'erreur:', errorBody);
+        errorDetail = errorBody;
+      } catch (e) {
+        errorDetail = 'Impossible de lire le détail de l\'erreur';
+      }
+
+      if (response.status === 400) {
+        throw new Error(`Requête invalide (400). Détail: ${errorDetail}`);
+      } else if (response.status === 403) {
+        throw new Error('Feuille non accessible. Assurez-vous qu\'elle est partagée publiquement.');
+      } else if (response.status === 404) {
+        throw new Error('Feuille introuvable. Vérifiez l\'ID de la feuille.');
+      } else {
+        throw new Error(`Erreur ${response.status}: ${errorDetail}`);
+      }
+    }
+
+    const data = await response.json();
+    console.log('✅ Données reçues:', data);
+    return data;
+  };
+
+  const getSheetInfo = async (sheetId: string): Promise<any> => {
+    const apiKey = 'AIzaSyBvOyisPCYH8IuFK-HuQUQy_MXA5UL6GSQ';
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}?key=${apiKey}`;
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Impossible de récupérer les infos: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return {
+      title: data.properties?.title || 'Feuille sans titre',
+      sheets: data.sheets?.map((sheet: any) => ({
+        title: sheet.properties?.title,
+        id: sheet.properties?.sheetId
+      })) || []
+    };
   };
 
   const handleSubmit = async () => {
@@ -47,12 +119,19 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
         return;
       }
 
-      console.log('🎯 ID extrait:', sheetId);
+      // Valider le format de l'ID
+      if (!validateSheetId(sheetId)) {
+        toast.error('Format d\'ID invalide');
+        setDebugInfo('❌ Format d\'ID invalide');
+        return;
+      }
+
+      console.log('🎯 ID extrait et validé:', sheetId);
       setDebugInfo(`✅ ID extrait: ${sheetId}`);
 
-      // Charger les données via le service
+      // Charger les données
       setDebugInfo('📊 Chargement des données...');
-      const sheetData = await publicSheetsService.getSheetData(sheetId);
+      const sheetData = await getSheetData(sheetId);
       
       if (!sheetData.values || sheetData.values.length === 0) {
         toast.error('La feuille semble vide');
@@ -61,7 +140,7 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
       }
 
       // Charger les infos de la feuille
-      const sheetInfo = await publicSheetsService.getSheetInfo(sheetId);
+      const sheetInfo = await getSheetInfo(sheetId);
 
       toast.success(`Feuille "${sheetInfo.title}" chargée avec succès`);
       setDebugInfo(`✅ Chargée: ${sheetInfo.title} (${sheetData.values.length} lignes)`);
@@ -69,17 +148,7 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
       
     } catch (error) {
       console.error('Erreur lors du chargement:', error);
-      
-      let errorMessage = 'Erreur lors du chargement de la feuille';
-      if (error.message?.includes('403')) {
-        errorMessage = 'Feuille non accessible. Vérifiez qu\'elle est partagée publiquement.';
-      } else if (error.message?.includes('404')) {
-        errorMessage = 'Feuille introuvable. Vérifiez l\'ID de la feuille.';
-      } else if (error.message?.includes('400')) {
-        errorMessage = 'Requête invalide. Vérifiez que la feuille est bien partagée publiquement.';
-      }
-      
-      toast.error(errorMessage);
+      toast.error(error.message || 'Erreur lors du chargement de la feuille');
       setDebugInfo(`❌ Erreur: ${error.message}`);
     } finally {
       setIsLoading(false);
