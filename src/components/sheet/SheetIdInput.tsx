@@ -35,11 +35,9 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
   };
 
   const getSheetData = async (sheetId: string): Promise<any> => {
-    // Utiliser un range plus simple et sûr
-    const range = 'Sheet1'; // Au lieu de A:Z
+    const range = 'Sheet1';
     const apiKey = 'AIzaSyBvOyisPCYH8IuFK-HuQUQy_MXA5UL6GSQ';
     
-    // Construction de l'URL avec encodage approprié
     const baseUrl = 'https://sheets.googleapis.com/v4/spreadsheets';
     const url = `${baseUrl}/${encodeURIComponent(sheetId)}/values/${encodeURIComponent(range)}?key=${apiKey}`;
     
@@ -56,11 +54,10 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
     console.log('📡 Headers de la réponse:', Object.fromEntries(response.headers));
 
     if (!response.ok) {
-      // Récupérer le détail de l'erreur
       let errorDetail = '';
       try {
         const errorBody = await response.text();
-        console.log('❌ Corps de l'erreur:', errorBody);
+        console.log('❌ Corps de l\'erreur:', errorBody);
         errorDetail = errorBody;
       } catch (e) {
         errorDetail = 'Impossible de lire le détail de l\'erreur';
@@ -111,7 +108,6 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
     setDebugInfo('🔄 Extraction de l\'ID...');
     
     try {
-      // Extraire l'ID
       const sheetId = extractSheetId(input);
       if (!sheetId) {
         toast.error('URL ou ID invalide');
@@ -119,7 +115,6 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
         return;
       }
 
-      // Valider le format de l'ID
       if (!validateSheetId(sheetId)) {
         toast.error('Format d\'ID invalide');
         setDebugInfo('❌ Format d\'ID invalide');
@@ -129,7 +124,6 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
       console.log('🎯 ID extrait et validé:', sheetId);
       setDebugInfo(`✅ ID extrait: ${sheetId}`);
 
-      // Charger les données
       setDebugInfo('📊 Chargement des données...');
       const sheetData = await getSheetData(sheetId);
       
@@ -139,7 +133,6 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
         return;
       }
 
-      // Charger les infos de la feuille
       const sheetInfo = await getSheetInfo(sheetId);
 
       toast.success(`Feuille "${sheetInfo.title}" chargée avec succès`);
@@ -155,7 +148,6 @@ const SheetIdInput: React.FC<SheetIdInputProps> = ({ onSheetLoaded }) => {
     }
   };
 
-  // Test rapide avec l'ID utilisateur
   const testUserSheet = () => {
     const userSheetId = '1uawoG2RorJDRrWtdLHEe9AD7sIoRWmp9h_vAAtr5vVI';
     setInput(userSheetId);
