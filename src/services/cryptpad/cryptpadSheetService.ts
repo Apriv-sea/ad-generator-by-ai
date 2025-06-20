@@ -6,13 +6,12 @@ export const VALIDATED_COLUMNS = [
   'Nom du groupe d\'annonces',
   'État du groupe d\'annonces',
   'Type de correspondance par défaut',
-  'Top 3 mots-clés',
+  'Top 3 mots-clés (séparés par des virgules)',
   'Titre 1',
   'Titre 2', 
   'Titre 3',
   'Description 1',
   'Description 2',
-  'Description 3',
   'URL finale',
   'Chemin d\'affichage 1',
   'Chemin d\'affichage 2',
@@ -23,7 +22,7 @@ export const VALIDATED_COLUMNS = [
 ];
 
 class CryptPadSheetService {
-  // Créer une feuille
+  // Créer une feuille avec en-têtes standards
   async createSheet(name: string, clientInfo?: Client): Promise<Sheet> {
     const cryptpadSheet = await cryptpadService.createPad(name);
     
@@ -33,6 +32,9 @@ class CryptPadSheetService {
       lastModified: new Date().toISOString(),
       clientId: clientInfo?.id
     };
+    
+    // Initialiser avec les en-têtes standards
+    await cryptpadService.initializeSheetWithHeaders(cryptpadSheet.id);
     
     // Stocker dans le localStorage pour la persistance
     const sheets = this.getLocalSheets();
@@ -102,7 +104,7 @@ class CryptPadSheetService {
     return clientInfo;
   }
 
-  // Extraire les campagnes des données
+  // Extraire les campagnes des données (mise à jour pour les nouveaux en-têtes)
   extractCampaigns(sheet: { id: string; content: any[][]; headers: string[]; lastModified: string; clientInfo?: Client | null }): Campaign[] {
     const { id, content, headers, lastModified, clientInfo } = sheet;
     if (!content || content.length <= 1) {
@@ -115,8 +117,10 @@ class CryptPadSheetService {
       const row = content[i];
       if (!row || row.length === 0) continue;
 
-      const campaignName = row[0];
-      const adGroupName = row[1];
+      const campaignName = row[0]; // Nom de la campagne
+      const adGroupName = row[1];  // Nom du groupe d'annonces
+      const keywords = row[4];     // Top 3 mots-clés (index 4 dans le nouveau format)
+      
       if (!campaignName || !adGroupName) continue;
 
       campaigns.push({
@@ -124,15 +128,15 @@ class CryptPadSheetService {
         sheetId: id,
         campaignName: campaignName,
         adGroupName: adGroupName,
-        keywords: row[2] || '',
-        titles: [row[3] || '', row[4] || '', row[5] || ''],
-        descriptions: [row[6] || '', row[7] || '', row[8] || ''],
-        finalUrls: [row[9] || ''],
-        displayPaths: [row[10] || '', row[11] || ''],
-        targetedKeywords: row[12] || '',
-        negativeKeywords: row[13] || '',
-        targetedAudiences: row[14] || '',
-        adExtensions: row[15] || '',
+        keywords: keywords || '',
+        titles: [row[5] || '', row[6] || '', row[7] || ''], // Titre 1, 2, 3
+        descriptions: [row[8] || '', row[9] || ''], // Description 1, 2
+        finalUrls: [row[10] || ''], // URL finale
+        displayPaths: [row[11] || '', row[12] || ''], // Chemin d'affichage 1, 2
+        targetedKeywords: row[13] || '', // Mots-clés ciblés
+        negativeKeywords: row[14] || '', // Mots-clés négatifs
+        targetedAudiences: row[15] || '', // Audience ciblée
+        adExtensions: row[16] || '', // Extensions d'annonces
         lastModified: lastModified,
         clientInfo: clientInfo
       });

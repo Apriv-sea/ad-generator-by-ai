@@ -1,4 +1,3 @@
-
 /**
  * Service pour interagir avec CryptPad
  */
@@ -45,6 +44,51 @@ export class CryptPadService {
   }
 
   /**
+   * Obtenir les en-têtes standards pour une feuille de campagnes
+   */
+  getStandardHeaders(): string[] {
+    return [
+      'Nom de la campagne',
+      'Nom du groupe d\'annonces',
+      'État du groupe d\'annonces',
+      'Type de correspondance par défaut',
+      'Top 3 mots-clés (séparés par des virgules)',
+      'Titre 1',
+      'Titre 2',
+      'Titre 3',
+      'Description 1',
+      'Description 2',
+      'URL finale',
+      'Chemin d\'affichage 1',
+      'Chemin d\'affichage 2',
+      'Mots-clés ciblés',
+      'Mots-clés négatifs',
+      'Audience ciblée',
+      'Extensions d\'annonces'
+    ];
+  }
+
+  /**
+   * Initialiser une feuille avec les en-têtes standards
+   */
+  async initializeSheetWithHeaders(padId: string): Promise<boolean> {
+    try {
+      const headers = this.getStandardHeaders();
+      const initialData = [headers];
+      
+      // Ajouter quelques lignes vides pour commencer
+      for (let i = 0; i < 10; i++) {
+        initialData.push(new Array(headers.length).fill(''));
+      }
+      
+      return await this.saveSheetData(padId, initialData);
+    } catch (error) {
+      console.error("Erreur lors de l'initialisation de la feuille:", error);
+      return false;
+    }
+  }
+
+  /**
    * Simuler la récupération de données depuis CryptPad
    * Dans une vraie implémentation, ceci ferait un appel API
    */
@@ -56,39 +100,54 @@ export class CryptPadService {
     // Simuler un délai réseau
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Données d'exemple pour la démo
+    // Vérifier d'abord si des données existent localement
+    const localData = localStorage.getItem(`cryptpad_data_${padId}`);
+    if (localData) {
+      return JSON.parse(localData);
+    }
+
+    // Données d'exemple pour la démo avec en-têtes standards
     const sampleData: CryptPadData = {
       title: 'Feuille CryptPad - Campagnes',
       values: [
-        [
-          'Nom de la campagne',
-          'Nom du groupe d\'annonces', 
-          'Top 3 mots-clés',
-          'Titre 1',
-          'Titre 2',
-          'Titre 3',
-          'Description 1',
-          'Description 2'
-        ],
+        this.getStandardHeaders(),
         [
           'Campagne Mode Été',
           'Robes d\'été',
+          'Activé',
+          'Requête large',
           'robe été, mode femme, vêtements',
           'Robes Été Tendance',
           'Mode Femme 2024',
           'Vêtements Stylés',
           'Découvrez notre collection de robes d\'été élégantes et confortables.',
-          'Robes modernes pour toutes les occasions. Livraison gratuite.'
+          'Robes modernes pour toutes les occasions. Livraison gratuite.',
+          'https://exemple.com/robes-ete',
+          'robes',
+          'ete',
+          'robe été, mode femme',
+          'robe hiver',
+          'Femmes 25-45',
+          'Liens de site, Accroches'
         ],
         [
           'Campagne Mode Été',
           'Chaussures d\'été',
+          'Activé',
+          'Expression exacte',
           'chaussures été, sandales, mode',
           'Sandales Confort',
           'Chaussures Été',
           'Style Décontracté',
           'Sandales ultra-confortables pour l\'été. Matériaux de qualité.',
-          'Marchez avec style et confort toute la journée.'
+          'Marchez avec style et confort toute la journée.',
+          'https://exemple.com/chaussures-ete',
+          'chaussures',
+          'ete',
+          'chaussures été, sandales',
+          'bottes hiver',
+          'Femmes 20-50',
+          'Liens de site, Avis clients'
         ]
       ]
     };
