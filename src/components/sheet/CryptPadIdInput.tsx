@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import { AlertCircle, FileSpreadsheet, Plus } from "lucide-react";
 
 interface CryptPadIdInputProps {
   onSheetLoaded: (padId: string, data: any) => void;
-  onConnectionSuccess?: () => void; // Nouveau callback pour redirection
+  onConnectionSuccess?: () => void;
 }
 
 const CryptPadIdInput: React.FC<CryptPadIdInputProps> = ({ onSheetLoaded, onConnectionSuccess }) => {
@@ -29,6 +30,8 @@ const CryptPadIdInput: React.FC<CryptPadIdInputProps> = ({ onSheetLoaded, onConn
 
     setIsLoading(true);
     try {
+      console.log("🚀 Début de la connexion CryptPad...");
+      
       // Extraire l'ID du pad depuis l'URL si nécessaire
       let padId = padInput.trim();
       
@@ -42,6 +45,8 @@ const CryptPadIdInput: React.FC<CryptPadIdInputProps> = ({ onSheetLoaded, onConn
         padId = extractedId;
       }
 
+      console.log("📝 ID extrait:", padId);
+
       // Valider l'ID
       if (!cryptpadService.validatePadId(padId)) {
         toast.error("ID CryptPad invalide. Vérifiez le format.");
@@ -51,9 +56,11 @@ const CryptPadIdInput: React.FC<CryptPadIdInputProps> = ({ onSheetLoaded, onConn
       // Charger les données existantes
       let sheetData;
       try {
+        console.log("📊 Chargement des données...");
         sheetData = await cryptpadService.getSheetData(padId);
+        console.log("✅ Données chargées:", sheetData);
       } catch (error) {
-        console.error("Erreur lors du chargement:", error);
+        console.error("❌ Erreur lors du chargement:", error);
         toast.error("Impossible de charger la feuille. Vérifiez l'ID et les permissions.");
         return;
       }
@@ -62,7 +69,7 @@ const CryptPadIdInput: React.FC<CryptPadIdInputProps> = ({ onSheetLoaded, onConn
       if (shouldInitialize && (!sheetData.values || sheetData.values.length <= 1 || 
           (sheetData.values.length > 0 && sheetData.values[0].length < 10))) {
         
-        console.log("Initialisation de la feuille avec les en-têtes standards...");
+        console.log("🔧 Initialisation de la feuille avec les en-têtes standards...");
         const success = await cryptpadService.initializeSheetWithHeaders(padId);
         
         if (success) {
@@ -74,17 +81,19 @@ const CryptPadIdInput: React.FC<CryptPadIdInputProps> = ({ onSheetLoaded, onConn
         }
       }
 
+      console.log("🎉 Connexion réussie, appel des callbacks...");
       onSheetLoaded(padId, sheetData);
       
       // Redirection automatique après connexion réussie
       if (onConnectionSuccess) {
+        console.log("🔄 Redirection automatique vers l'extraction...");
         setTimeout(() => {
           onConnectionSuccess();
-        }, 1000); // Délai court pour laisser l'utilisateur voir le message de succès
+        }, 1500); // Délai pour laisser l'utilisateur voir le message de succès
       }
       
     } catch (error) {
-      console.error("Erreur lors de la connexion à CryptPad:", error);
+      console.error("💥 Erreur lors de la connexion à CryptPad:", error);
       toast.error("Erreur lors de la connexion. Vérifiez votre connexion et réessayez.");
     } finally {
       setIsLoading(false);

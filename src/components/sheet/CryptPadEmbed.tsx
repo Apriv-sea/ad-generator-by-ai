@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -6,13 +7,12 @@ import CryptPadIdInput from './CryptPadIdInput';
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ExternalLink } from "lucide-react";
-import { cryptpadService } from "@/services/cryptpad/cryptpadService";
 
 interface CryptPadEmbedProps {
   sheetUrl?: string;
   onSheetUrlChange: (url: string) => void;
   sheet?: Sheet;
-  onConnectionSuccess?: () => void; // Nouveau prop pour redirection
+  onConnectionSuccess?: () => void;
 }
 
 const CryptPadEmbed: React.FC<CryptPadEmbedProps> = ({
@@ -25,10 +25,18 @@ const CryptPadEmbed: React.FC<CryptPadEmbedProps> = ({
   const [currentPadId, setCurrentPadId] = useState<string | null>(null);
 
   const handleSheetLoaded = (padId: string, data: any) => {
+    console.log("Feuille chargée dans CryptPadEmbed:", padId);
     setSheetData(data);
     setCurrentPadId(padId);
     onSheetUrlChange(`https://cryptpad.fr/sheet/#/2/sheet/edit/${padId}`);
     toast.success("Feuille CryptPad connectée avec succès");
+  };
+
+  const handleConnectionSuccess = () => {
+    console.log("Gestion de la connexion réussie...");
+    if (onConnectionSuccess) {
+      onConnectionSuccess();
+    }
   };
 
   const openInNewTab = () => {
@@ -43,7 +51,7 @@ const CryptPadEmbed: React.FC<CryptPadEmbedProps> = ({
         <CardContent className="p-6">
           <CryptPadIdInput 
             onSheetLoaded={handleSheetLoaded}
-            onConnectionSuccess={onConnectionSuccess}
+            onConnectionSuccess={handleConnectionSuccess}
           />
         </CardContent>
       </Card>

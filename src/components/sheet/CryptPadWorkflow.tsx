@@ -5,6 +5,7 @@ import CryptPadEmbed from './CryptPadEmbed';
 import CampaignExtractorWorkflow from '../campaign/CampaignExtractorWorkflow';
 import { Sheet, Campaign, Client } from "@/services/types";
 import { toast } from "sonner";
+import { cryptpadService } from "@/services/cryptpad/cryptpadService";
 
 interface CryptPadWorkflowProps {
   sheet?: Sheet;
@@ -16,11 +17,27 @@ const CryptPadWorkflow: React.FC<CryptPadWorkflowProps> = ({ sheet, clientInfo }
   const [sheetUrl, setSheetUrl] = useState("");
   const [sheetData, setSheetData] = useState<any[][] | null>(null);
   const [extractedCampaigns, setExtractedCampaigns] = useState<Campaign[]>([]);
+  const [connectedSheetId, setConnectedSheetId] = useState<string | null>(null);
 
-  const handleConnectionSuccess = () => {
-    // Rediriger automatiquement vers l'onglet d'extraction après connexion
-    setActiveTab("extraction");
-    toast.success("Prêt pour l'extraction des campagnes !");
+  const handleConnectionSuccess = async (padId: string) => {
+    console.log("Connexion réussie, chargement des données...");
+    setConnectedSheetId(padId);
+    
+    try {
+      // Charger les données de la feuille
+      const data = await cryptpadService.getSheetData(padId);
+      if (data && data.values) {
+        setSheetData(data.values);
+        console.log("Données chargées:", data.values.length, "lignes");
+      }
+      
+      // Rediriger automatiquement vers l'onglet d'extraction après connexion
+      setActiveTab("extraction");
+      toast.success("Prêt pour l'extraction des campagnes !");
+    } catch (error) {
+      console.error("Erreur lors du chargement des données:", error);
+      toast.error("Impossible de charger les données de la feuille");
+    }
   };
 
   const handleCampaignsExtracted = (campaigns: Campaign[]) => {
@@ -32,45 +49,57 @@ const CryptPadWorkflow: React.FC<CryptPadWorkflowProps> = ({ sheet, clientInfo }
   };
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="mb-4">
-        <TabsTrigger value="connection">Connexion CryptPad</TabsTrigger>
-        <TabsTrigger value="extraction" disabled={!sheetUrl}>
-          Extraction de campagnes
-        </TabsTrigger>
-        <TabsTrigger value="content" disabled={extractedCampaigns.length === 0}>
-          Génération de contenu
-        </TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="connection" className="space-y-4">
-        <CryptPadEmbed
-          sheetUrl={sheetUrl}
-          onSheetUrlChange={setSheetUrl}
-          sheet={sheet}
-          onConnectionSuccess={handleConnectionSuccess}
-        />
-      </TabsContent>
-      
-      <TabsContent value="extraction" className="space-y-4">
-        {sheet && (
-          <CampaignExtractorWorkflow
-            sheetId={sheet.id}
-            sheetData={sheetData}
-            clientInfo={clientInfo}
-            onCampaignsExtracted={handleCampaignsExtracted}
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold mb-2">Workflow CryptPad</h2>
+        <p className="text-muted-foreground">
+          Connectez votre feuille CryptPad et extrayez vos campagnes
+        </p>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="connection">1. Connexion</TabsTrigger>
+          <TabsTrigger value="extraction" disabled={!connectedSheetId}>
+            2. Extraction
+          </TabsTrigger>
+          <TabsTrigger value="content" disabled={extractedCampaigns.length === 0}>
+            3. Contenu
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="connection" className="space-y-4">
+          <CryptPadEmbed
+            sheetUrl={sheetUrl}
+            onSheetUrlChange={setSheetUrl}
+            sheet={sheet}
+            onConnectionSuccess={() => connectedSheetId && handleConnectionSuccess(connectedSheetId)}
           />
-        )}
-      </TabsContent>
-      
-      <TabsContent value="content" className="space-y-4">
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">
-            Génération de contenu disponible après extraction des campagnes.
-          </p>
-        </div>
-      </TabsContent>
-    </Tabs>
+        </TabsContent>
+        
+        <TabsContent value="extraction" className="space-y-4">
+          {connectedSheetId && (
+            <CampaignExtractorWorkflow
+              sheetId={connectedSheetId}
+              sheetData={sheetData}
+              clientInfo={clientInfo}
+              onCampaignsExtracted={handleCampaignsExtracted}
+            />
+          )}
+        </TabsContent>
+        
+        <TabsContent value="content" className="space-y-4">
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">
+              Génération de contenu disponible après extraction des campagnes.
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              {extractedCampaigns.length} campagne(s) extraite(s)
+            </p>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 
