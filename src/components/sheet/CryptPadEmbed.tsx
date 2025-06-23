@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -13,12 +12,14 @@ interface CryptPadEmbedProps {
   sheetUrl?: string;
   onSheetUrlChange: (url: string) => void;
   sheet?: Sheet;
+  onConnectionSuccess?: () => void; // Nouveau prop pour redirection
 }
 
 const CryptPadEmbed: React.FC<CryptPadEmbedProps> = ({
   sheetUrl,
   onSheetUrlChange,
-  sheet
+  sheet,
+  onConnectionSuccess
 }) => {
   const [sheetData, setSheetData] = useState<any>(null);
   const [currentPadId, setCurrentPadId] = useState<string | null>(null);
@@ -40,7 +41,10 @@ const CryptPadEmbed: React.FC<CryptPadEmbedProps> = ({
     return (
       <Card>
         <CardContent className="p-6">
-          <CryptPadIdInput onSheetLoaded={handleSheetLoaded} />
+          <CryptPadIdInput 
+            onSheetLoaded={handleSheetLoaded}
+            onConnectionSuccess={onConnectionSuccess}
+          />
         </CardContent>
       </Card>
     );

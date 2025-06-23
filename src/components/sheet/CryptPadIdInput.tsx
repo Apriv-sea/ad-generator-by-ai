@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +11,10 @@ import { AlertCircle, FileSpreadsheet, Plus } from "lucide-react";
 
 interface CryptPadIdInputProps {
   onSheetLoaded: (padId: string, data: any) => void;
+  onConnectionSuccess?: () => void; // Nouveau callback pour redirection
 }
 
-const CryptPadIdInput: React.FC<CryptPadIdInputProps> = ({ onSheetLoaded }) => {
+const CryptPadIdInput: React.FC<CryptPadIdInputProps> = ({ onSheetLoaded, onConnectionSuccess }) => {
   const [padInput, setPadInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [shouldInitialize, setShouldInitialize] = useState(true);
@@ -75,6 +75,13 @@ const CryptPadIdInput: React.FC<CryptPadIdInputProps> = ({ onSheetLoaded }) => {
       }
 
       onSheetLoaded(padId, sheetData);
+      
+      // Redirection automatique après connexion réussie
+      if (onConnectionSuccess) {
+        setTimeout(() => {
+          onConnectionSuccess();
+        }, 1000); // Délai court pour laisser l'utilisateur voir le message de succès
+      }
       
     } catch (error) {
       console.error("Erreur lors de la connexion à CryptPad:", error);
