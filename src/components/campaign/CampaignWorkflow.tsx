@@ -1,17 +1,18 @@
 
 import React, { useState, useEffect } from "react";
-import { toast } from "sonner";
-import { Sheet } from "@/services/types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sheet, Client } from "@/services/types";
 import { sheetService } from "@/services/sheetService";
-import CampaignsTabs from "./CampaignsTabs";
-import CryptPadIdInput from "../sheet/CryptPadIdInput";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
+import SheetsTab from "./SheetsTab";
+import CampaignManager from "../CampaignManager";
+import CryptPadWorkflow from "../sheet/CryptPadWorkflow";
 
 const CampaignWorkflow: React.FC = () => {
   const [sheets, setSheets] = useState<Sheet[]>([]);
   const [selectedSheet, setSelectedSheet] = useState<Sheet | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>("sheets");
+  const [clientInfo, setClientInfo] = useState<Client | null>(null);
 
   useEffect(() => {
     loadSheets();
@@ -20,11 +21,11 @@ const CampaignWorkflow: React.FC = () => {
   const loadSheets = async () => {
     setIsLoading(true);
     try {
-      const allSheets = await sheetService.listSheets();
-      setSheets(allSheets);
+      const loadedSheets = await sheetService.listSheets();
+      setSheets(loadedSheets);
     } catch (error) {
       console.error("Erreur lors du chargement des feuilles:", error);
-      toast.error("Impossible de charger la liste des feuilles");
+      toast.error("Impossible de charger les feuilles");
     } finally {
       setIsLoading(false);
     }
@@ -32,18 +33,16 @@ const CampaignWorkflow: React.FC = () => {
 
   const handleSelectSheet = (sheet: Sheet) => {
     setSelectedSheet(sheet);
-    setActiveTab("editor");
-    toast.success(`Feuille "${sheet.name}" sélectionnée`);
   };
 
   const handleDeleteSheet = async (sheetId: string) => {
     try {
       await sheetService.deleteSheet(sheetId);
-      await loadSheets();
+      setSheets(sheets.filter(s => s.id !== sheetId));
       if (selectedSheet?.id === sheetId) {
         setSelectedSheet(null);
-        setActiveTab("sheets");
       }
+      toast.success("Feuille supprimée avec succès");
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
       toast.error("Impossible de supprimer la feuille");
@@ -55,46 +54,48 @@ const CampaignWorkflow: React.FC = () => {
   };
 
   const handleUpdateComplete = () => {
-    console.log("Mise à jour terminée");
+    loadSheets();
   };
 
-  // Si aucune feuille n'existe, afficher la possibilité d'en connecter une
-  if (!isLoading && sheets.length === 0) {
-    return (
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Commencer avec CryptPad</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">
-              Connectez une feuille CryptPad existante ou créez un nouveau projet.
-            </p>
-            <CryptPadIdInput 
-              onSheetLoaded={(padId, data) => {
-                toast.success("Feuille CryptPad connectée !");
-                loadSheets();
-              }} 
-            />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <CampaignsTabs
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-      selectedSheet={selectedSheet}
-      sheets={sheets}
-      isLoading={isLoading}
-      onSelectSheet={handleSelectSheet}
-      onDeleteSheet={handleDeleteSheet}
-      onSheetCreated={handleSheetCreated}
-      onRefreshSheets={loadSheets}
-      onUpdateComplete={handleUpdateComplete}
-    />
+    <div className="space-y-6">
+      <Tabs defaultValue="cryptpad" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="cryptpad">CryptPad</TabsTrigger>
+          <TabsTrigger value="sheets">Feuilles locales</TabsTrigger>
+          <TabsTrigger value="manager" disabled={!selectedSheet}>
+            Gestion
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="cryptpad" className="space-y-6">
+          <CryptPadWorkflow 
+            sheet={selectedSheet} 
+            clientInfo={clientInfo}
+          />
+        </TabsContent>
+
+        <TabsContent value="sheets" className="space-y-6">
+          <SheetsTab
+            sheets={sheets}
+            isLoading={isLoading}
+            onSelectSheet={handleSelectSheet}
+            onDeleteSheet={handleDeleteSheet}
+            onSheetCreated={handleSheetCreated}
+            onRefreshSheets={loadSheets}
+          />
+        </TabsContent>
+
+        <TabsContent value="manager" className="space-y-6">
+          {selectedSheet && (
+            <CampaignManager
+              sheet={selectedSheet}
+              onUpdateComplete={handleUpdateComplete}
+            />
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

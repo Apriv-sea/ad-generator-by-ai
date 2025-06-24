@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -12,7 +11,7 @@ interface CryptPadEmbedProps {
   sheetUrl?: string;
   onSheetUrlChange: (url: string) => void;
   sheet?: Sheet;
-  onConnectionSuccess?: () => void;
+  onConnectionSuccess?: (padId: string) => void;
 }
 
 const CryptPadEmbed: React.FC<CryptPadEmbedProps> = ({
@@ -30,12 +29,17 @@ const CryptPadEmbed: React.FC<CryptPadEmbedProps> = ({
     setCurrentPadId(padId);
     onSheetUrlChange(`https://cryptpad.fr/sheet/#/2/sheet/edit/${padId}`);
     toast.success("Feuille CryptPad connectée avec succès");
+    
+    // Appeler le callback de connexion réussie avec le padId
+    if (onConnectionSuccess) {
+      onConnectionSuccess(padId);
+    }
   };
 
   const handleConnectionSuccess = () => {
     console.log("Gestion de la connexion réussie...");
     if (onConnectionSuccess) {
-      onConnectionSuccess();
+      onConnectionSuccess(currentPadId);
     }
   };
 

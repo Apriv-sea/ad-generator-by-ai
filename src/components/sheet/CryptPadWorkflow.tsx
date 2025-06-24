@@ -73,7 +73,7 @@ const CryptPadWorkflow: React.FC<CryptPadWorkflowProps> = ({ sheet, clientInfo }
             sheetUrl={sheetUrl}
             onSheetUrlChange={setSheetUrl}
             sheet={sheet}
-            onConnectionSuccess={() => connectedSheetId && handleConnectionSuccess(connectedSheetId)}
+            onConnectionSuccess={handleConnectionSuccess}
           />
         </TabsContent>
         
