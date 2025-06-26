@@ -29,7 +29,7 @@ const ContentHistoryPanel: React.FC<ContentHistoryPanelProps> = ({ sheetId, onRe
     try {
       const [historyData, backupsData, statsData] = await Promise.all([
         enhancedContentGenerationService.getHistoryForSheet(sheetId),
-        enhancedContentGenerationService.getBackupsForSheet(sheetId),
+        Promise.resolve(enhancedContentGenerationService.getBackupsForSheet(sheetId)),
         enhancedContentGenerationService.getStatsForSheet(sheetId)
       ]);
       

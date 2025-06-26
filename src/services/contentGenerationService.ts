@@ -9,7 +9,13 @@ export const contentGenerationService = {
       console.log("Génération de contenu via le service amélioré");
       
       const result = await enhancedContentGenerationService.generateContent(
-        prompt,
+        {
+          clientContext: prompt.clientContext || '',
+          campaignContext: prompt.campaignContext || '',
+          adGroupContext: prompt.adGroupContext || '',
+          keywords: prompt.keywords || [],
+          model: prompt.model
+        },
         'default-sheet', // TODO: Récupérer le vrai sheetId depuis le contexte
         undefined, // TODO: Passer les données actuelles du sheet
         {

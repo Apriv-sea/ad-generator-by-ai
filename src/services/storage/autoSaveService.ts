@@ -55,6 +55,46 @@ export function useAutoSave<T>(data: T, options: AutoSaveOptions) {
   return { saveNow };
 }
 
+// Service pour la gestion des sauvegardes automatiques
+class AutoSaveService {
+  private pendingSaves: Map<string, any> = new Map();
+  private saveStatus: Map<string, { status: string; hasPending: boolean }> = new Map();
+
+  scheduleAutoSave(sheetId: string, data: any[][]): void {
+    this.pendingSaves.set(sheetId, data);
+    this.saveStatus.set(sheetId, { status: 'pending', hasPending: true });
+    
+    // Simuler une sauvegarde async
+    setTimeout(() => {
+      this.saveStatus.set(sheetId, { status: 'saved', hasPending: false });
+    }, 1000);
+  }
+
+  async forceSave(sheetId: string, data: any[][]): Promise<boolean> {
+    try {
+      this.saveStatus.set(sheetId, { status: 'saving', hasPending: true });
+      
+      // Simuler un appel de sauvegarde
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      this.pendingSaves.delete(sheetId);
+      this.saveStatus.set(sheetId, { status: 'saved', hasPending: false });
+      
+      return true;
+    } catch (error) {
+      console.error('Force save failed:', error);
+      this.saveStatus.set(sheetId, { status: 'error', hasPending: false });
+      return false;
+    }
+  }
+
+  getSheetStatus(sheetId: string): { status: string; hasPending: boolean } {
+    return this.saveStatus.get(sheetId) || { status: 'unknown', hasPending: false };
+  }
+}
+
+export const autoSaveService = new AutoSaveService();
+
 // Service pour la compression locale
 export class LocalStorageCompressionService {
   private static readonly COMPRESSION_THRESHOLD = 1024; // 1KB

@@ -3,9 +3,99 @@ import { contentHistoryService, GenerationHistory, GenerationBackup } from "../h
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserId } from "@/services/utils/supabaseUtils";
 
+interface GenerationOptions {
+  validateContent?: boolean;
+  saveToHistory?: boolean;
+  createBackup?: boolean;
+  autoCleanContent?: boolean;
+  maxRegenerateAttempts?: number;
+}
+
+interface GenerationPrompt {
+  clientContext: string;
+  campaignContext: string;
+  adGroupContext: string;
+  keywords: string[];
+  model?: string;
+}
+
+interface GenerationResult {
+  success: boolean;
+  titles: string[];
+  descriptions: string[];
+  provider: string;
+  model: string;
+  tokensUsed?: number;
+  validationResults?: any;
+}
+
 class EnhancedContentGenerationService {
   private backupStorage: Map<string, GenerationBackup[]> = new Map();
   private compressionEnabled = true;
+
+  async generateContent(
+    prompt: GenerationPrompt,
+    sheetId: string,
+    currentData?: any[][],
+    options: GenerationOptions = {}
+  ): Promise<GenerationResult> {
+    try {
+      // Créer une sauvegarde avant la génération si demandé
+      if (options.createBackup && currentData) {
+        await this.createBackup(sheetId, currentData);
+      }
+
+      // Appeler le service de génération LLM
+      const { data, error } = await supabase.functions.invoke('llm-generation', {
+        body: {
+          prompt: this.buildPrompt(prompt),
+          model: prompt.model || 'gpt-4',
+          provider: 'openai'
+        }
+      });
+
+      if (error) throw error;
+
+      const result: GenerationResult = {
+        success: true,
+        titles: data.titles || [],
+        descriptions: data.descriptions || [],
+        provider: data.provider || 'openai',
+        model: data.model || prompt.model || 'gpt-4',
+        tokensUsed: data.tokensUsed,
+        validationResults: data.validation
+      };
+
+      // Sauvegarder dans l'historique si demandé
+      if (options.saveToHistory) {
+        await contentHistoryService.saveGeneration({
+          sheetId,
+          campaignName: prompt.campaignContext,
+          adGroupName: prompt.adGroupContext,
+          generatedContent: {
+            titles: result.titles,
+            descriptions: result.descriptions
+          },
+          provider: result.provider,
+          model: result.model,
+          promptData: prompt,
+          tokensUsed: result.tokensUsed,
+          validationResults: result.validationResults
+        });
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error in enhanced content generation:', error);
+      return {
+        success: false,
+        titles: [],
+        descriptions: [],
+        provider: 'openai',
+        model: prompt.model || 'gpt-4'
+      };
+    }
+  }
 
   async generateContentWithHistory(
     sheetId: string,
@@ -48,6 +138,17 @@ class EnhancedContentGenerationService {
       console.error('Error in enhanced content generation:', error);
       throw error;
     }
+  }
+
+  private buildPrompt(prompt: GenerationPrompt): string {
+    return `
+Contexte client: ${prompt.clientContext}
+Campagne: ${prompt.campaignContext}
+Groupe d'annonces: ${prompt.adGroupContext}
+Mots-clés: ${prompt.keywords.join(', ')}
+
+Génère 3 titres et 2 descriptions pour cette campagne publicitaire.
+`;
   }
 
   async createBackup(sheetId: string, content: any[][]): Promise<string> {
@@ -131,8 +232,8 @@ class EnhancedContentGenerationService {
     }
   }
 
-  getHistoryForSheet(sheetId: string): GenerationHistory[] {
-    return contentHistoryService.getHistoryForSheet(sheetId) as any;
+  async getHistoryForSheet(sheetId: string): Promise<GenerationHistory[]> {
+    return await contentHistoryService.getHistoryForSheet(sheetId);
   }
 
   getBackupsForSheet(sheetId: string): GenerationBackup[] {
@@ -140,7 +241,12 @@ class EnhancedContentGenerationService {
   }
 
   getStatsForSheet(sheetId: string): any {
-    const history = this.getHistoryForSheet(sheetId);
+    // Cette méthode doit être async maintenant
+    return this.getStatsForSheetAsync(sheetId);
+  }
+
+  private async getStatsForSheetAsync(sheetId: string): Promise<any> {
+    const history = await this.getHistoryForSheet(sheetId);
     const backups = this.getBackupsForSheet(sheetId);
 
     const providersUsed = history.reduce((acc, item) => {
