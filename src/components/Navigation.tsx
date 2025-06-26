@@ -47,23 +47,23 @@ const Navigation = () => {
   const NavItems = ({ onItemClick }: { onItemClick?: () => void }) => (
     <>
       {navigationItems.map((item) => (
-        <Link 
-          key={item.path} 
-          to={item.path} 
-          onClick={onItemClick}
-          className="text-decoration-none"
+        <Button
+          key={item.path}
+          variant={isActive(item.path) ? "secondary" : "ghost"}
+          className={cn(
+            "text-sm justify-start w-full",
+            isActive(item.path) ? "font-medium bg-secondary" : "hover:bg-accent"
+          )}
+          asChild
         >
-          <Button
-            variant={isActive(item.path) ? "secondary" : "ghost"}
-            className={cn(
-              "text-sm justify-start w-full",
-              isActive(item.path) ? "font-medium bg-secondary" : "hover:bg-accent"
-            )}
-            asChild={false}
+          <Link 
+            to={item.path} 
+            onClick={onItemClick}
+            className="text-decoration-none"
           >
             {item.label}
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       ))}
     </>
   );
