@@ -14,13 +14,15 @@ interface CampaignExtractorWorkflowProps {
   sheetData: any[][] | null;
   clientInfo: Client | null;
   onCampaignsExtracted: (campaigns: Campaign[]) => void;
+  onClientInfoUpdated?: (newClientInfo: Client | null) => void;
 }
 
 const CampaignExtractorWorkflow: React.FC<CampaignExtractorWorkflowProps> = ({
   sheetId,
   sheetData,
   clientInfo,
-  onCampaignsExtracted
+  onCampaignsExtracted,
+  onClientInfoUpdated
 }) => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
