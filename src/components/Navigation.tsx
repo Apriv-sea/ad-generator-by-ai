@@ -47,13 +47,19 @@ const Navigation = () => {
   const NavItems = ({ onItemClick }: { onItemClick?: () => void }) => (
     <>
       {navigationItems.map((item) => (
-        <Link key={item.path} to={item.path} onClick={onItemClick}>
+        <Link 
+          key={item.path} 
+          to={item.path} 
+          onClick={onItemClick}
+          className="text-decoration-none"
+        >
           <Button
             variant={isActive(item.path) ? "secondary" : "ghost"}
             className={cn(
-              "text-sm justify-start",
-              isActive(item.path) ? "font-medium" : ""
+              "text-sm justify-start w-full",
+              isActive(item.path) ? "font-medium bg-secondary" : "hover:bg-accent"
             )}
+            asChild={false}
           >
             {item.label}
           </Button>
@@ -64,11 +70,11 @@ const Navigation = () => {
 
   return (
     <>
-      <header className="border-b bg-white">
+      <header className="border-b bg-white sticky top-0 z-50">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-6">
-              <Link to="/dashboard" className="text-xl font-bold">
+              <Link to="/dashboard" className="text-xl font-bold hover:opacity-80 transition-opacity">
                 Ad Content Generator
               </Link>
               
@@ -110,7 +116,7 @@ const Navigation = () => {
                   {/* Desktop User Menu */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="flex items-center gap-2">
+                      <Button variant="ghost" className="flex items-center gap-2 hover:bg-accent">
                         <span className="hidden sm:inline">{getUserName()}</span>
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={getUserAvatar()} alt={getUserName()} />
@@ -131,19 +137,22 @@ const Navigation = () => {
                       </div>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
-                        <Link to="/profile" className="flex items-center gap-2">
+                        <Link to="/profile" className="flex items-center gap-2 cursor-pointer">
                           <User className="h-4 w-4" />
                           Mon profil
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link to="/settings" className="flex items-center gap-2">
+                        <Link to="/settings" className="flex items-center gap-2 cursor-pointer">
                           <Settings className="h-4 w-4" />
                           Paramètres
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2">
+                      <DropdownMenuItem 
+                        onClick={handleLogout} 
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
                         <LogOut className="h-4 w-4" />
                         Déconnexion
                       </DropdownMenuItem>
