@@ -1,7 +1,10 @@
 
+import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserId } from "@/services/utils/supabaseUtils";
+
 export interface GenerationHistory {
   id: string;
-  timestamp: Date;
+  userId: string;
   sheetId: string;
   campaignName: string;
   adGroupName: string;
@@ -11,218 +14,134 @@ export interface GenerationHistory {
   };
   provider: string;
   model: string;
-  prompt: any;
+  promptData?: any;
   tokensUsed?: number;
   validationResults?: any;
+  timestamp: Date;
 }
 
 export interface GenerationBackup {
   id: string;
-  sheetId: string;
   previousContent: any[][];
-  newContent: any[][];
   timestamp: Date;
   canRevert: boolean;
 }
 
 class ContentHistoryService {
-  private readonly HISTORY_KEY = 'content_generation_history';
-  private readonly BACKUP_KEY = 'content_generation_backups';
-  private readonly MAX_HISTORY_ITEMS = 100;
-  private readonly MAX_BACKUP_ITEMS = 20;
+  private readonly CACHE_KEY = 'content_history_cache';
+  private cache: Map<string, GenerationHistory[]> = new Map();
 
-  saveGeneration(history: Omit<GenerationHistory, 'id' | 'timestamp'>): string {
-    const generationId = this.generateId();
-    const fullHistory: GenerationHistory = {
-      ...history,
-      id: generationId,
-      timestamp: new Date()
-    };
+  async saveGeneration(data: Omit<GenerationHistory, 'id' | 'userId' | 'timestamp'>): Promise<string | null> {
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) return null;
 
-    const existing = this.getHistory();
-    existing.unshift(fullHistory);
+      const { data: result, error } = await supabase
+        .from('content_generations')
+        .insert({
+          user_id: userId,
+          sheet_id: data.sheetId,
+          campaign_name: data.campaignName,
+          ad_group_name: data.adGroupName,
+          generated_content: data.generatedContent,
+          provider: data.provider,
+          model: data.model,
+          prompt_data: data.promptData,
+          tokens_used: data.tokensUsed,
+          validation_results: data.validationResults
+        })
+        .select()
+        .single();
 
-    // Limiter le nombre d'éléments
-    if (existing.length > this.MAX_HISTORY_ITEMS) {
-      existing.splice(this.MAX_HISTORY_ITEMS);
+      if (error) {
+        console.error('Error saving generation:', error);
+        return null;
+      }
+
+      // Invalider le cache
+      this.cache.delete(data.sheetId);
+      
+      return result.id;
+    } catch (error) {
+      console.error('Exception saving generation:', error);
+      return null;
     }
-
-    localStorage.setItem(this.HISTORY_KEY, JSON.stringify(existing));
-    console.log(`Génération sauvegardée: ${generationId}`);
-    
-    return generationId;
   }
 
-  getHistory(sheetId?: string): GenerationHistory[] {
-    try {
-      const stored = localStorage.getItem(this.HISTORY_KEY);
-      if (!stored) return [];
+  async getHistoryForSheet(sheetId: string): Promise<GenerationHistory[]> {
+    // Vérifier le cache d'abord
+    if (this.cache.has(sheetId)) {
+      return this.cache.get(sheetId)!;
+    }
 
-      const history: GenerationHistory[] = JSON.parse(stored).map((item: any) => ({
-        ...item,
-        timestamp: new Date(item.timestamp)
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) return [];
+
+      const { data, error } = await supabase
+        .from('content_generations')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('sheet_id', sheetId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching history:', error);
+        return [];
+      }
+
+      const history = data.map(item => ({
+        id: item.id,
+        userId: item.user_id,
+        sheetId: item.sheet_id,
+        campaignName: item.campaign_name,
+        adGroupName: item.ad_group_name,
+        generatedContent: item.generated_content as any,
+        provider: item.provider,
+        model: item.model,
+        promptData: item.prompt_data,
+        tokensUsed: item.tokens_used,
+        validationResults: item.validation_results,
+        timestamp: new Date(item.created_at)
       }));
 
-      return sheetId 
-        ? history.filter(h => h.sheetId === sheetId)
-        : history;
+      // Mettre en cache
+      this.cache.set(sheetId, history);
+      
+      return history;
     } catch (error) {
-      console.error('Erreur lors du chargement de l\'historique:', error);
+      console.error('Exception fetching history:', error);
       return [];
     }
   }
 
-  getGenerationById(id: string): GenerationHistory | null {
-    const history = this.getHistory();
-    return history.find(h => h.id === id) || null;
-  }
-
-  deleteGeneration(id: string): boolean {
+  async deleteGeneration(id: string): Promise<boolean> {
     try {
-      const history = this.getHistory();
-      const filteredHistory = history.filter(h => h.id !== id);
-      
-      localStorage.setItem(this.HISTORY_KEY, JSON.stringify(filteredHistory));
-      console.log(`Génération supprimée: ${id}`);
-      return true;
-    } catch (error) {
-      console.error('Erreur lors de la suppression:', error);
-      return false;
-    }
-  }
+      const userId = await getCurrentUserId();
+      if (!userId) return false;
 
-  createBackup(sheetId: string, previousContent: any[][], newContent: any[][]): string {
-    const backupId = this.generateId();
-    const backup: GenerationBackup = {
-      id: backupId,
-      sheetId,
-      previousContent: JSON.parse(JSON.stringify(previousContent)), // Deep copy
-      newContent: JSON.parse(JSON.stringify(newContent)), // Deep copy
-      timestamp: new Date(),
-      canRevert: true
-    };
+      const { error } = await supabase
+        .from('content_generations')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', userId);
 
-    const existing = this.getBackups();
-    existing.unshift(backup);
-
-    // Limiter le nombre de backups
-    if (existing.length > this.MAX_BACKUP_ITEMS) {
-      existing.splice(this.MAX_BACKUP_ITEMS);
-    }
-
-    localStorage.setItem(this.BACKUP_KEY, JSON.stringify(existing));
-    console.log(`Backup créé: ${backupId}`);
-    
-    return backupId;
-  }
-
-  getBackups(sheetId?: string): GenerationBackup[] {
-    try {
-      const stored = localStorage.getItem(this.BACKUP_KEY);
-      if (!stored) return [];
-
-      const backups: GenerationBackup[] = JSON.parse(stored).map((item: any) => ({
-        ...item,
-        timestamp: new Date(item.timestamp)
-      }));
-
-      return sheetId 
-        ? backups.filter(b => b.sheetId === sheetId)
-        : backups;
-    } catch (error) {
-      console.error('Erreur lors du chargement des backups:', error);
-      return [];
-    }
-  }
-
-  getBackupById(id: string): GenerationBackup | null {
-    const backups = this.getBackups();
-    return backups.find(b => b.id === id) || null;
-  }
-
-  canRevertToBackup(id: string): boolean {
-    const backup = this.getBackupById(id);
-    return backup?.canRevert || false;
-  }
-
-  getRevertData(id: string): any[][] | null {
-    const backup = this.getBackupById(id);
-    return backup?.canRevert ? backup.previousContent : null;
-  }
-
-  markBackupAsUsed(id: string): boolean {
-    try {
-      const backups = this.getBackups();
-      const backup = backups.find(b => b.id === id);
-      
-      if (backup) {
-        backup.canRevert = false;
-        localStorage.setItem(this.BACKUP_KEY, JSON.stringify(backups));
-        return true;
+      if (!error) {
+        // Invalider tout le cache
+        this.cache.clear();
       }
-      
-      return false;
+
+      return !error;
     } catch (error) {
-      console.error('Erreur lors de la mise à jour du backup:', error);
+      console.error('Exception deleting generation:', error);
       return false;
     }
   }
 
-  clearHistory(): boolean {
-    try {
-      localStorage.removeItem(this.HISTORY_KEY);
-      console.log('Historique effacé');
-      return true;
-    } catch (error) {
-      console.error('Erreur lors de l\'effacement de l\'historique:', error);
-      return false;
-    }
-  }
-
-  clearBackups(): boolean {
-    try {
-      localStorage.removeItem(this.BACKUP_KEY);
-      console.log('Backups effacés');
-      return true;
-    } catch (error) {
-      console.error('Erreur lors de l\'effacement des backups:', error);
-      return false;
-    }
-  }
-
-  getStats(sheetId?: string): {
-    totalGenerations: number;
-    totalBackups: number;
-    providersUsed: { [key: string]: number };
-    averageTokensUsed: number;
-    lastGeneration?: Date;
-  } {
-    const history = this.getHistory(sheetId);
-    const backups = this.getBackups(sheetId);
-
-    const providersUsed: { [key: string]: number } = {};
-    let totalTokens = 0;
-    let tokenCount = 0;
-
-    history.forEach(h => {
-      providersUsed[h.provider] = (providersUsed[h.provider] || 0) + 1;
-      if (h.tokensUsed) {
-        totalTokens += h.tokensUsed;
-        tokenCount++;
-      }
-    });
-
-    return {
-      totalGenerations: history.length,
-      totalBackups: backups.length,
-      providersUsed,
-      averageTokensUsed: tokenCount > 0 ? Math.round(totalTokens / tokenCount) : 0,
-      lastGeneration: history.length > 0 ? history[0].timestamp : undefined
-    };
-  }
-
-  private generateId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  // Méthode pour nettoyer le cache
+  clearCache(): void {
+    this.cache.clear();
   }
 }
 

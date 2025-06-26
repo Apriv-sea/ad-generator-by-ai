@@ -33,6 +33,42 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_public: boolean | null
+          name: string
+          template_data: Json
+          updated_at: string
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+          template_data: Json
+          updated_at?: string
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+          template_data?: Json
+          updated_at?: string
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           business_context: string | null
@@ -66,6 +102,84 @@ export type Database = {
         }
         Relationships: []
       }
+      content_generations: {
+        Row: {
+          ad_group_name: string
+          campaign_name: string
+          created_at: string
+          generated_content: Json
+          id: string
+          model: string
+          prompt_data: Json | null
+          provider: string
+          sheet_id: string
+          tokens_used: number | null
+          user_id: string
+          validation_results: Json | null
+        }
+        Insert: {
+          ad_group_name: string
+          campaign_name: string
+          created_at?: string
+          generated_content: Json
+          id?: string
+          model: string
+          prompt_data?: Json | null
+          provider: string
+          sheet_id: string
+          tokens_used?: number | null
+          user_id: string
+          validation_results?: Json | null
+        }
+        Update: {
+          ad_group_name?: string
+          campaign_name?: string
+          created_at?: string
+          generated_content?: Json
+          id?: string
+          model?: string
+          prompt_data?: Json | null
+          provider?: string
+          sheet_id?: string
+          tokens_used?: number | null
+          user_id?: string
+          validation_results?: Json | null
+        }
+        Relationships: []
+      }
+      data_backups: {
+        Row: {
+          backup_data: Json
+          backup_type: string
+          compressed_size: number | null
+          created_at: string
+          data_reference: string
+          expires_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          backup_data: Json
+          backup_type: string
+          compressed_size?: number | null
+          created_at?: string
+          data_reference: string
+          expires_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          backup_data?: Json
+          backup_type?: string
+          compressed_size?: number | null
+          created_at?: string
+          data_reference?: string
+          expires_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -90,6 +204,39 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_analytics: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          page_url: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          page_url?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          page_url?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -119,12 +266,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_backups: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      create_automatic_backup: {
+        Args: {
+          _user_id: string
+          _backup_type: string
+          _data_reference: string
+          _backup_data: Json
+        }
+        Returns: string
+      }
       has_role: {
         Args: {
           _user_id: string
           _role: Database["public"]["Enums"]["user_role"]
         }
         Returns: boolean
+      }
+      increment_template_usage: {
+        Args: { _template_id: string }
+        Returns: undefined
       }
     }
     Enums: {

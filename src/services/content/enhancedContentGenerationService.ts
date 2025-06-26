@@ -1,271 +1,187 @@
 
-import { GenerationPrompt } from "../types";
-import { llmApiService, LLMResponse } from "../llm/llmApiService";
-import { LLMConfig } from "../llm/secureLLMService";
-import { contentValidationService, ValidationResult } from "../validation/contentValidationService";
-import { contentHistoryService } from "../history/contentHistoryService";
-import { toast } from "sonner";
-
-export interface EnhancedGenerationOptions {
-  maxRegenerateAttempts?: number;
-  validateContent?: boolean;
-  saveToHistory?: boolean;
-  createBackup?: boolean;
-  autoCleanContent?: boolean;
-}
-
-export interface EnhancedGenerationResult {
-  success: boolean;
-  titles: string[];
-  descriptions: string[];
-  provider: string;
-  model: string;
-  tokensUsed?: number;
-  validationResults?: {
-    titles: ValidationResult;
-    descriptions: ValidationResult;
-  };
-  historyId?: string;
-  backupId?: string;
-  regeneratedCount?: number;
-}
+import { contentHistoryService, GenerationHistory, GenerationBackup } from "../history/contentHistoryService";
+import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserId } from "@/services/utils/supabaseUtils";
 
 class EnhancedContentGenerationService {
-  private async getApiConfigs(): Promise<LLMConfig[]> {
-    // Use the secure service to validate API keys and create configs
-    const validationResult = await llmApiService.validateApiKeys();
-    
-    const configs: LLMConfig[] = [];
-    
-    // Ordre de priorité des modèles basé sur les clés API disponibles
-    if (validationResult.openai) {
-      configs.push({
-        provider: 'openai',
-        model: 'gpt-4'
+  private backupStorage: Map<string, GenerationBackup[]> = new Map();
+  private compressionEnabled = true;
+
+  async generateContentWithHistory(
+    sheetId: string,
+    campaignName: string,
+    adGroupName: string,
+    generationData: any,
+    provider: string,
+    model: string
+  ): Promise<any> {
+    try {
+      // Créer une sauvegarde avant la génération
+      await this.createBackup(sheetId, generationData.currentContent || []);
+
+      // Appeler le service de génération existant
+      const { data, error } = await supabase.functions.invoke('llm-generation', {
+        body: {
+          ...generationData,
+          provider,
+          model
+        }
       });
-      configs.push({
-        provider: 'openai',
-        model: 'gpt-3.5-turbo'
+
+      if (error) throw error;
+
+      // Sauvegarder dans l'historique
+      await contentHistoryService.saveGeneration({
+        sheetId,
+        campaignName,
+        adGroupName,
+        generatedContent: data.content,
+        provider,
+        model,
+        promptData: generationData,
+        tokensUsed: data.tokensUsed,
+        validationResults: data.validation
       });
+
+      return data;
+    } catch (error) {
+      console.error('Error in enhanced content generation:', error);
+      throw error;
     }
-    
-    if (validationResult.anthropic) {
-      configs.push({
-        provider: 'anthropic',
-        model: 'claude-3-sonnet-20240229'
-      });
-    }
-    
-    if (validationResult.google) {
-      configs.push({
-        provider: 'google',
-        model: 'gemini-pro'
-      });
-    }
-    
-    return configs;
   }
 
-  async generateContent(
-    prompt: GenerationPrompt, 
-    sheetId: string,
-    currentSheetData?: any[][],
-    options: EnhancedGenerationOptions = {}
-  ): Promise<EnhancedGenerationResult> {
-    const {
-      maxRegenerateAttempts = 2,
-      validateContent = true,
-      saveToHistory = true,
-      createBackup = true,
-      autoCleanContent = true
-    } = options;
-
+  async createBackup(sheetId: string, content: any[][]): Promise<string> {
     try {
-      console.log("=== Début de la génération de contenu ===");
-      
-      // Vérifier les configurations disponibles
-      const configs = await this.getApiConfigs();
-      if (configs.length === 0) {
-        toast.error("Aucune clé API configurée. Veuillez configurer au moins une clé API dans les paramètres.");
-        return {
-          success: false,
-          titles: [],
-          descriptions: [],
-          provider: '',
-          model: ''
-        };
-      }
+      const userId = await getCurrentUserId();
+      if (!userId) throw new Error('User not authenticated');
 
-      console.log(`${configs.length} configurations API disponibles`);
+      // Compression des données si activée
+      const backupData = this.compressionEnabled ? 
+        this.compressData(content) : content;
 
-      // Créer un backup avant génération si demandé
-      let backupId: string | undefined;
-      if (createBackup && currentSheetData) {
-        backupId = contentHistoryService.createBackup(
-          sheetId,
-          currentSheetData,
-          [] // Sera mis à jour après génération
-        );
-      }
-
-      let regenerateCount = 0;
-      let lastResponse: LLMResponse | null = null;
-      let finalValidationResults: { titles: ValidationResult; descriptions: ValidationResult } | undefined;
-
-      // Boucle de génération avec validation et régénération
-      while (regenerateCount <= maxRegenerateAttempts) {
-        console.log(`Tentative de génération ${regenerateCount + 1}/${maxRegenerateAttempts + 1}`);
-        
-        // Appel API avec fallback et retry
-        const response = await llmApiService.generateContentWithRetry(configs, prompt);
-        lastResponse = response;
-
-        if (!validateContent) {
-          // Pas de validation, on retourne directement
-          break;
+      const { data, error } = await supabase.functions.invoke('create_automatic_backup', {
+        body: {
+          backup_type: 'sheet_data',
+          data_reference: sheetId,
+          backup_data: backupData
         }
+      });
 
-        // Validation du contenu généré
-        const titlesValidation = contentValidationService.validateTitlesArray(response.titles);
-        const descriptionsValidation = contentValidationService.validateDescriptionsArray(response.descriptions);
-        
-        finalValidationResults = {
-          titles: titlesValidation,
-          descriptions: descriptionsValidation
-        };
+      if (error) throw error;
 
-        // Si la validation passe ou qu'on a atteint le max de tentatives
-        if (titlesValidation.isValid && descriptionsValidation.isValid) {
-          console.log("Validation réussie !");
-          break;
-        }
-
-        if (regenerateCount >= maxRegenerateAttempts) {
-          console.log("Max tentatives atteint, on garde le dernier contenu");
-          break;
-        }
-
-        // Afficher les erreurs et recommencer
-        console.log("Validation échouée, régénération...");
-        console.log("Erreurs titres:", titlesValidation.errors);
-        console.log("Erreurs descriptions:", descriptionsValidation.errors);
-        
-        regenerateCount++;
-        
-        // Attendre un peu avant de régénérer
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-
-      if (!lastResponse) {
-        throw new Error("Aucune réponse générée");
-      }
-
-      // Nettoyer le contenu si demandé
-      let finalTitles = lastResponse.titles;
-      let finalDescriptions = lastResponse.descriptions;
-
-      if (autoCleanContent && finalValidationResults) {
-        if (finalValidationResults.titles.cleanedContent && Array.isArray(finalValidationResults.titles.cleanedContent)) {
-          finalTitles = finalValidationResults.titles.cleanedContent;
-        }
-        if (finalValidationResults.descriptions.cleanedContent && Array.isArray(finalValidationResults.descriptions.cleanedContent)) {
-          finalDescriptions = finalValidationResults.descriptions.cleanedContent;
-        }
-      }
-
-      // Sauvegarder dans l'historique si demandé
-      let historyId: string | undefined;
-      if (saveToHistory) {
-        historyId = contentHistoryService.saveGeneration({
-          sheetId,
-          campaignName: prompt.campaignContext,
-          adGroupName: prompt.adGroupContext,
-          generatedContent: {
-            titles: finalTitles,
-            descriptions: finalDescriptions
-          },
-          provider: lastResponse.provider,
-          model: lastResponse.model,
-          prompt,
-          tokensUsed: lastResponse.tokensUsed,
-          validationResults: finalValidationResults
-        });
-      }
-
-      // Messages de statut
-      if (finalValidationResults) {
-        const totalErrors = finalValidationResults.titles.errors.length + 
-                           finalValidationResults.descriptions.errors.length;
-        const totalWarnings = finalValidationResults.titles.warnings.length + 
-                             finalValidationResults.descriptions.warnings.length;
-
-        if (totalErrors > 0) {
-          toast.warning(`Contenu généré avec ${totalErrors} erreur(s) de validation`);
-        } else if (totalWarnings > 0) {
-          toast.success(`Contenu généré avec ${totalWarnings} avertissement(s)`);
-        } else {
-          toast.success("Contenu généré et validé avec succès !");
-        }
-      } else {
-        toast.success("Contenu généré avec succès !");
-      }
-
-      console.log("=== Génération terminée avec succès ===");
-
-      return {
-        success: true,
-        titles: finalTitles,
-        descriptions: finalDescriptions,
-        provider: lastResponse.provider,
-        model: lastResponse.model,
-        tokensUsed: lastResponse.tokensUsed,
-        validationResults: finalValidationResults,
-        historyId,
-        backupId,
-        regeneratedCount: regenerateCount
+      // Ajouter au cache local
+      const backup: GenerationBackup = {
+        id: data.id,
+        previousContent: content,
+        timestamp: new Date(),
+        canRevert: true
       };
 
+      const existingBackups = this.backupStorage.get(sheetId) || [];
+      existingBackups.unshift(backup);
+      
+      // Garder seulement les 10 dernières sauvegardes en mémoire
+      if (existingBackups.length > 10) {
+        existingBackups.splice(10);
+      }
+      
+      this.backupStorage.set(sheetId, existingBackups);
+
+      return data.id;
     } catch (error) {
-      console.error("Erreur lors de la génération de contenu:", error);
-      toast.error(`Erreur lors de la génération: ${error.message}`);
-      
-      return {
-        success: false,
-        titles: [],
-        descriptions: [],
-        provider: '',
-        model: ''
-      };
+      console.error('Error creating backup:', error);
+      throw error;
     }
   }
 
   async revertToBackup(backupId: string): Promise<any[][] | null> {
-    const revertData = contentHistoryService.getRevertData(backupId);
-    if (revertData) {
-      contentHistoryService.markBackupAsUsed(backupId);
-      toast.success("Contenu restauré depuis la sauvegarde");
-      return revertData;
-    } else {
-      toast.error("Impossible de restaurer depuis cette sauvegarde");
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) return null;
+
+      const { data, error } = await supabase
+        .from('data_backups')
+        .select('*')
+        .eq('id', backupId)
+        .eq('user_id', userId)
+        .single();
+
+      if (error || !data) {
+        console.error('Backup not found:', error);
+        return null;
+      }
+
+      // Décompresser les données si nécessaire
+      const restoredData = this.compressionEnabled ? 
+        this.decompressData(data.backup_data) : data.backup_data;
+
+      // Marquer comme utilisé dans le cache local
+      for (const [sheetId, backups] of this.backupStorage.entries()) {
+        const backup = backups.find(b => b.id === backupId);
+        if (backup) {
+          backup.canRevert = false;
+          break;
+        }
+      }
+
+      return restoredData;
+    } catch (error) {
+      console.error('Error reverting backup:', error);
       return null;
     }
   }
 
-  async getAvailableProviders(): Promise<string[]> {
-    const configs = await this.getApiConfigs();
-    return configs.map(config => config.provider);
+  getHistoryForSheet(sheetId: string): GenerationHistory[] {
+    return contentHistoryService.getHistoryForSheet(sheetId) as any;
   }
 
-  getHistoryForSheet(sheetId: string) {
-    return contentHistoryService.getHistory(sheetId);
+  getBackupsForSheet(sheetId: string): GenerationBackup[] {
+    return this.backupStorage.get(sheetId) || [];
   }
 
-  getBackupsForSheet(sheetId: string) {
-    return contentHistoryService.getBackups(sheetId);
+  getStatsForSheet(sheetId: string): any {
+    const history = this.getHistoryForSheet(sheetId);
+    const backups = this.getBackupsForSheet(sheetId);
+
+    const providersUsed = history.reduce((acc, item) => {
+      acc[item.provider] = (acc[item.provider] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const totalTokens = history.reduce((sum, item) => sum + (item.tokensUsed || 0), 0);
+
+    return {
+      totalGenerations: history.length,
+      totalBackups: backups.length,
+      averageTokensUsed: history.length > 0 ? Math.round(totalTokens / history.length) : 0,
+      providersUsed
+    };
   }
 
-  getStatsForSheet(sheetId: string) {
-    return contentHistoryService.getStats(sheetId);
+  private compressData(data: any): any {
+    // Implémentation simple de compression - peut être améliorée
+    try {
+      const jsonString = JSON.stringify(data);
+      // Simuler une compression simple en supprimant les espaces
+      return {
+        compressed: true,
+        data: jsonString.replace(/\s+/g, ' ').trim(),
+        originalSize: jsonString.length
+      };
+    } catch {
+      return data;
+    }
+  }
+
+  private decompressData(compressedData: any): any {
+    if (compressedData?.compressed) {
+      try {
+        return JSON.parse(compressedData.data);
+      } catch {
+        return compressedData.data;
+      }
+    }
+    return compressedData;
   }
 }
 
