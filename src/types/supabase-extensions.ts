@@ -26,3 +26,21 @@ export interface ClientRecord {
   created_at: string;
   updated_at: string;
 }
+
+export interface Profile {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserRole {
+  id: string;
+  user_id: string;
+  role: 'admin' | 'user';
+  created_at: string;
+}
+
+export type { UserRole as UserRoleType };
