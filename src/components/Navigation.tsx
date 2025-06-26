@@ -10,6 +10,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, User, Settings, LogOut } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import Breadcrumb from "./Breadcrumb";
+import { NavigationItems } from "./navigation/NavigationItems";
+import { UserMenu } from "./navigation/UserMenu";
 
 const Navigation = () => {
   const location = useLocation();
@@ -41,32 +43,12 @@ const Navigation = () => {
   };
 
   const handleLogout = async () => {
-    await logout();
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
   };
-
-  const NavItems = ({ onItemClick }: { onItemClick?: () => void }) => (
-    <>
-      {navigationItems.map((item) => (
-        <Button
-          key={item.path}
-          variant={isActive(item.path) ? "secondary" : "ghost"}
-          className={cn(
-            "text-sm justify-start w-full",
-            isActive(item.path) ? "font-medium bg-secondary" : "hover:bg-accent"
-          )}
-          asChild
-        >
-          <Link 
-            to={item.path} 
-            onClick={onItemClick}
-            className="text-decoration-none"
-          >
-            {item.label}
-          </Link>
-        </Button>
-      ))}
-    </>
-  );
 
   return (
     <>
@@ -80,7 +62,10 @@ const Navigation = () => {
               
               {/* Desktop Navigation */}
               <nav className="hidden md:flex items-center gap-1">
-                <NavItems />
+                <NavigationItems 
+                  items={navigationItems} 
+                  isActive={isActive}
+                />
               </nav>
             </div>
             
@@ -107,62 +92,31 @@ const Navigation = () => {
                           </div>
                         </div>
                         <nav className="flex flex-col gap-1">
-                          <NavItems onItemClick={() => setIsMobileMenuOpen(false)} />
+                          <NavigationItems 
+                            items={navigationItems} 
+                            isActive={isActive}
+                            onItemClick={() => setIsMobileMenuOpen(false)}
+                          />
                         </nav>
                       </div>
                     </SheetContent>
                   </Sheet>
 
                   {/* Desktop User Menu */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="flex items-center gap-2 hover:bg-accent">
-                        <span className="hidden sm:inline">{getUserName()}</span>
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={getUserAvatar()} alt={getUserName()} />
-                          <AvatarFallback>{getUserInitial()}</AvatarFallback>
-                        </Avatar>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <div className="flex items-center gap-2 p-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={getUserAvatar()} alt={getUserName()} />
-                          <AvatarFallback>{getUserInitial()}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                          <p className="text-sm font-medium">{getUserName()}</p>
-                          <p className="text-xs text-muted-foreground">{user.email}</p>
-                        </div>
-                      </div>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link to="/profile" className="flex items-center gap-2 cursor-pointer">
-                          <User className="h-4 w-4" />
-                          Mon profil
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link to="/settings" className="flex items-center gap-2 cursor-pointer">
-                          <Settings className="h-4 w-4" />
-                          Paramètres
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        onClick={handleLogout} 
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Déconnexion
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <UserMenu 
+                    user={user}
+                    userName={getUserName()}
+                    userAvatar={getUserAvatar()}
+                    userInitial={getUserInitial()}
+                    onLogout={handleLogout}
+                  />
                 </>
               ) : (
-                <Button variant="outline" asChild>
-                  <Link to="/auth">Connexion</Link>
-                </Button>
+                <Link to="/auth">
+                  <Button variant="outline">
+                    Connexion
+                  </Button>
+                </Link>
               )}
             </div>
           </div>
