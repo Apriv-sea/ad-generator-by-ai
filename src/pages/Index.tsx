@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
@@ -6,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import AuthDebugDialog from "@/components/AuthDebugDialog";
-import { Zap, Brain, Users, Shield, ArrowRight, Sparkles, Target } from "lucide-react";
+import { Zap, Brain, Users, Shield, ArrowRight, Sparkles, Target, FileSpreadsheet, Wand2 } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -114,6 +115,31 @@ const Index = () => {
     }
   ];
 
+  // Accès rapide pour les utilisateurs authentifiés
+  const quickActions = [
+    {
+      icon: FileSpreadsheet,
+      title: "Campagnes CryptPad",
+      description: "Connectez directement votre feuille CryptPad",
+      action: () => navigate("/campaigns"),
+      color: "from-blue-600 to-blue-700"
+    },
+    {
+      icon: Wand2,
+      title: "Génération IA",
+      description: "Créez du contenu publicitaire avec l'IA",
+      action: () => navigate("/campaigns"),
+      color: "from-green-600 to-green-700"
+    },
+    {
+      icon: Users,
+      title: "Gestion Clients",
+      description: "Configurez vos clients et contextes",
+      action: () => navigate("/clients"),
+      color: "from-purple-600 to-purple-700"
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       {/* Hero Section */}
@@ -147,24 +173,49 @@ const Index = () => {
               </Alert>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-              <Button 
-                size="lg" 
-                onClick={() => navigate("/auth")} 
-                className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                Commencer maintenant
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg" 
-                onClick={() => navigate("/how-it-works")} 
-                className="px-8 py-3 border-2 border-slate-300 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
-              >
-                Découvrir le processus
-              </Button>
-            </div>
+            {/* Actions principales - différentes selon l'état d'authentification */}
+            {isAuthenticated ? (
+              <div className="mb-16">
+                <h2 className="text-2xl font-semibold mb-6 text-slate-800">Accès rapide</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+                  {quickActions.map((action, index) => {
+                    const IconComponent = action.icon;
+                    return (
+                      <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer" onClick={action.action}>
+                        <div className={`bg-gradient-to-br ${action.color} p-4`}>
+                          <div className="flex items-center text-white">
+                            <IconComponent className="w-6 h-6 mr-3" />
+                            <CardTitle className="text-lg">{action.title}</CardTitle>
+                          </div>
+                        </div>
+                        <CardContent className="p-4">
+                          <p className="text-slate-600 text-sm">{action.description}</p>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+                <Button 
+                  size="lg" 
+                  onClick={() => navigate("/auth")} 
+                  className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  Commencer maintenant
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  onClick={() => navigate("/how-it-works")} 
+                  className="px-8 py-3 border-2 border-slate-300 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
+                >
+                  Découvrir le processus
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -197,44 +248,46 @@ const Index = () => {
         })}
         </div>
 
-        {/* Main Action Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
-            <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-6">
-              <CardTitle className="text-white text-xl mb-2">Prêt à commencer ?</CardTitle>
-              <CardDescription className="text-blue-100">
-                Connectez-vous et lancez votre première campagne en quelques minutes
-              </CardDescription>
-            </div>
-            <CardContent className="p-6">
-              <p className="text-slate-600 mb-6">
-                Accédez à tous les outils de génération de contenu et configurez vos modèles IA préférés.
-              </p>
-              <Button className="w-full bg-blue-600 hover:bg-blue-700 group-hover:bg-blue-700 transition-colors" onClick={() => navigate("/auth")}>
-                Se connecter
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
-            <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-6">
-              <CardTitle className="text-white text-xl mb-2">Comment ça fonctionne ?</CardTitle>
-              <CardDescription className="text-slate-300">
-                Découvrez notre méthodologie et les étapes du processus
-              </CardDescription>
-            </div>
-            <CardContent className="p-6">
-              <p className="text-slate-600 mb-6">
-                Intégration Google Sheets, génération IA intelligente et optimisation automatique.
-              </p>
-              <Button variant="outline" className="w-full border-2 border-slate-300 hover:border-slate-400 hover:bg-slate-50 group-hover:bg-slate-50 transition-colors" onClick={() => navigate("/how-it-works")}>
-                En savoir plus
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Main Action Cards - uniquement pour les non-authentifiés */}
+        {!isAuthenticated && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
+              <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-6">
+                <CardTitle className="text-white text-xl mb-2">Prêt à commencer ?</CardTitle>
+                <CardDescription className="text-blue-100">
+                  Connectez-vous et lancez votre première campagne en quelques minutes
+                </CardDescription>
+              </div>
+              <CardContent className="p-6">
+                <p className="text-slate-600 mb-6">
+                  Accédez à tous les outils de génération de contenu et configurez vos modèles IA préférés.
+                </p>
+                <Button className="w-full bg-blue-600 hover:bg-blue-700 group-hover:bg-blue-700 transition-colors" onClick={() => navigate("/auth")}>
+                  Se connecter
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
+              <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-6">
+                <CardTitle className="text-white text-xl mb-2">Comment ça fonctionne ?</CardTitle>
+                <CardDescription className="text-slate-300">
+                  Découvrez notre méthodologie et les étapes du processus
+                </CardDescription>
+              </div>
+              <CardContent className="p-6">
+                <p className="text-slate-600 mb-6">
+                  Intégration Google Sheets, génération IA intelligente et optimisation automatique.
+                </p>
+                <Button variant="outline" className="w-full border-2 border-slate-300 hover:border-slate-400 hover:bg-slate-50 group-hover:bg-slate-50 transition-colors" onClick={() => navigate("/how-it-works")}>
+                  En savoir plus
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* About Section */}
