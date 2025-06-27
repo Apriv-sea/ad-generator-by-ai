@@ -290,6 +290,10 @@ export type Database = {
         Args: { _template_id: string }
         Returns: undefined
       }
+      is_authenticated_user: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       user_role: "admin" | "user"

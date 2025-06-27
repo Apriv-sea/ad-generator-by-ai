@@ -1,13 +1,13 @@
-
 import { Campaign, AdGroup } from "../types";
 import { SheetData } from "../types/sheetData";
+import { inputSanitizationService } from "../security/inputSanitizationService";
 
 /**
- * Service for extracting campaign data from sheet data
+ * Service for extracting campaign data from sheet data with enhanced security
  */
 class CampaignExtractorService {
   /**
-   * Extract campaigns from sheet data
+   * Extract campaigns from sheet data with input sanitization
    */
   extractCampaigns(sheetData: SheetData): Campaign[] {
     try {
@@ -23,8 +23,11 @@ class CampaignExtractorService {
         return this.getDefaultCampaign(sheetData?.id || '');
       }
       
-      const headers = sheetData.content[0] || [];
-      const rows = sheetData.content.slice(1);
+      // Sanitize sheet data before processing
+      const sanitizedContent = this.sanitizeSheetContent(sheetData.content);
+      
+      const headers = sanitizedContent[0] || [];
+      const rows = sanitizedContent.slice(1);
       
       console.log("📊 En-têtes détectés:", headers);
       console.log(`📈 ${rows.length} lignes de données à traiter`);
@@ -63,7 +66,7 @@ class CampaignExtractorService {
         return this.getDefaultCampaign(sheetData.id || '');
       }
       
-      // Traiter chaque ligne et créer les campagnes
+      // Process rows with enhanced security
       const campaigns: Campaign[] = [];
       
       rows.forEach((row: any[], index) => {
@@ -74,9 +77,9 @@ class CampaignExtractorService {
         });
         
         if (row.length > Math.max(campaignIndex, adGroupIndex, keywordsIndex)) {
-          const campaignName = this.cleanText(row[campaignIndex]);
-          const adGroupName = this.cleanText(row[adGroupIndex]);
-          const keywordsText = this.cleanText(row[keywordsIndex]);
+          const campaignName = this.cleanAndSanitizeText(row[campaignIndex]);
+          const adGroupName = this.cleanAndSanitizeText(row[adGroupIndex]);
+          const keywordsText = this.cleanAndSanitizeText(row[keywordsIndex]);
           
           console.log(`📝 Données extraites ligne ${index + 2}:`, {
             campagne: `"${campaignName}"`,
@@ -84,11 +87,13 @@ class CampaignExtractorService {
             motsCles: `"${keywordsText}"`
           });
           
-          // Vérifier que nous avons au minimum le nom de campagne et du groupe
+          // Enhanced validation
           if (campaignName && campaignName.length > 0 && adGroupName && adGroupName.length > 0) {
-            // Extraire les mots-clés (gérer différents séparateurs)
+            // Extract and sanitize keywords
             const keywords = keywordsText 
-              ? keywordsText.split(/[,;|\n]/).map(k => k.trim()).filter(k => k.length > 0)
+              ? keywordsText.split(/[,;|\n]/)
+                  .map(k => inputSanitizationService.sanitizeText(k.trim()))
+                  .filter(k => k.length > 0)
               : [];
 
             console.log(`🔑 Mots-clés extraits pour "${campaignName}":`, keywords);
@@ -118,7 +123,10 @@ class CampaignExtractorService {
               }]
             };
 
-            campaigns.push(campaign);
+            // Final sanitization of campaign data
+            const sanitizedCampaign = inputSanitizationService.sanitizeCampaignData(campaign);
+            campaigns.push(sanitizedCampaign);
+            
             console.log(`✅ Campagne créée: "${campaignName}" > "${adGroupName}" avec ${keywords.length} mots-clés`);
           } else {
             console.log(`⚠️ Ligne ${index + 2} ignorée: données manquantes`, {
@@ -143,6 +151,30 @@ class CampaignExtractorService {
       console.error("💥 Erreur lors de l'extraction des campagnes:", error);
       return this.getDefaultCampaign(sheetData?.id || '');
     }
+  }
+
+  /**
+   * Sanitize sheet content to prevent XSS and injection attacks
+   */
+  private sanitizeSheetContent(content: any[][]): any[][] {
+    return content.map(row => 
+      row.map(cell => {
+        if (typeof cell === 'string') {
+          return inputSanitizationService.sanitizeText(cell);
+        }
+        return cell;
+      })
+    );
+  }
+
+  /**
+   * Clean and sanitize text with enhanced security
+   */
+  private cleanAndSanitizeText(text: any): string {
+    if (typeof text !== 'string') {
+      text = String(text || '');
+    }
+    return inputSanitizationService.sanitizeText(text.trim());
   }
 
   /**
@@ -172,16 +204,6 @@ class CampaignExtractorService {
     console.log(`❌ Aucun match trouvé pour les termes:`, searchTerms);
     console.log(`📋 En-têtes disponibles:`, headers.map((h, i) => `${i}: "${h}"`));
     return -1;
-  }
-
-  /**
-   * Clean and normalize text
-   */
-  private cleanText(text: any): string {
-    if (typeof text !== 'string') {
-      text = String(text || '');
-    }
-    return text.trim();
   }
 
   /**
@@ -216,5 +238,4 @@ class CampaignExtractorService {
   }
 }
 
-// Export a single instance
 export const campaignExtractorService = new CampaignExtractorService();
