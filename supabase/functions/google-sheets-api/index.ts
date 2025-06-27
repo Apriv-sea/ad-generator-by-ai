@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -33,7 +34,8 @@ serve(async (req) => {
     const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET');
     
     if (!clientId || !clientSecret) {
-      throw new Error('Configuration Google Sheets manquante');
+      console.error('Configuration Google Sheets manquante:', { clientId: !!clientId, clientSecret: !!clientSecret });
+      throw new Error('Configuration Google Sheets manquante - vérifiez les secrets Supabase');
     }
 
     console.log(`Action Google Sheets: ${action}`);
@@ -72,9 +74,10 @@ serve(async (req) => {
 
 async function handleAuth(clientId: string, clientSecret: string, code?: string) {
   if (!code) {
-    const redirectUri = 'https://ad-generator-by-ai.lovable.app/auth/callback/google';
+    // Déterminer l'URL de redirection basée sur l'environnement
+    const redirectUri = determineRedirectUri();
     
-    console.log('Utilisation de l\'URI de redirection:', redirectUri);
+    console.log('Génération de l\'URL d\'authentification avec URI:', redirectUri);
     
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}&` +
@@ -90,33 +93,56 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string)
     );
   }
 
-  const redirectUri = 'https://ad-generator-by-ai.lovable.app/auth/callback/google';
+  // Utiliser la même logique pour l'échange de code
+  const redirectUri = determineRedirectUri();
   
-  console.log('Échange du code avec URI:', redirectUri);
+  console.log('Échange du code d\'autorisation avec URI:', redirectUri);
+  console.log('Code reçu:', code.substring(0, 20) + '...');
   
-  const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      code: code,
-      grant_type: 'authorization_code',
-      redirect_uri: redirectUri
-    })
-  });
+  try {
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code: code,
+        grant_type: 'authorization_code',
+        redirect_uri: redirectUri
+      })
+    });
 
-  const tokenData = await tokenResponse.json();
-  
-  if (!tokenResponse.ok) {
-    console.error('Erreur lors de l\'échange du token:', tokenData);
-    throw new Error(`Erreur d'authentification: ${tokenData.error_description || tokenData.error}`);
+    const tokenData = await tokenResponse.json();
+    
+    if (!tokenResponse.ok) {
+      console.error('Erreur détaillée lors de l\'échange du token:', {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+        error: tokenData.error,
+        error_description: tokenData.error_description,
+        redirectUri: redirectUri
+      });
+      
+      throw new Error(`Erreur OAuth: ${tokenData.error_description || tokenData.error || 'Erreur inconnue'}`);
+    }
+
+    console.log('Token échangé avec succès');
+    return new Response(
+      JSON.stringify(tokenData),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Erreur lors de l\'échange du token:', error);
+    throw new Error(`Impossible d'échanger le code d'autorisation: ${error.message}`);
   }
+}
 
-  return new Response(
-    JSON.stringify(tokenData),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
+function determineRedirectUri(): string {
+  // Toujours utiliser l'URL de production pour la consistance
+  return 'https://ad-generator-by-ai.lovable.app/auth/callback/google';
 }
 
 async function getAccessToken(request: Request): Promise<string> {

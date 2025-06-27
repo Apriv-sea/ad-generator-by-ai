@@ -22,6 +22,7 @@ const GoogleSheetsAuth: React.FC<GoogleSheetsAuthProps> = ({ onAuthSuccess }) =>
   } = useGoogleSheets();
 
   const authWindowRef = useRef<Window | null>(null);
+  const messageListenerRef = useRef<((event: MessageEvent) => void) | null>(null);
 
   useEffect(() => {
     if (isAuthenticated && onAuthSuccess) {
@@ -31,7 +32,12 @@ const GoogleSheetsAuth: React.FC<GoogleSheetsAuthProps> = ({ onAuthSuccess }) =>
   }, [isAuthenticated, onAuthSuccess]);
 
   useEffect(() => {
-    // Écouter les messages de la fenêtre popup
+    // Nettoyer l'ancien listener s'il existe
+    if (messageListenerRef.current) {
+      window.removeEventListener('message', messageListenerRef.current);
+    }
+
+    // Créer le nouveau listener
     const handleMessage = (event: MessageEvent) => {
       // Vérifier l'origine pour la sécurité
       if (event.origin !== window.location.origin) {
@@ -51,8 +57,11 @@ const GoogleSheetsAuth: React.FC<GoogleSheetsAuthProps> = ({ onAuthSuccess }) =>
           authWindowRef.current = null;
         }
         
-        // Le contexte devrait déjà être mis à jour via completeAuth
-        // L'effet useEffect ci-dessus se chargera d'appeler onAuthSuccess
+        // Forcer une actualisation du contexte
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+        
       } else if (event.data.type === 'GOOGLE_AUTH_ERROR') {
         console.error('Erreur authentification Google:', event.data.error);
         toast.error(`Erreur d'authentification: ${event.data.error}`);
@@ -65,10 +74,13 @@ const GoogleSheetsAuth: React.FC<GoogleSheetsAuthProps> = ({ onAuthSuccess }) =>
       }
     };
 
+    messageListenerRef.current = handleMessage;
     window.addEventListener('message', handleMessage);
     
     return () => {
-      window.removeEventListener('message', handleMessage);
+      if (messageListenerRef.current) {
+        window.removeEventListener('message', messageListenerRef.current);
+      }
     };
   }, []);
 
@@ -80,11 +92,16 @@ const GoogleSheetsAuth: React.FC<GoogleSheetsAuthProps> = ({ onAuthSuccess }) =>
       const authUrl = await initiateAuth();
       console.log('URL d\'authentification générée:', authUrl);
       
+      // Fermer la fenêtre précédente si elle existe
+      if (authWindowRef.current && !authWindowRef.current.closed) {
+        authWindowRef.current.close();
+      }
+      
       // Ouvrir la fenêtre d'authentification
       authWindowRef.current = window.open(
         authUrl, 
         'google-auth', 
-        'width=500,height=600,scrollbars=yes,resizable=yes'
+        'width=600,height=700,scrollbars=yes,resizable=yes,left=' + (screen.width/2 - 300) + ',top=' + (screen.height/2 - 350)
       );
       
       if (!authWindowRef.current) {
@@ -103,9 +120,18 @@ const GoogleSheetsAuth: React.FC<GoogleSheetsAuthProps> = ({ onAuthSuccess }) =>
       
     } catch (error) {
       console.error('Erreur lors de l\'initiation de l\'authentification:', error);
-      toast.error('Erreur lors de l\'ouverture de l\'authentification');
+      toast.error(`Erreur lors de l'ouverture de l'authentification: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     }
   };
+
+  // Nettoyer au démontage
+  useEffect(() => {
+    return () => {
+      if (authWindowRef.current && !authWindowRef.current.closed) {
+        authWindowRef.current.close();
+      }
+    };
+  }, []);
 
   if (isAuthenticated) {
     return (
