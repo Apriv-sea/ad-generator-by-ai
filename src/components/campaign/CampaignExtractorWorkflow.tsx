@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowRight, AlertCircle, CheckCircle } from "lucide-react";
+import { ArrowRight, AlertCircle, CheckCircle, RefreshCw } from "lucide-react";
 import { Campaign, Client } from "@/services/types";
 import { campaignExtractorService } from "@/services/storage/campaignExtractorService";
 import { toast } from "sonner";
@@ -27,8 +27,16 @@ const CampaignExtractorWorkflow: React.FC<CampaignExtractorWorkflowProps> = ({
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionComplete, setExtractionComplete] = useState(false);
+  const [extractionError, setExtractionError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log("🔄 Données de feuille mises à jour:", {
+      sheetId,
+      hasData: !!sheetData,
+      dataLength: sheetData?.length || 0,
+      firstRow: sheetData?.[0]
+    });
+    
     if (sheetData && sheetData.length > 1) {
       extractCampaigns();
     }
@@ -36,13 +44,22 @@ const CampaignExtractorWorkflow: React.FC<CampaignExtractorWorkflowProps> = ({
 
   const extractCampaigns = async () => {
     if (!sheetData || sheetData.length <= 1) {
-      toast.error("Données insuffisantes dans la feuille");
+      const errorMsg = "Données insuffisantes dans la feuille";
+      setExtractionError(errorMsg);
+      toast.error(errorMsg);
       return;
     }
 
     setIsExtracting(true);
+    setExtractionError(null);
+    
     try {
-      console.log("🚀 Extraction des campagnes depuis:", sheetId);
+      console.log("🚀 Démarrage extraction des campagnes depuis:", sheetId);
+      console.log("📊 Données reçues:", {
+        totalRows: sheetData.length,
+        headers: sheetData[0],
+        sampleRows: sheetData.slice(1, 3)
+      });
       
       const extractedCampaigns = campaignExtractorService.extractCampaigns({
         id: sheetId,
@@ -52,23 +69,52 @@ const CampaignExtractorWorkflow: React.FC<CampaignExtractorWorkflowProps> = ({
         clientInfo: clientInfo
       });
 
+      console.log("📈 Résultat extraction:", extractedCampaigns);
+
       if (extractedCampaigns.length === 0) {
-        toast.error("Aucune campagne trouvée. Vérifiez la structure de votre feuille.");
+        const errorMsg = "Aucune campagne trouvée. Vérifiez que votre feuille contient les colonnes requises : 'Nom de la campagne', 'Nom du groupe d'annonces', 'Top 3 mots-clés'";
+        setExtractionError(errorMsg);
+        toast.error(errorMsg);
         return;
       }
 
-      setCampaigns(extractedCampaigns);
+      // Vérifier si on a des campagnes valides (pas juste des données par défaut)
+      const validCampaigns = extractedCampaigns.filter(c => 
+        c.campaignName && 
+        c.campaignName !== "" && 
+        c.adGroupName && 
+        c.adGroupName !== ""
+      );
+
+      if (validCampaigns.length === 0) {
+        const errorMsg = "Les données extractées sont vides. Vérifiez que votre feuille contient des données dans les bonnes colonnes.";
+        setExtractionError(errorMsg);
+        toast.warning(errorMsg);
+        setCampaigns(extractedCampaigns); // Montrer quand même pour diagnostic
+      } else {
+        setCampaigns(extractedCampaigns);
+        setExtractionError(null);
+        toast.success(`✅ ${validCampaigns.length} campagne(s) valide(s) extraite(s) avec succès`);
+      }
+
       setExtractionComplete(true);
       onCampaignsExtracted(extractedCampaigns);
       
-      toast.success(`✅ ${extractedCampaigns.length} campagne(s) extraite(s) avec succès`);
-      
     } catch (error) {
-      console.error("Erreur lors de l'extraction:", error);
-      toast.error("Erreur lors de l'extraction des campagnes");
+      console.error("💥 Erreur lors de l'extraction:", error);
+      const errorMsg = "Erreur lors de l'extraction des campagnes";
+      setExtractionError(errorMsg + ": " + (error as Error).message);
+      toast.error(errorMsg);
     } finally {
       setIsExtracting(false);
     }
+  };
+
+  const retryExtraction = () => {
+    setExtractionComplete(false);
+    setExtractionError(null);
+    setCampaigns([]);
+    extractCampaigns();
   };
 
   const getDataStatus = () => {
@@ -124,6 +170,16 @@ const CampaignExtractorWorkflow: React.FC<CampaignExtractorWorkflowProps> = ({
             </div>
           </div>
 
+          {/* Erreur d'extraction */}
+          {extractionError && (
+            <Alert className="mt-4 border-red-200 bg-red-50">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-700">
+                <strong>Problème d'extraction:</strong> {extractionError}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {!extractionComplete && (
             <div className="mt-4">
               <Button
@@ -133,7 +189,7 @@ const CampaignExtractorWorkflow: React.FC<CampaignExtractorWorkflowProps> = ({
               >
                 {isExtracting ? (
                   <>
-                    <span className="animate-spin mr-2">⊚</span>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                     Extraction en cours...
                   </>
                 ) : (
@@ -142,6 +198,19 @@ const CampaignExtractorWorkflow: React.FC<CampaignExtractorWorkflowProps> = ({
                     Extraire les campagnes
                   </>
                 )}
+              </Button>
+            </div>
+          )}
+
+          {extractionComplete && extractionError && (
+            <div className="mt-4">
+              <Button
+                onClick={retryExtraction}
+                variant="outline"
+                className="w-full"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Réessayer l'extraction
               </Button>
             </div>
           )}
@@ -167,10 +236,18 @@ const CampaignExtractorWorkflow: React.FC<CampaignExtractorWorkflowProps> = ({
                 </TableHeader>
                 <TableBody>
                   {campaigns.slice(0, 10).map((campaign, index) => (
-                    <TableRow key={campaign.id}>
-                      <TableCell className="font-medium">{campaign.campaignName}</TableCell>
-                      <TableCell>{campaign.adGroupName}</TableCell>
-                      <TableCell className="max-w-xs truncate">{campaign.keywords}</TableCell>
+                    <TableRow key={campaign.id} className={
+                      !campaign.campaignName || !campaign.adGroupName ? 'bg-yellow-50' : ''
+                    }>
+                      <TableCell className="font-medium">
+                        {campaign.campaignName || <span className="text-gray-400 italic">Vide</span>}
+                      </TableCell>
+                      <TableCell>
+                        {campaign.adGroupName || <span className="text-gray-400 italic">Vide</span>}
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        {campaign.keywords || <span className="text-gray-400 italic">Aucun</span>}
+                      </TableCell>
                       <TableCell>{clientInfo?.name || "Non spécifié"}</TableCell>
                     </TableRow>
                   ))}
@@ -184,12 +261,22 @@ const CampaignExtractorWorkflow: React.FC<CampaignExtractorWorkflowProps> = ({
               </p>
             )}
 
-            <Alert className="mt-4">
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>
-                Extraction terminée ! Vous pouvez maintenant passer à l'étape de génération de contenu.
-              </AlertDescription>
-            </Alert>
+            {!extractionError ? (
+              <Alert className="mt-4">
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Extraction terminée ! Vous pouvez maintenant passer à l'étape de génération de contenu.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Alert className="mt-4 border-amber-200 bg-amber-50">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-700">
+                  L'extraction a produit des résultats, mais certaines données semblent manquantes. 
+                  Vérifiez que votre feuille CryptPad contient bien des données dans les colonnes attendues.
+                </AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
       )}
