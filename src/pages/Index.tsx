@@ -95,7 +95,7 @@ const Index = () => {
     {
       icon: Brain,
       title: "IA Multi-Modèles",
-      description: "OpenAI, Anthropic, Claude selon vos besoins"
+      description: "OpenAI, Anthropic, Gemini selon vos besoins"
     },
     {
       icon: Zap,
@@ -161,7 +161,7 @@ const Index = () => {
             </h1>
             
             <p className="text-xl text-slate-600 mb-8 max-w-2xl mx-auto">
-              Créez des campagnes Google Ads performantes grâce à l'intelligence artificielle
+              Créez des annonces Google Ads performantes grâce à l'intelligence artificielle
             </p>
 
             {authError && (
