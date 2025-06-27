@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -44,15 +45,15 @@ serve(async (req) => {
       
       case 'read':
         if (!sheetId) throw new Error('sheetId requis pour la lecture');
-        return await handleRead(sheetId, range, supabaseClient);
+        return await handleRead(sheetId, range || 'A:Z', req);
       
       case 'write':
         if (!sheetId || !data) throw new Error('sheetId et data requis pour l\'écriture');
-        return await handleWrite(sheetId, data, range, supabaseClient);
+        return await handleWrite(sheetId, data, range || 'A1', req);
       
       case 'create':
         if (!title) throw new Error('title requis pour la création');
-        return await handleCreate(title, supabaseClient);
+        return await handleCreate(title, req);
       
       default:
         throw new Error('Action non supportée');
@@ -72,7 +73,6 @@ serve(async (req) => {
 
 async function handleAuth(clientId: string, clientSecret: string, code?: string) {
   if (!code) {
-    // Utiliser une URL fixe au lieu de la construire dynamiquement
     const redirectUri = 'https://ad-generator-by-ai.lovable.app/auth/callback/google';
     
     console.log('Utilisation de l\'URI de redirection:', redirectUri);
@@ -91,7 +91,6 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string)
     );
   }
 
-  // Échanger le code contre un token d'accès avec la même URI fixe
   const redirectUri = 'https://ad-generator-by-ai.lovable.app/auth/callback/google';
   
   console.log('Échange du code avec URI:', redirectUri);
@@ -121,18 +120,19 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string)
   );
 }
 
-async function getAccessToken(supabaseClient: any): Promise<string> {
-  // Récupérer le token depuis le header Authorization
-  const authHeader = Deno.env.get('AUTHORIZATION') || '';
-  if (!authHeader.startsWith('Bearer ')) {
+async function getAccessToken(request: Request): Promise<string> {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw new Error('Token d\'accès manquant dans les headers');
   }
   
   return authHeader.replace('Bearer ', '');
 }
 
-async function handleRead(sheetId: string, range: string = 'A:Z', supabaseClient: any) {
-  const accessToken = await getAccessToken(supabaseClient);
+async function handleRead(sheetId: string, range: string, request: Request) {
+  const accessToken = await getAccessToken(request);
+  
+  console.log(`📖 Lecture de la feuille ${sheetId} avec la plage ${range}`);
   
   const response = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`,
@@ -147,17 +147,53 @@ async function handleRead(sheetId: string, range: string = 'A:Z', supabaseClient
   const data = await response.json();
   
   if (!response.ok) {
+    console.error('Erreur API Google Sheets:', data);
     throw new Error(`Erreur lecture: ${data.error?.message || 'Erreur inconnue'}`);
   }
 
+  // Améliorer les logs pour le débogage
+  console.log('📊 Réponse Google Sheets API:', {
+    hasValues: !!data.values,
+    valueCount: data.values?.length || 0,
+    range: data.range,
+    majorDimension: data.majorDimension
+  });
+
+  // Si pas de données, retourner une structure vide
+  if (!data.values || data.values.length === 0) {
+    console.log('⚠️ Aucune donnée trouvée dans la plage spécifiée');
+    return new Response(
+      JSON.stringify({
+        values: [],
+        range: data.range,
+        majorDimension: data.majorDimension
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Filtrer les lignes complètement vides
+  const filteredValues = data.values.filter((row: any[]) => {
+    return row && row.length > 0 && row.some(cell => cell !== null && cell !== undefined && String(cell).trim() !== '');
+  });
+
+  console.log(`✅ ${filteredValues.length} lignes non vides trouvées`);
+
   return new Response(
-    JSON.stringify(data),
+    JSON.stringify({
+      values: filteredValues,
+      range: data.range,
+      majorDimension: data.majorDimension,
+      title: `Feuille Google Sheets - ${filteredValues.length} lignes`
+    }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
 
-async function handleWrite(sheetId: string, data: any[][], range: string = 'A1', supabaseClient: any) {
-  const accessToken = await getAccessToken(supabaseClient);
+async function handleWrite(sheetId: string, data: any[][], range: string, request: Request) {
+  const accessToken = await getAccessToken(request);
+  
+  console.log(`✍️ Écriture dans la feuille ${sheetId}, plage ${range}`);
   
   const response = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?valueInputOption=USER_ENTERED`,
@@ -176,8 +212,11 @@ async function handleWrite(sheetId: string, data: any[][], range: string = 'A1',
   const result = await response.json();
   
   if (!response.ok) {
+    console.error('Erreur écriture Google Sheets:', result);
     throw new Error(`Erreur écriture: ${result.error?.message || 'Erreur inconnue'}`);
   }
+
+  console.log('✅ Données écrites avec succès');
 
   return new Response(
     JSON.stringify(result),
@@ -185,8 +224,10 @@ async function handleWrite(sheetId: string, data: any[][], range: string = 'A1',
   );
 }
 
-async function handleCreate(title: string, supabaseClient: any) {
-  const accessToken = await getAccessToken(supabaseClient);
+async function handleCreate(title: string, request: Request) {
+  const accessToken = await getAccessToken(request);
+  
+  console.log(`📝 Création d'une nouvelle feuille: ${title}`);
   
   const response = await fetch(
     'https://sheets.googleapis.com/v4/spreadsheets',
@@ -207,11 +248,17 @@ async function handleCreate(title: string, supabaseClient: any) {
   const result = await response.json();
   
   if (!response.ok) {
+    console.error('Erreur création Google Sheets:', result);
     throw new Error(`Erreur création: ${result.error?.message || 'Erreur inconnue'}`);
   }
 
+  console.log('✅ Feuille créée avec succès');
+
   return new Response(
-    JSON.stringify(result),
+    JSON.stringify({
+      spreadsheetId: result.spreadsheetId,
+      spreadsheetUrl: result.spreadsheetUrl
+    }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }

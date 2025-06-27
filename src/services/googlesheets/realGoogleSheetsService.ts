@@ -1,13 +1,5 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-
-export interface GoogleSheetsAuthResponse {
-  authUrl?: string;
-  access_token?: string;
-  refresh_token?: string;
-  error?: string;
-}
+import { toast } from 'sonner';
 
 export interface GoogleSheetsData {
   values: string[][];
@@ -16,144 +8,300 @@ export interface GoogleSheetsData {
 
 class RealGoogleSheetsService {
   private accessToken: string | null = null;
+  private refreshToken: string | null = null;
 
   constructor() {
-    // Récupérer le token depuis le localStorage au démarrage
-    this.accessToken = localStorage.getItem('google_sheets_access_token');
+    this.loadTokens();
   }
 
-  /**
-   * Initier le processus d'authentification Google
-   */
+  private loadTokens() {
+    this.accessToken = localStorage.getItem('google_sheets_access_token');
+    this.refreshToken = localStorage.getItem('google_sheets_refresh_token');
+  }
+
+  private saveTokens(accessToken: string, refreshToken?: string) {
+    this.accessToken = accessToken;
+    localStorage.setItem('google_sheets_access_token', accessToken);
+    
+    if (refreshToken) {
+      this.refreshToken = refreshToken;
+      localStorage.setItem('google_sheets_refresh_token', refreshToken);
+    }
+  }
+
+  private clearTokens() {
+    this.accessToken = null;
+    this.refreshToken = null;
+    localStorage.removeItem('google_sheets_access_token');
+    localStorage.removeItem('google_sheets_refresh_token');
+  }
+
   async initiateAuth(): Promise<string> {
+    console.log('🔐 Initiation de l\'authentification Google Sheets via Edge Function');
+    
     try {
-      const { data, error } = await supabase.functions.invoke('google-sheets-api', {
-        body: { action: 'auth' }
+      const response = await fetch('/api/google-sheets-api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'auth'
+        })
       });
 
-      if (error) throw error;
+      const data = await response.json();
       
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de l\'initiation de l\'authentification');
+      }
+
+      console.log('✅ URL d\'authentification générée');
       return data.authUrl;
     } catch (error) {
-      console.error('Erreur initiation auth:', error);
-      throw new Error('Impossible d\'initier l\'authentification Google');
+      console.error('❌ Erreur lors de l\'initiation de l\'authentification:', error);
+      throw error;
     }
   }
 
-  /**
-   * Compléter l'authentification avec le code d'autorisation
-   */
   async completeAuth(code: string): Promise<void> {
+    console.log('🔐 Completion de l\'authentification avec le code');
+    
     try {
-      const { data, error } = await supabase.functions.invoke('google-sheets-api', {
-        body: { action: 'auth', code }
+      const response = await fetch('/api/google-sheets-api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'auth',
+          code: code
+        })
       });
 
-      if (error) throw error;
-
-      if (data.access_token) {
-        this.accessToken = data.access_token;
-        localStorage.setItem('google_sheets_access_token', data.access_token);
-        
-        if (data.refresh_token) {
-          localStorage.setItem('google_sheets_refresh_token', data.refresh_token);
-        }
-        
-        toast.success('Authentification Google réussie !');
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de l\'authentification');
       }
+
+      // Sauvegarder les tokens
+      this.saveTokens(data.access_token, data.refresh_token);
+      
+      console.log('✅ Authentification complétée et tokens sauvegardés');
     } catch (error) {
-      console.error('Erreur completion auth:', error);
-      throw new Error('Impossible de compléter l\'authentification');
+      console.error('❌ Erreur lors de la completion de l\'authentification:', error);
+      throw error;
     }
   }
 
-  /**
-   * Vérifier si l'utilisateur est authentifié
-   */
+  async readSheet(sheetId: string, range: string = 'A:Z'): Promise<GoogleSheetsData> {
+    if (!this.isAuthenticated()) {
+      throw new Error('Non authentifié - veuillez d\'abord vous connecter');
+    }
+
+    console.log(`📖 Lecture de la feuille ${sheetId} avec la plage ${range}`);
+    
+    try {
+      const response = await fetch('/api/google-sheets-api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.accessToken}`
+        },
+        body: JSON.stringify({
+          action: 'read',
+          sheetId: sheetId,
+          range: range
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        // Si le token a expiré, essayer de le rafraîchir
+        if (response.status === 401 && this.refreshToken) {
+          console.log('🔄 Token expiré, tentative de rafraîchissement...');
+          await this.refreshAccessToken();
+          return this.readSheet(sheetId, range); // Retry
+        }
+        
+        throw new Error(data.error || 'Erreur lors de la lecture de la feuille');
+      }
+
+      console.log('📊 Données récupérées:', {
+        rowCount: data.values?.length || 0,
+        hasHeaders: data.values?.length > 0,
+        hasData: data.values?.length > 1,
+        firstRow: data.values?.[0],
+        totalRows: data.values?.length || 0
+      });
+
+      // Vérifier si nous avons des données au-delà des en-têtes
+      if (!data.values || data.values.length === 0) {
+        console.warn('⚠️ Aucune donnée trouvée dans la feuille');
+        return {
+          values: [],
+          title: 'Feuille vide'
+        };
+      }
+
+      if (data.values.length === 1) {
+        console.warn('⚠️ Seulement les en-têtes trouvés, aucune donnée');
+        return {
+          values: data.values,
+          title: 'Feuille avec en-têtes seulement'
+        };
+      }
+
+      // Filtrer les lignes vides
+      const filteredValues = data.values.filter((row: string[]) => {
+        return row && row.length > 0 && row.some(cell => cell && cell.trim() !== '');
+      });
+
+      console.log(`✅ ${filteredValues.length} lignes utiles trouvées (en-têtes inclus)`);
+
+      return {
+        values: filteredValues,
+        title: data.title || 'Feuille Google Sheets'
+      };
+    } catch (error) {
+      console.error('❌ Erreur lors de la lecture:', error);
+      throw error;
+    }
+  }
+
+  async writeSheet(sheetId: string, data: string[][], range: string = 'A1'): Promise<boolean> {
+    if (!this.isAuthenticated()) {
+      throw new Error('Non authentifié - veuillez d\'abord vous connecter');
+    }
+
+    console.log(`✍️ Écriture dans la feuille ${sheetId}`);
+    
+    try {
+      const response = await fetch('/api/google-sheets-api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.accessToken}`
+        },
+        body: JSON.stringify({
+          action: 'write',
+          sheetId: sheetId,
+          data: data,
+          range: range
+        })
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        // Si le token a expiré, essayer de le rafraîchir
+        if (response.status === 401 && this.refreshToken) {
+          console.log('🔄 Token expiré, tentative de rafraîchissement...');
+          await this.refreshAccessToken();
+          return this.writeSheet(sheetId, data, range); // Retry
+        }
+        
+        throw new Error(result.error || 'Erreur lors de l\'écriture');
+      }
+
+      console.log('✅ Données écrites avec succès');
+      return true;
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'écriture:', error);
+      throw error;
+    }
+  }
+
+  async createSheet(title: string): Promise<{ id: string; url: string }> {
+    if (!this.isAuthenticated()) {
+      throw new Error('Non authentifié - veuillez d\'abord vous connecter');
+    }
+
+    console.log(`📝 Création d'une nouvelle feuille: ${title}`);
+    
+    try {
+      const response = await fetch('/api/google-sheets-api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.accessToken}`
+        },
+        body: JSON.stringify({
+          action: 'create',
+          title: title
+        })
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        // Si le token a expiré, essayer de le rafraîchir
+        if (response.status === 401 && this.refreshToken) {
+          console.log('🔄 Token expiré, tentative de rafraîchissement...');
+          await this.refreshAccessToken();
+          return this.createSheet(title); // Retry
+        }
+        
+        throw new Error(result.error || 'Erreur lors de la création de la feuille');
+      }
+
+      console.log('✅ Feuille créée avec succès');
+      return {
+        id: result.spreadsheetId,
+        url: result.spreadsheetUrl
+      };
+    } catch (error) {
+      console.error('❌ Erreur lors de la création:', error);
+      throw error;
+    }
+  }
+
+  private async refreshAccessToken(): Promise<void> {
+    if (!this.refreshToken) {
+      throw new Error('Aucun refresh token disponible');
+    }
+
+    console.log('🔄 Rafraîchissement du token d\'accès...');
+    
+    try {
+      // Utiliser l'API Google OAuth2 directement pour rafraîchir le token
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: 'YOUR_CLIENT_ID', // Remplacé par l'edge function
+          client_secret: 'YOUR_CLIENT_SECRET', // Remplacé par l'edge function
+          refresh_token: this.refreshToken,
+          grant_type: 'refresh_token'
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error_description || 'Erreur lors du rafraîchissement du token');
+      }
+
+      this.saveTokens(data.access_token);
+      console.log('✅ Token rafraîchi avec succès');
+    } catch (error) {
+      console.error('❌ Erreur lors du rafraîchissement du token:', error);
+      this.clearTokens();
+      throw new Error('Impossible de rafraîchir le token. Veuillez vous reconnecter.');
+    }
+  }
+
   isAuthenticated(): boolean {
     return !!this.accessToken;
   }
 
-  /**
-   * Lire les données d'une feuille Google Sheets
-   */
-  async readSheet(sheetId: string, range: string = 'A:Z'): Promise<GoogleSheetsData> {
-    if (!this.isAuthenticated()) {
-      throw new Error('Authentification Google requise');
-    }
-
-    try {
-      const { data, error } = await supabase.functions.invoke('google-sheets-api', {
-        body: { action: 'read', sheetId, range }
-      });
-
-      if (error) throw error;
-
-      return {
-        values: data.values || [],
-        title: data.properties?.title || 'Feuille Google Sheets'
-      };
-    } catch (error) {
-      console.error('Erreur lecture feuille:', error);
-      throw new Error('Impossible de lire la feuille Google Sheets');
-    }
-  }
-
-  /**
-   * Écrire des données dans une feuille Google Sheets
-   */
-  async writeSheet(sheetId: string, data: any[][], range: string = 'A1'): Promise<boolean> {
-    if (!this.isAuthenticated()) {
-      throw new Error('Authentification Google requise');
-    }
-
-    try {
-      const { error } = await supabase.functions.invoke('google-sheets-api', {
-        body: { action: 'write', sheetId, data, range }
-      });
-
-      if (error) throw error;
-
-      return true;
-    } catch (error) {
-      console.error('Erreur écriture feuille:', error);
-      throw new Error('Impossible d\'écrire dans la feuille Google Sheets');
-    }
-  }
-
-  /**
-   * Créer une nouvelle feuille Google Sheets
-   */
-  async createSheet(title: string): Promise<{ id: string; url: string }> {
-    if (!this.isAuthenticated()) {
-      throw new Error('Authentification Google requise');
-    }
-
-    try {
-      const { data, error } = await supabase.functions.invoke('google-sheets-api', {
-        body: { action: 'create', title }
-      });
-
-      if (error) throw error;
-
-      return {
-        id: data.spreadsheetId,
-        url: data.spreadsheetUrl
-      };
-    } catch (error) {
-      console.error('Erreur création feuille:', error);
-      throw new Error('Impossible de créer la feuille Google Sheets');
-    }
-  }
-
-  /**
-   * Se déconnecter
-   */
   logout(): void {
-    this.accessToken = null;
-    localStorage.removeItem('google_sheets_access_token');
-    localStorage.removeItem('google_sheets_refresh_token');
-    toast.info('Déconnecté de Google Sheets');
+    console.log('🚪 Déconnexion Google Sheets');
+    this.clearTokens();
   }
 }
 
