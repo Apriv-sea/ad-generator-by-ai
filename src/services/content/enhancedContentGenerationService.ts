@@ -1,7 +1,7 @@
-
 import { contentHistoryService, GenerationHistory, GenerationBackup } from "../history/contentHistoryService";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserId } from "@/services/utils/supabaseUtils";
+import { PromptTemplates, PromptVariables } from "./promptTemplates";
 
 interface GenerationOptions {
   validateContent?: boolean;
@@ -45,25 +45,73 @@ class EnhancedContentGenerationService {
         await this.createBackup(sheetId, currentData);
       }
 
-      // Appeler le service de génération LLM
-      const { data, error } = await supabase.functions.invoke('llm-generation', {
+      // Construire les variables pour le template
+      const promptVariables: PromptVariables = {
+        adGroupName: prompt.adGroupContext,
+        keywords: prompt.keywords.join(', '),
+        clientContext: prompt.clientContext,
+        campaignContext: prompt.campaignContext
+      };
+
+      // Générer les titres avec le template personnalisé
+      const titlesPrompt = PromptTemplates.buildTitlesPrompt(promptVariables);
+      console.log("Prompt pour les titres:", titlesPrompt);
+
+      const { data: titlesData, error: titlesError } = await supabase.functions.invoke('llm-generation', {
         body: {
-          prompt: this.buildPrompt(prompt),
+          prompt: titlesPrompt,
           model: prompt.model || 'gpt-4',
           provider: 'openai'
         }
       });
 
-      if (error) throw error;
+      if (titlesError) throw titlesError;
+
+      // Générer les descriptions avec un prompt séparé
+      const descriptionsPrompt = PromptTemplates.buildDescriptionsPrompt(promptVariables);
+      console.log("Prompt pour les descriptions:", descriptionsPrompt);
+
+      const { data: descriptionsData, error: descriptionsError } = await supabase.functions.invoke('llm-generation', {
+        body: {
+          prompt: descriptionsPrompt,
+          model: prompt.model || 'gpt-4',
+          provider: 'openai'
+        }
+      });
+
+      if (descriptionsError) throw descriptionsError;
+
+      // Parser les résultats selon le format attendu
+      const parsedTitles = PromptTemplates.parseGeneratedTitles(
+        titlesData.choices?.[0]?.message?.content || titlesData.content || ''
+      );
+
+      const parsedDescriptions = PromptTemplates.parseGeneratedDescriptions(
+        descriptionsData.choices?.[0]?.message?.content || descriptionsData.content || ''
+      );
+
+      console.log("Titres générés:", parsedTitles);
+      console.log("Descriptions générées:", parsedDescriptions);
 
       const result: GenerationResult = {
         success: true,
-        titles: data.titles || [],
-        descriptions: data.descriptions || [],
-        provider: data.provider || 'openai',
-        model: data.model || prompt.model || 'gpt-4',
-        tokensUsed: data.tokensUsed,
-        validationResults: data.validation
+        titles: parsedTitles,
+        descriptions: parsedDescriptions,
+        provider: 'openai',
+        model: prompt.model || 'gpt-4',
+        tokensUsed: (titlesData.usage?.total_tokens || 0) + (descriptionsData.usage?.total_tokens || 0),
+        validationResults: {
+          titlesValidation: parsedTitles.map(title => ({ 
+            text: title, 
+            valid: title.length <= 30,
+            length: title.length 
+          })),
+          descriptionsValidation: parsedDescriptions.map(desc => ({ 
+            text: desc, 
+            valid: desc.length <= 90,
+            length: desc.length 
+          }))
+        }
       };
 
       // Sauvegarder dans l'historique si demandé
