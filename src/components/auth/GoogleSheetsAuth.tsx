@@ -88,6 +88,10 @@ const GoogleSheetsAuth: React.FC<GoogleSheetsAuthProps> = ({ onAuthSuccess }) =>
     try {
       clearError();
       console.log('🚀 Démarrage de l\'authentification Google Sheets...');
+      console.log('🌐 URL actuelle complète:', window.location.href);
+      console.log('🌐 Origin actuel:', window.location.origin);
+      console.log('🌐 Protocol:', window.location.protocol);
+      console.log('🌐 Host:', window.location.host);
       
       // Fermer la fenêtre précédente si elle existe
       if (authWindowRef.current && !authWindowRef.current.closed) {
@@ -215,14 +219,23 @@ const GoogleSheetsAuth: React.FC<GoogleSheetsAuthProps> = ({ onAuthSuccess }) =>
           </ul>
         </div>
 
+        <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded">
+          <p><strong>🔧 Informations de débogage:</strong></p>
+          <ul className="list-disc list-inside mt-1 space-y-1">
+            <li>URL actuelle: <code>{window.location.href}</code></li>
+            <li>Origin: <code>{window.location.origin}</code></li>
+            <li>Callback prévu: <code>{window.location.origin}/auth/callback/google</code></li>
+          </ul>
+        </div>
+
         {error && (
           <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
             <p><strong>💡 Conseils de dépannage:</strong></p>
             <ul className="list-disc list-inside mt-1 space-y-1">
-              <li>Vérifiez votre connexion internet</li>
+              <li>Vérifiez que votre URL actuelle est autorisée dans Google Cloud Console</li>
+              <li>Vérifiez que l'URI de redirection correspond exactement</li>
               <li>Désactivez temporairement votre bloqueur de popup</li>
               <li>Essayez de recharger la page</li>
-              <li>Vérifiez que la configuration Google OAuth est correcte</li>
             </ul>
           </div>
         )}

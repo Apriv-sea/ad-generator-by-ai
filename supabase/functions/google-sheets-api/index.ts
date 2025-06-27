@@ -14,6 +14,7 @@ interface GoogleSheetsRequest {
   range?: string;
   title?: string;
   code?: string;
+  redirectUri?: string;
 }
 
 serve(async (req) => {
@@ -75,13 +76,13 @@ serve(async (req) => {
       throw new Error('Corps de requête JSON invalide: ' + error.message);
     }
 
-    const { action, sheetId, data, range, title, code }: GoogleSheetsRequest = requestBody;
+    const { action, sheetId, data, range, title, code, redirectUri }: GoogleSheetsRequest = requestBody;
 
     console.log(`🎯 Action Google Sheets: ${action}`);
 
     switch (action) {
       case 'auth':
-        return await handleAuth(clientId, clientSecret, code);
+        return await handleAuth(clientId, clientSecret, code, redirectUri);
       
       case 'read':
         if (!sheetId) throw new Error('sheetId requis pour la lecture');
@@ -124,41 +125,46 @@ serve(async (req) => {
   }
 });
 
-async function handleAuth(clientId: string, clientSecret: string, code?: string) {
+async function handleAuth(clientId: string, clientSecret: string, code?: string, redirectUri?: string) {
   console.log('🔐 Gestion de l\'authentification:', { 
     hasCode: !!code,
+    hasRedirectUri: !!redirectUri,
     clientIdLength: clientId.length,
     clientSecretLength: clientSecret.length
   });
 
+  // Déterminer l'URI de redirection - utiliser celle fournie ou la valeur par défaut
+  const finalRedirectUri = redirectUri || 'https://ad-generator-by-ai.lovable.app/auth/callback/google';
+  console.log('🌐 URI de redirection utilisée:', finalRedirectUri);
+
   if (!code) {
-    // Déterminer l'URL de redirection
-    const redirectUri = 'https://ad-generator-by-ai.lovable.app/auth/callback/google';
+    console.log('🌐 Génération de l\'URL d\'authentification avec URI:', finalRedirectUri);
     
-    console.log('🌐 Génération de l\'URL d\'authentification avec URI:', redirectUri);
+    // Générer un paramètre state pour la sécurité
+    const state = crypto.randomUUID();
+    console.log('🔐 State généré pour la sécurité:', state);
     
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${encodeURIComponent(clientId)}&` +
-      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `redirect_uri=${encodeURIComponent(finalRedirectUri)}&` +
       `response_type=code&` +
       `scope=${encodeURIComponent('https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file')}&` +
       `access_type=offline&` +
-      `prompt=consent`;
+      `prompt=consent&` +
+      `state=${encodeURIComponent(state)}`;
     
     console.log('✅ URL d\'authentification générée avec succès');
     
     return new Response(
-      JSON.stringify({ authUrl }),
+      JSON.stringify({ authUrl, state }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
   // Échange du code d'autorisation
-  const redirectUri = 'https://ad-generator-by-ai.lovable.app/auth/callback/google';
-  
   console.log('🔄 Échange du code d\'autorisation...', {
     codeLength: code.length,
-    redirectUri
+    redirectUri: finalRedirectUri
   });
   
   try {
@@ -173,7 +179,7 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string)
         client_secret: clientSecret,
         code: code,
         grant_type: 'authorization_code',
-        redirect_uri: redirectUri
+        redirect_uri: finalRedirectUri
       })
     });
 

@@ -46,35 +46,28 @@ export class GoogleSheetsAuthService {
     try {
       console.log('🔑 Initiation de l\'authentification Google Sheets...');
       console.log('📡 URL de l\'API:', this.API_BASE_URL);
+      console.log('🌐 URL actuelle:', window.location.href);
+      console.log('🌐 Origin actuel:', window.location.origin);
 
-      // Test de connectivité d'abord
-      console.log('🧪 Test de connectivité avec l\'Edge Function...');
+      // Déterminer l'URI de redirection basé sur l'environnement actuel
+      const currentOrigin = window.location.origin;
+      const redirectUri = `${currentOrigin}/auth/callback/google`;
       
-      const testResponse = await fetch(this.API_BASE_URL, {
-        method: 'OPTIONS',
-        headers: { 
-          'Accept': 'application/json'
-        }
-      });
+      console.log('🔗 URI de redirection calculée:', redirectUri);
 
-      console.log('📡 Test de connectivité:', {
-        status: testResponse.status,
-        statusText: testResponse.statusText,
-        ok: testResponse.ok
-      });
-
-      if (!testResponse.ok) {
-        throw new Error(`Edge Function non accessible (${testResponse.status}). Vérifiez que l'Edge Function est déployée.`);
-      }
-
-      // Requête principale d'authentification
+      // Requête d'authentification avec l'URI de redirection dynamique
       const response = await fetch(this.API_BASE_URL, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Origin': currentOrigin,
+          'Referer': window.location.href
         },
-        body: JSON.stringify({ action: 'auth' })
+        body: JSON.stringify({ 
+          action: 'auth',
+          redirectUri: redirectUri
+        })
       });
 
       console.log('📡 Réponse de l\'Edge Function:', {
@@ -84,18 +77,14 @@ export class GoogleSheetsAuthService {
         headers: Object.fromEntries(response.headers.entries())
       });
 
-      // Lire la réponse comme texte d'abord pour diagnostiquer
-      const responseText = await response.text();
-      console.log('📄 Réponse brute (premiers 500 caractères):', responseText.substring(0, 500));
-
       if (!response.ok) {
+        const responseText = await response.text();
         console.error('❌ Erreur HTTP détaillée:', {
           status: response.status,
           statusText: response.statusText,
           body: responseText
         });
 
-        // Tenter de parser en JSON si possible
         let errorMessage = `Erreur serveur (${response.status})`;
         let errorDetails = '';
         
@@ -106,14 +95,10 @@ export class GoogleSheetsAuthService {
           
           console.log('📋 Détails de l\'erreur parsée:', errorData);
         } catch (parseError) {
-          console.log('❌ Impossible de parser la réponse d\'erreur comme JSON:', parseError.message);
+          console.log('❌ Impossible de parser la réponse d\'erreur comme JSON');
           
           if (responseText.includes('<!DOCTYPE') || responseText.includes('<html>')) {
-            errorMessage = 'L\'Edge Function retourne du HTML au lieu de JSON. Vérifiez la configuration Supabase et les secrets.';
-            errorDetails = 'La réponse semble être une page d\'erreur HTML. Cela indique généralement un problème de configuration ou de déploiement de l\'Edge Function.';
-          } else if (responseText.includes('Configuration manquante')) {
-            errorMessage = 'Configuration Google Sheets manquante';
-            errorDetails = 'Vérifiez que les secrets GOOGLE_SHEETS_CLIENT_ID et GOOGLE_SHEETS_CLIENT_SECRET sont correctement configurés dans Supabase.';
+            errorMessage = 'L\'Edge Function retourne du HTML au lieu de JSON. Problème de configuration Supabase.';
           }
         }
 
@@ -121,25 +106,26 @@ export class GoogleSheetsAuthService {
         throw new Error(fullError);
       }
 
-      // Vérifier le Content-Type de la réponse
       const contentType = response.headers.get('content-type');
       if (!contentType?.includes('application/json')) {
         console.error('❌ Réponse non-JSON reçue:', contentType);
         throw new Error(`L'Edge Function ne retourne pas du JSON valide (Content-Type: ${contentType})`);
       }
 
-      let data;
-      try {
-        data = JSON.parse(responseText);
-        console.log('✅ Données reçues:', { hasAuthUrl: !!data.authUrl });
-      } catch (parseError) {
-        console.error('❌ Impossible de parser la réponse JSON:', parseError);
-        throw new Error('Réponse JSON invalide de l\'Edge Function');
-      }
+      const data = await response.json();
+      console.log('✅ Données reçues:', { 
+        hasAuthUrl: !!data.authUrl,
+        hasState: !!data.state 
+      });
 
       if (!data.authUrl) {
         console.error('❌ URL d\'authentification manquante dans la réponse:', data);
         throw new Error('URL d\'authentification manquante dans la réponse');
+      }
+
+      // Stocker le state pour vérification ultérieure
+      if (data.state) {
+        sessionStorage.setItem('google_auth_state', data.state);
       }
 
       console.log('✅ URL d\'authentification générée avec succès');
@@ -148,20 +134,10 @@ export class GoogleSheetsAuthService {
     } catch (error) {
       console.error('❌ Erreur complète lors de l\'initiation:', error);
       
-      // Messages d'erreur plus spécifiques selon le type d'erreur
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error('Impossible de contacter le serveur. Vérifiez votre connexion internet et que l\'Edge Function est accessible.');
+        throw new Error('Impossible de contacter le serveur. Vérifiez votre connexion internet.');
       }
       
-      if (error.message?.includes('HTML')) {
-        throw new Error('Configuration Supabase incorrecte. L\'Edge Function ne répond pas correctement. Vérifiez les secrets Google Sheets.');
-      }
-
-      if (error.message?.includes('Configuration manquante')) {
-        throw new Error('Secrets Google Sheets manquants dans Supabase. Configurez GOOGLE_SHEETS_CLIENT_ID et GOOGLE_SHEETS_CLIENT_SECRET.');
-      }
-
-      // Utiliser le message d'erreur original ou un message générique
       const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue lors de l\'authentification';
       throw new Error(`Impossible d'initier l'authentification Google: ${errorMessage}`);
     }
@@ -171,13 +147,23 @@ export class GoogleSheetsAuthService {
     try {
       console.log('🔑 Completion de l\'authentification avec le code...');
       
+      // Utiliser la même URI de redirection
+      const currentOrigin = window.location.origin;
+      const redirectUri = `${currentOrigin}/auth/callback/google`;
+      
       const response = await fetch(this.API_BASE_URL, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Origin': currentOrigin,
+          'Referer': window.location.href
         },
-        body: JSON.stringify({ action: 'auth', code })
+        body: JSON.stringify({ 
+          action: 'auth', 
+          code,
+          redirectUri: redirectUri
+        })
       });
 
       console.log('📡 Réponse completion auth:', {
@@ -209,6 +195,10 @@ export class GoogleSheetsAuthService {
       }
 
       this.storeTokens(tokens);
+      
+      // Nettoyer le state stocké
+      sessionStorage.removeItem('google_auth_state');
+      
       console.log('✅ Authentification complétée avec succès');
 
     } catch (error) {
