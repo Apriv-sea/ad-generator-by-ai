@@ -3,55 +3,55 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Sheet } from "@/services/types";
-import CryptPadIdInput from './CryptPadIdInput';
+import GoogleSheetsIdInput from './GoogleSheetsIdInput';
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ExternalLink, History } from "lucide-react";
-import { cryptpadPersistenceService } from "@/services/storage/cryptpadPersistenceService";
+import { googleSheetsPersistenceService } from "@/services/storage/googleSheetsPersistenceService";
 
-interface CryptPadEmbedProps {
+interface GoogleSheetsEmbedProps {
   sheetUrl?: string;
   onSheetUrlChange: (url: string) => void;
   sheet?: Sheet;
-  onConnectionSuccess?: (padId: string) => void;
+  onConnectionSuccess?: (sheetId: string) => void;
 }
 
-const CryptPadEmbed: React.FC<CryptPadEmbedProps> = ({
+const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
   sheetUrl,
   onSheetUrlChange,
   sheet,
   onConnectionSuccess
 }) => {
   const [sheetData, setSheetData] = useState<any>(null);
-  const [currentPadId, setCurrentPadId] = useState<string | null>(null);
+  const [currentSheetId, setCurrentSheetId] = useState<string | null>(null);
   const [recentSessions, setRecentSessions] = useState<any[]>([]);
   const [showRecentSessions, setShowRecentSessions] = useState(false);
 
   useEffect(() => {
     // Charger les sessions récentes au montage
-    const sessions = cryptpadPersistenceService.getSessions();
+    const sessions = googleSheetsPersistenceService.getSessions();
     setRecentSessions(sessions.slice(0, 5)); // Les 5 plus récentes
     setShowRecentSessions(sessions.length > 0 && !sheetData);
   }, [sheetData]);
 
-  const handleSheetLoaded = (padId: string, data: any) => {
-    console.log("Feuille chargée dans CryptPadEmbed:", padId);
+  const handleSheetLoaded = (sheetId: string, data: any) => {
+    console.log("Feuille chargée dans GoogleSheetsEmbed:", sheetId);
     setSheetData(data);
-    setCurrentPadId(padId);
+    setCurrentSheetId(sheetId);
     setShowRecentSessions(false);
-    onSheetUrlChange(`https://cryptpad.fr/sheet/#/2/sheet/edit/${padId}`);
-    toast.success("Feuille CryptPad connectée avec succès");
+    onSheetUrlChange(`https://docs.google.com/spreadsheets/d/${sheetId}/edit`);
+    toast.success("Feuille Google Sheets connectée avec succès");
     
-    // Appeler le callback de connexion réussie avec le padId
+    // Appeler le callback de connexion réussie avec le sheetId
     if (onConnectionSuccess) {
-      onConnectionSuccess(padId);
+      onConnectionSuccess(sheetId);
     }
   };
 
   const handleConnectionSuccess = () => {
     console.log("Gestion de la connexion réussie...");
-    if (onConnectionSuccess && currentPadId) {
-      onConnectionSuccess(currentPadId);
+    if (onConnectionSuccess && currentSheetId) {
+      onConnectionSuccess(currentSheetId);
     }
   };
 
@@ -65,7 +65,7 @@ const CryptPadEmbed: React.FC<CryptPadEmbedProps> = ({
         title: session.name
       };
       
-      handleSheetLoaded(session.padId, mockData);
+      handleSheetLoaded(session.sheetId, mockData);
       toast.success(`Session "${session.name}" restaurée`);
     } catch (error) {
       console.error("Erreur lors de la restauration:", error);
@@ -74,8 +74,8 @@ const CryptPadEmbed: React.FC<CryptPadEmbedProps> = ({
   };
 
   const openInNewTab = () => {
-    if (currentPadId) {
-      window.open(`https://cryptpad.fr/sheet/#/2/sheet/edit/${currentPadId}`, '_blank');
+    if (currentSheetId) {
+      window.open(`https://docs.google.com/spreadsheets/d/${currentSheetId}/edit`, '_blank');
     }
   };
 
@@ -147,7 +147,7 @@ const CryptPadEmbed: React.FC<CryptPadEmbedProps> = ({
         
         <Card>
           <CardContent className="p-6">
-            <CryptPadIdInput 
+            <GoogleSheetsIdInput 
               onSheetLoaded={handleSheetLoaded}
               onConnectionSuccess={handleConnectionSuccess}
             />
@@ -167,7 +167,7 @@ const CryptPadEmbed: React.FC<CryptPadEmbedProps> = ({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold">{sheetData.info?.title || sheetData.title || 'Feuille CryptPad'}</h3>
+              <h3 className="text-lg font-semibold">{sheetData.info?.title || sheetData.title || 'Feuille Google Sheets'}</h3>
               <p className="text-sm text-muted-foreground">
                 {rows.length} lignes de données • {headers.length} colonnes
               </p>
@@ -176,7 +176,7 @@ const CryptPadEmbed: React.FC<CryptPadEmbedProps> = ({
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={openInNewTab}>
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Ouvrir dans CryptPad
+                Ouvrir dans Google Sheets
               </Button>
             </div>
           </div>
@@ -217,7 +217,7 @@ const CryptPadEmbed: React.FC<CryptPadEmbedProps> = ({
               variant="outline" 
               onClick={() => {
                 setSheetData(null);
-                setCurrentPadId(null);
+                setCurrentSheetId(null);
                 setShowRecentSessions(true);
               }}
             >
@@ -230,4 +230,4 @@ const CryptPadEmbed: React.FC<CryptPadEmbedProps> = ({
   );
 };
 
-export default CryptPadEmbed;
+export default GoogleSheetsEmbed;

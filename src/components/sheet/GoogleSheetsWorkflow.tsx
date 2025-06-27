@@ -4,20 +4,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, ArrowRight, Loader, AlertCircle } from "lucide-react";
-import CryptPadEmbed from './CryptPadEmbed';
+import GoogleSheetsEmbed from './GoogleSheetsEmbed';
 import CampaignExtractorWorkflow from '../campaign/CampaignExtractorWorkflow';
 import ContentGeneratorWorkflow from '../campaign/ContentGeneratorWorkflow';
 import { Sheet, Campaign, Client } from "@/services/types";
 import { toast } from "sonner";
-import { cryptpadService } from "@/services/cryptpad/cryptpadService";
-import { cryptpadPersistenceService } from "@/services/storage/cryptpadPersistenceService";
+import { googleSheetsService } from "@/services/googlesheets/googleSheetsService";
+import { googleSheetsPersistenceService } from "@/services/storage/googleSheetsPersistenceService";
 
-interface CryptPadWorkflowProps {
+interface GoogleSheetsWorkflowProps {
   sheet?: Sheet;
   clientInfo?: Client | null;
 }
 
-const CryptPadWorkflow: React.FC<CryptPadWorkflowProps> = ({ sheet, clientInfo }) => {
+const GoogleSheetsWorkflow: React.FC<GoogleSheetsWorkflowProps> = ({ sheet, clientInfo }) => {
   const [activeTab, setActiveTab] = useState("connection");
   const [sheetUrl, setSheetUrl] = useState("");
   const [sheetData, setSheetData] = useState<any[][] | null>(null);
@@ -37,15 +37,15 @@ const CryptPadWorkflow: React.FC<CryptPadWorkflowProps> = ({ sheet, clientInfo }
 
   // Restaurer l'état du workflow au chargement
   useEffect(() => {
-    const savedSessions = cryptpadPersistenceService.getSessions();
+    const savedSessions = googleSheetsPersistenceService.getSessions();
     if (savedSessions.length > 0) {
       const lastSession = savedSessions[0];
       console.log("Session précédente trouvée:", lastSession);
       
-      if (lastSession.padId && lastSession.campaigns) {
+      if (lastSession.sheetId && lastSession.campaigns) {
         toast.info(`Session précédente trouvée: ${lastSession.name}. Voulez-vous la restaurer ?`);
         // Auto-restore if data is available
-        setConnectedSheetId(lastSession.padId);
+        setConnectedSheetId(lastSession.sheetId);
         setExtractedCampaigns(lastSession.campaigns);
         setWorkflowClientInfo(lastSession.clientInfo || null);
         setWorkflowState({
@@ -58,34 +58,34 @@ const CryptPadWorkflow: React.FC<CryptPadWorkflowProps> = ({ sheet, clientInfo }
       }
     }
 
-    cryptpadPersistenceService.cleanOldSessions();
+    googleSheetsPersistenceService.cleanOldSessions();
   }, []);
 
   // Sauvegarder l'état du workflow quand il change
   useEffect(() => {
     if (connectedSheetId) {
-      cryptpadPersistenceService.saveWorkflowState(connectedSheetId, {
+      googleSheetsPersistenceService.saveWorkflowState(connectedSheetId, {
         currentStep: activeTab as any,
         extractedCampaigns,
       });
     }
   }, [activeTab, connectedSheetId, extractedCampaigns]);
 
-  const handleConnectionSuccess = async (padId: string) => {
+  const handleConnectionSuccess = async (sheetId: string) => {
     console.log("Connexion réussie, chargement des données...");
     setIsConnecting(true);
     setConnectionError(null);
-    setConnectedSheetId(padId);
+    setConnectedSheetId(sheetId);
     
     try {
-      const data = await cryptpadService.getSheetData(padId);
+      const data = await googleSheetsService.getSheetData(sheetId);
       if (data && data.values) {
         setSheetData(data.values);
         console.log("Données chargées:", data.values.length, "lignes");
 
         // Sauvegarder la session
-        cryptpadPersistenceService.saveSession(padId, {
-          name: data.title || `Feuille CryptPad ${new Date().toLocaleDateString()}`,
+        googleSheetsPersistenceService.saveSession(sheetId, {
+          name: data.title || `Feuille Google Sheets ${new Date().toLocaleDateString()}`,
           sheetData: data,
           clientInfo: workflowClientInfo
         });
@@ -115,7 +115,7 @@ const CryptPadWorkflow: React.FC<CryptPadWorkflowProps> = ({ sheet, clientInfo }
     
     // Mettre à jour la session avec les campagnes extraites
     if (connectedSheetId) {
-      cryptpadPersistenceService.updateSession(connectedSheetId, {
+      googleSheetsPersistenceService.updateSession(connectedSheetId, {
         campaigns
       });
     }
@@ -138,7 +138,7 @@ const CryptPadWorkflow: React.FC<CryptPadWorkflowProps> = ({ sheet, clientInfo }
     
     // Mettre à jour la session avec les nouvelles informations client
     if (connectedSheetId && newClientInfo) {
-      cryptpadPersistenceService.updateSession(connectedSheetId, {
+      googleSheetsPersistenceService.updateSession(connectedSheetId, {
         clientInfo: newClientInfo
       });
     }
@@ -170,9 +170,9 @@ const CryptPadWorkflow: React.FC<CryptPadWorkflowProps> = ({ sheet, clientInfo }
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">Workflow CryptPad</h2>
+        <h2 className="text-2xl font-bold mb-2">Workflow Google Sheets</h2>
         <p className="text-muted-foreground">
-          Connectez votre feuille CryptPad, extrayez vos campagnes et générez du contenu IA
+          Connectez votre feuille Google Sheets, extrayez vos campagnes et générez du contenu IA
         </p>
         
         {/* Indicateur de progression */}
@@ -250,7 +250,7 @@ const CryptPadWorkflow: React.FC<CryptPadWorkflowProps> = ({ sheet, clientInfo }
         </TabsList>
         
         <TabsContent value="connection" className="space-y-4">
-          <CryptPadEmbed
+          <GoogleSheetsEmbed
             sheetUrl={sheetUrl}
             onSheetUrlChange={setSheetUrl}
             sheet={sheet}
@@ -292,4 +292,4 @@ const CryptPadWorkflow: React.FC<CryptPadWorkflowProps> = ({ sheet, clientInfo }
   );
 };
 
-export default CryptPadWorkflow;
+export default GoogleSheetsWorkflow;

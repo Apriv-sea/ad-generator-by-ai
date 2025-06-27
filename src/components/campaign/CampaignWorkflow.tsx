@@ -6,7 +6,7 @@ import { sheetService } from "@/services/sheetService";
 import { toast } from "sonner";
 import SheetsTab from "./SheetsTab";
 import CampaignManager from "../CampaignManager";
-import CryptPadWorkflow from "../sheet/CryptPadWorkflow";
+import GoogleSheetsWorkflow from "../sheet/GoogleSheetsWorkflow";
 
 const CampaignWorkflow: React.FC = () => {
   const [sheets, setSheets] = useState<Sheet[]>([]);
@@ -59,17 +59,17 @@ const CampaignWorkflow: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="cryptpad" className="w-full">
+      <Tabs defaultValue="googlesheets" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="cryptpad">CryptPad</TabsTrigger>
+          <TabsTrigger value="googlesheets">Google Sheets</TabsTrigger>
           <TabsTrigger value="sheets">Feuilles locales</TabsTrigger>
           <TabsTrigger value="manager" disabled={!selectedSheet}>
             Gestion
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="cryptpad" className="space-y-6">
-          <CryptPadWorkflow 
+        <TabsContent value="googlesheets" className="space-y-6">
+          <GoogleSheetsWorkflow 
             sheet={selectedSheet} 
             clientInfo={clientInfo}
           />

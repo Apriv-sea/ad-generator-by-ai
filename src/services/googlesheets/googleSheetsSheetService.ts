@@ -1,4 +1,5 @@
-import { cryptpadService } from './cryptpadService';
+
+import { googleSheetsService } from './googleSheetsService';
 import { type Sheet, type Client, type Campaign } from '../types';
 
 export const VALIDATED_COLUMNS = [
@@ -21,20 +22,28 @@ export const VALIDATED_COLUMNS = [
   'Extensions d\'annonces'
 ];
 
-class CryptPadSheetService {
-  // Créer une feuille avec en-têtes standards
+class GoogleSheetsSheetService {
+  // Créer une feuille avec en-têtes standards (pointe vers une nouvelle feuille Google)
   async createSheet(name: string, clientInfo?: Client): Promise<Sheet> {
-    const cryptpadSheet = await cryptpadService.createPad(name);
+    // Générer un ID unique pour cette feuille locale
+    const sheetId = `sheet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     const sheet: Sheet = {
-      id: cryptpadSheet.id,
-      name: cryptpadSheet.name,
+      id: sheetId,
+      name: name,
       lastModified: new Date().toISOString(),
-      clientId: clientInfo?.id
+      clientId: clientInfo?.id,
+      url: googleSheetsService.createNewSheetUrl()
     };
     
-    // Initialiser avec les en-têtes standards
-    await cryptpadService.initializeSheetWithHeaders(cryptpadSheet.id);
+    // Initialiser avec les en-têtes standards dans le localStorage
+    const initialData = [
+      googleSheetsService.getStandardHeaders(),
+      // Ajouter quelques lignes vides pour commencer
+      ...Array(10).fill(null).map(() => new Array(googleSheetsService.getStandardHeaders().length).fill(''))
+    ];
+    
+    localStorage.setItem(`sheet_data_${sheetId}`, JSON.stringify({ values: initialData }));
     
     // Stocker dans le localStorage pour la persistance
     const sheets = this.getLocalSheets();
@@ -54,6 +63,11 @@ class CryptPadSheetService {
     const sheets = this.getLocalSheets();
     const filteredSheets = sheets.filter(sheet => sheet.id !== sheetId);
     localStorage.setItem('created_sheets', JSON.stringify(filteredSheets));
+    
+    // Supprimer aussi les données associées
+    localStorage.removeItem(`sheet_data_${sheetId}`);
+    localStorage.removeItem(`googlesheets_url_${sheetId}`);
+    
     return true;
   }
 
@@ -65,8 +79,8 @@ class CryptPadSheetService {
       return storedData ? JSON.parse(storedData) : null;
     }
 
-    // Sinon, utiliser le service CryptPad
-    return await cryptpadService.getSheetData(sheetId);
+    // Sinon, utiliser le service Google Sheets
+    return await googleSheetsService.getSheetData(sheetId);
   }
 
   // Écrire des données dans une feuille
@@ -76,8 +90,8 @@ class CryptPadSheetService {
       return true;
     }
     
-    // Pour les feuilles CryptPad réelles
-    return await cryptpadService.saveSheetData(sheetId, data);
+    // Pour les vraies feuilles Google Sheets
+    return await googleSheetsService.saveSheetData(sheetId, data);
   }
 
   // Obtenir les informations client d'une feuille
@@ -158,4 +172,4 @@ class CryptPadSheetService {
   }
 }
 
-export const cryptpadSheetService = new CryptPadSheetService();
+export const googleSheetsSheetService = new GoogleSheetsSheetService();

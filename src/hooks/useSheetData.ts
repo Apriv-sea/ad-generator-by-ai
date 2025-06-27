@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Sheet, Client } from "@/services/types";
 import { getClientInfo } from "@/services/clientService";
 import { toast } from "sonner";
-import { cryptpadService } from "@/services/cryptpad/cryptpadService";
+import { googleSheetsService } from "@/services/googlesheets/googleSheetsService";
 
 export function useSheetData(sheet: Sheet | null) {
   const [clientInfo, setClientInfo] = useState<Client | null>(null);
@@ -38,10 +38,10 @@ export function useSheetData(sheet: Sheet | null) {
         return;
       }
 
-      // Pour les feuilles CryptPad, utiliser le service
-      console.log("✅ Récupération des données via CryptPad...");
+      // Pour les feuilles Google Sheets, utiliser le service
+      console.log("✅ Récupération des données via Google Sheets...");
       
-      const data = await cryptpadService.getSheetData(sheet.id);
+      const data = await googleSheetsService.getSheetData(sheet.id);
       
       if (data && data.values && data.values.length > 0) {
         console.log(`📊 Données chargées:`, {

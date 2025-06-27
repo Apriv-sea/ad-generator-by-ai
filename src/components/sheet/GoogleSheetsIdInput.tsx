@@ -5,23 +5,23 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ExternalLink, AlertCircle, CheckCircle, Loader } from "lucide-react";
-import { cryptpadService } from "@/services/cryptpad/cryptpadService";
-import { cryptpadValidationService } from "@/services/sheets/cryptpadValidationService";
+import { googleSheetsService } from "@/services/googlesheets/googleSheetsService";
+import { googleSheetsValidationService } from "@/services/sheets/googleSheetsValidationService";
 import { toast } from "sonner";
 
-interface CryptPadIdInputProps {
-  onSheetLoaded: (padId: string, data: any) => void;
+interface GoogleSheetsIdInputProps {
+  onSheetLoaded: (sheetId: string, data: any) => void;
   onConnectionSuccess?: () => void;
 }
 
-const CryptPadIdInput: React.FC<CryptPadIdInputProps> = ({ onSheetLoaded, onConnectionSuccess }) => {
+const GoogleSheetsIdInput: React.FC<GoogleSheetsIdInputProps> = ({ onSheetLoaded, onConnectionSuccess }) => {
   const [url, setUrl] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
   const handleConnect = async () => {
     if (!url.trim()) {
-      setConnectionError("Veuillez entrer une URL CryptPad");
+      setConnectionError("Veuillez entrer une URL Google Sheets");
       return;
     }
 
@@ -31,22 +31,22 @@ const CryptPadIdInput: React.FC<CryptPadIdInputProps> = ({ onSheetLoaded, onConn
 
     try {
       // Valider l'URL
-      const validation = cryptpadValidationService.validateCryptpadUrl(url);
+      const validation = googleSheetsValidationService.validateGoogleSheetsUrl(url);
       if (!validation.isValid) {
         throw new Error(validation.error || "URL invalide");
       }
 
-      // Extraire l'ID du pad
-      const padId = cryptpadService.extractPadId(url);
-      if (!padId) {
-        throw new Error("Impossible d'extraire l'ID du pad depuis cette URL");
+      // Extraire l'ID de la feuille
+      const sheetId = googleSheetsService.extractSheetId(url);
+      if (!sheetId) {
+        throw new Error("Impossible d'extraire l'ID de la feuille depuis cette URL");
       }
 
-      console.log("🆔 ID du pad extrait:", padId);
+      console.log("🆔 ID de la feuille extrait:", sheetId);
 
       // Récupérer les données
       console.log("📊 Récupération des données...");
-      const data = await cryptpadService.getSheetData(padId);
+      const data = await googleSheetsService.getSheetData(sheetId);
       
       console.log("✅ Données récupérées:", {
         title: data.title,
@@ -56,16 +56,16 @@ const CryptPadIdInput: React.FC<CryptPadIdInputProps> = ({ onSheetLoaded, onConn
       });
 
       if (!data.values || data.values.length === 0) {
-        throw new Error("Aucune donnée trouvée dans la feuille CryptPad");
+        throw new Error("Aucune donnée trouvée dans la feuille Google Sheets");
       }
 
       if (data.values.length === 1) {
         console.warn("⚠️ Seulement les en-têtes trouvés, pas de données");
-        toast.warning("Seuls les en-têtes ont été trouvés. Ajoutez des données dans votre feuille CryptPad.");
+        toast.warning("Seuls les en-têtes ont été trouvés. Ajoutez des données dans votre feuille Google Sheets.");
       }
 
       // Succès !
-      onSheetLoaded(padId, data);
+      onSheetLoaded(sheetId, data);
       toast.success(`Connexion réussie ! ${data.values.length - 1} ligne(s) de données trouvée(s).`);
       
       if (onConnectionSuccess) {
@@ -82,8 +82,12 @@ const CryptPadIdInput: React.FC<CryptPadIdInputProps> = ({ onSheetLoaded, onConn
     }
   };
 
-  const openCryptPadHelp = () => {
-    window.open("https://docs.cryptpad.fr/en/user_guide/apps/calc.html", "_blank");
+  const openGoogleSheetsHelp = () => {
+    window.open("https://support.google.com/docs/answer/6000292", "_blank");
+  };
+
+  const createNewSheet = () => {
+    window.open(googleSheetsService.createNewSheetUrl(), "_blank");
   };
 
   return (
@@ -91,18 +95,18 @@ const CryptPadIdInput: React.FC<CryptPadIdInputProps> = ({ onSheetLoaded, onConn
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <span>Connexion CryptPad</span>
-            <Button variant="ghost" size="sm" onClick={openCryptPadHelp}>
+            <span>Connexion Google Sheets</span>
+            <Button variant="ghost" size="sm" onClick={openGoogleSheetsHelp}>
               <ExternalLink className="h-4 w-4" />
             </Button>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">URL de votre feuille CryptPad :</label>
+            <label className="text-sm font-medium">URL de votre feuille Google Sheets :</label>
             <Input
               type="url"
-              placeholder="https://cryptpad.fr/sheet/#/2/sheet/edit/..."
+              placeholder="https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               disabled={isConnecting}
@@ -118,29 +122,40 @@ const CryptPadIdInput: React.FC<CryptPadIdInputProps> = ({ onSheetLoaded, onConn
             </Alert>
           )}
 
-          <Button 
-            onClick={handleConnect} 
-            disabled={isConnecting || !url.trim()}
-            className="w-full"
-          >
-            {isConnecting ? (
-              <>
-                <Loader className="h-4 w-4 mr-2 animate-spin" />
-                Connexion en cours...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Se connecter
-              </>
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleConnect} 
+              disabled={isConnecting || !url.trim()}
+              className="flex-1"
+            >
+              {isConnecting ? (
+                <>
+                  <Loader className="h-4 w-4 mr-2 animate-spin" />
+                  Connexion en cours...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Se connecter
+                </>
+              )}
+            </Button>
+
+            <Button 
+              onClick={createNewSheet}
+              variant="outline"
+              size="sm"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Nouvelle feuille
+            </Button>
+          </div>
 
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Note:</strong> Assurez-vous que votre feuille CryptPad contient les en-têtes standards et des données.
-              L'URL doit être celle d'édition (avec "/edit/" dans le lien).
+              <strong>Note:</strong> Assurez-vous que votre feuille Google Sheets est partagée en lecture publique 
+              et contient les en-têtes standards avec des données.
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -149,4 +164,4 @@ const CryptPadIdInput: React.FC<CryptPadIdInputProps> = ({ onSheetLoaded, onConn
   );
 };
 
-export default CryptPadIdInput;
+export default GoogleSheetsIdInput;

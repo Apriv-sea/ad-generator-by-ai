@@ -1,18 +1,17 @@
 
 import { inputSanitizationService } from "../security/inputSanitizationService";
 
-export interface CryptpadValidationResult {
+export interface GoogleSheetsValidationResult {
   isValid: boolean;
   error?: string;
   sanitizedUrl?: string;
   securityWarnings?: string[];
 }
 
-class CryptpadValidationService {
+class GoogleSheetsValidationService {
   private readonly ALLOWED_DOMAINS = [
-    'cryptpad.fr',
-    'cryptpad.org', 
-    'cryptpad.io'
+    'docs.google.com',
+    'sheets.google.com'
   ];
 
   private readonly SUSPICIOUS_PATTERNS = [
@@ -27,12 +26,12 @@ class CryptpadValidationService {
   ];
 
   /**
-   * Comprehensive validation of CryptPad URLs with security checks
+   * Validation complète des URLs Google Sheets avec vérifications de sécurité
    */
-  validateCryptpadUrl(url: string): CryptpadValidationResult {
+  validateGoogleSheetsUrl(url: string): GoogleSheetsValidationResult {
     const warnings: string[] = [];
     
-    // Basic validation
+    // Validation de base
     if (!url || typeof url !== 'string') {
       return {
         isValid: false,
@@ -40,7 +39,7 @@ class CryptpadValidationService {
       };
     }
 
-    // Check for suspicious patterns
+    // Vérifier les patterns suspects
     for (const pattern of this.SUSPICIOUS_PATTERNS) {
       if (pattern.test(url)) {
         warnings.push('Suspicious pattern detected in URL');
@@ -52,10 +51,10 @@ class CryptpadValidationService {
       }
     }
 
-    // Sanitize URL
+    // Nettoyer l'URL
     const sanitizedUrl = url.replace(/[<>'"]/g, '').trim();
     
-    // Length validation
+    // Validation de longueur
     if (sanitizedUrl.length > 2000) {
       return {
         isValid: false,
@@ -67,7 +66,7 @@ class CryptpadValidationService {
     try {
       const urlObj = new URL(sanitizedUrl);
       
-      // Protocol validation
+      // Validation du protocole
       if (urlObj.protocol !== 'https:') {
         warnings.push('Non-HTTPS URL detected');
         return {
@@ -77,7 +76,7 @@ class CryptpadValidationService {
         };
       }
 
-      // Domain validation
+      // Validation du domaine
       const isValidDomain = this.ALLOWED_DOMAINS.some(domain => 
         urlObj.hostname === domain || urlObj.hostname.endsWith(`.${domain}`)
       );
@@ -86,21 +85,21 @@ class CryptpadValidationService {
         warnings.push('Non-whitelisted domain');
         return {
           isValid: false,
-          error: 'URL must be from a valid CryptPad domain',
+          error: 'URL must be from Google Sheets',
           securityWarnings: warnings
         };
       }
 
-      // Path validation
-      if (!urlObj.pathname.includes('/sheet/')) {
+      // Validation du chemin
+      if (!urlObj.pathname.includes('/spreadsheets/')) {
         return {
           isValid: false,
-          error: 'URL must be a CryptPad sheet',
+          error: 'URL must be a Google Sheets document',
           securityWarnings: warnings
         };
       }
 
-      // Additional security checks
+      // Vérifications de sécurité supplémentaires
       if (urlObj.pathname.includes('..')) {
         warnings.push('Path traversal attempt detected');
         return {
@@ -108,22 +107,6 @@ class CryptpadValidationService {
           error: 'Invalid path in URL',
           securityWarnings: warnings
         };
-      }
-
-      // Check for suspicious query parameters
-      const suspiciousParams = ['eval', 'script', 'javascript', 'onclick', 'onerror'];
-      for (const [key, value] of urlObj.searchParams) {
-        if (suspiciousParams.some(param => 
-          key.toLowerCase().includes(param) || 
-          value.toLowerCase().includes(param)
-        )) {
-          warnings.push('Suspicious query parameters detected');
-          return {
-            isValid: false,
-            error: 'URL contains potentially dangerous parameters',
-            securityWarnings: warnings
-          };
-        }
       }
 
       return {
@@ -142,10 +125,10 @@ class CryptpadValidationService {
   }
 
   /**
-   * Extract and validate CryptPad ID from URL
+   * Extraire et valider l'ID Google Sheets depuis l'URL
    */
-  extractCryptpadId(url: string): { id: string | null; error?: string } {
-    const validation = this.validateCryptpadUrl(url);
+  extractGoogleSheetsId(url: string): { id: string | null; error?: string } {
+    const validation = this.validateGoogleSheetsUrl(url);
     
     if (!validation.isValid) {
       return { id: null, error: validation.error };
@@ -154,20 +137,20 @@ class CryptpadValidationService {
     try {
       const urlObj = new URL(validation.sanitizedUrl!);
       const pathParts = urlObj.pathname.split('/');
-      const sheetIndex = pathParts.indexOf('sheet');
+      const dIndex = pathParts.indexOf('d');
       
-      if (sheetIndex === -1 || sheetIndex >= pathParts.length - 1) {
+      if (dIndex === -1 || dIndex >= pathParts.length - 1) {
         return { id: null, error: 'Could not extract sheet ID from URL' };
       }
 
-      const sheetId = pathParts[sheetIndex + 1];
+      const sheetId = pathParts[dIndex + 1];
       
-      // Validate sheet ID format (basic validation)
+      // Valider le format de l'ID (validation basique)
       if (!sheetId || sheetId.length < 10) {
         return { id: null, error: 'Invalid sheet ID format' };
       }
 
-      // Sanitize sheet ID
+      // Nettoyer l'ID
       const sanitizedId = inputSanitizationService.sanitizeText(sheetId);
       
       return { id: sanitizedId };
@@ -177,27 +160,27 @@ class CryptpadValidationService {
   }
 
   /**
-   * Validate sheet data structure for security
+   * Valider la structure des données de feuille pour la sécurité
    */
   validateSheetData(data: any): { isValid: boolean; error?: string } {
     if (!data || typeof data !== 'object') {
       return { isValid: false, error: 'Invalid data format' };
     }
 
-    // Check data size (prevent DoS)
+    // Vérifier la taille des données (prévenir DoS)
     const dataStr = JSON.stringify(data);
-    if (dataStr.length > 10 * 1024 * 1024) { // 10MB limit
+    if (dataStr.length > 10 * 1024 * 1024) { // Limite de 10MB
       return { isValid: false, error: 'Data too large' };
     }
 
-    // Validate content array
-    if (data.content && Array.isArray(data.content)) {
-      // Limit number of rows/columns
-      if (data.content.length > 10000) {
+    // Valider le tableau de contenu
+    if (data.values && Array.isArray(data.values)) {
+      // Limiter le nombre de lignes/colonnes
+      if (data.values.length > 10000) {
         return { isValid: false, error: 'Too many rows in sheet data' };
       }
 
-      for (const row of data.content) {
+      for (const row of data.values) {
         if (Array.isArray(row) && row.length > 1000) {
           return { isValid: false, error: 'Too many columns in sheet data' };
         }
@@ -206,16 +189,6 @@ class CryptpadValidationService {
 
     return { isValid: true };
   }
-
-  /**
-   * Log security events
-   */
-  private logSecurityEvent(event: string, details: any = {}) {
-    console.log(`🔒 CryptPad Security Event: ${event}`, {
-      timestamp: new Date().toISOString(),
-      ...details
-    });
-  }
 }
 
-export const cryptpadValidationService = new CryptpadValidationService();
+export const googleSheetsValidationService = new GoogleSheetsValidationService();

@@ -2,9 +2,9 @@
 import { localStorageUtils } from "./localStorageUtils";
 import { Campaign, Client } from "../types";
 
-interface CryptPadSession {
+interface GoogleSheetsSession {
   id: string;
-  padId: string;
+  sheetId: string;
   name: string;
   lastConnected: string;
   dataPreview?: {
@@ -16,14 +16,14 @@ interface CryptPadSession {
   campaigns?: Campaign[];
 }
 
-class CryptPadPersistenceService {
-  private readonly storageKey = 'cryptpad_sessions';
+class GoogleSheetsPersistenceService {
+  private readonly storageKey = 'googlesheets_sessions';
   private readonly maxSessions = 10; // Limite pour éviter l'encombrement
 
   /**
-   * Sauvegarder une session CryptPad
+   * Sauvegarder une session Google Sheets
    */
-  saveSession(padId: string, data: {
+  saveSession(sheetId: string, data: {
     name?: string;
     sheetData?: any;
     clientInfo?: Client;
@@ -33,9 +33,9 @@ class CryptPadPersistenceService {
       const sessions = this.getSessions();
       const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      const session: CryptPadSession = {
+      const session: GoogleSheetsSession = {
         id: sessionId,
-        padId,
+        sheetId,
         name: data.name || `Feuille ${new Date().toLocaleDateString()}`,
         lastConnected: new Date().toISOString(),
         clientInfo: data.clientInfo,
@@ -60,34 +60,34 @@ class CryptPadPersistenceService {
       }
 
       localStorageUtils.setItem(this.storageKey, sessions);
-      console.log("Session CryptPad sauvegardée:", sessionId);
+      console.log("Session Google Sheets sauvegardée:", sessionId);
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde de la session CryptPad:", error);
+      console.error("Erreur lors de la sauvegarde de la session Google Sheets:", error);
     }
   }
 
   /**
    * Récupérer toutes les sessions sauvegardées
    */
-  getSessions(): CryptPadSession[] {
-    return localStorageUtils.getItem<CryptPadSession[]>(this.storageKey) || [];
+  getSessions(): GoogleSheetsSession[] {
+    return localStorageUtils.getItem<GoogleSheetsSession[]>(this.storageKey) || [];
   }
 
   /**
-   * Récupérer une session spécifique par padId
+   * Récupérer une session spécifique par sheetId
    */
-  getSessionByPadId(padId: string): CryptPadSession | null {
+  getSessionBySheetId(sheetId: string): GoogleSheetsSession | null {
     const sessions = this.getSessions();
-    return sessions.find(session => session.padId === padId) || null;
+    return sessions.find(session => session.sheetId === sheetId) || null;
   }
 
   /**
    * Mettre à jour les données d'une session existante
    */
-  updateSession(padId: string, updates: Partial<CryptPadSession>): void {
+  updateSession(sheetId: string, updates: Partial<GoogleSheetsSession>): void {
     try {
       const sessions = this.getSessions();
-      const sessionIndex = sessions.findIndex(session => session.padId === padId);
+      const sessionIndex = sessions.findIndex(session => session.sheetId === sheetId);
 
       if (sessionIndex !== -1) {
         sessions[sessionIndex] = {
@@ -96,7 +96,7 @@ class CryptPadPersistenceService {
           lastConnected: new Date().toISOString()
         };
         localStorageUtils.setItem(this.storageKey, sessions);
-        console.log("Session CryptPad mise à jour:", padId);
+        console.log("Session Google Sheets mise à jour:", sheetId);
       }
     } catch (error) {
       console.error("Erreur lors de la mise à jour de la session:", error);
@@ -111,7 +111,7 @@ class CryptPadPersistenceService {
       const sessions = this.getSessions();
       const filteredSessions = sessions.filter(session => session.id !== sessionId);
       localStorageUtils.setItem(this.storageKey, filteredSessions);
-      console.log("Session CryptPad supprimée:", sessionId);
+      console.log("Session Google Sheets supprimée:", sessionId);
     } catch (error) {
       console.error("Erreur lors de la suppression de la session:", error);
     }
@@ -142,13 +142,13 @@ class CryptPadPersistenceService {
   /**
    * Sauvegarder l'état du workflow en cours
    */
-  saveWorkflowState(padId: string, state: {
+  saveWorkflowState(sheetId: string, state: {
     currentStep: 'connection' | 'extraction' | 'content';
     extractedCampaigns?: Campaign[];
     generationProgress?: number;
   }): void {
     try {
-      const key = `workflow_state_${padId}`;
+      const key = `workflow_state_${sheetId}`;
       const workflowState = {
         ...state,
         lastUpdated: new Date().toISOString()
@@ -160,11 +160,11 @@ class CryptPadPersistenceService {
   }
 
   /**
-   * Récupérer l'état du workflow pour un pad
+   * Récupérer l'état du workflow pour une feuille
    */
-  getWorkflowState(padId: string): any {
+  getWorkflowState(sheetId: string): any {
     try {
-      const key = `workflow_state_${padId}`;
+      const key = `workflow_state_${sheetId}`;
       return localStorageUtils.getItem(key);
     } catch (error) {
       console.error("Erreur lors de la récupération de l'état du workflow:", error);
@@ -173,4 +173,4 @@ class CryptPadPersistenceService {
   }
 }
 
-export const cryptpadPersistenceService = new CryptPadPersistenceService();
+export const googleSheetsPersistenceService = new GoogleSheetsPersistenceService();
