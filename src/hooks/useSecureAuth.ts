@@ -13,16 +13,12 @@ export function useSecureAuth() {
   const [suspiciousActivity, setSuspiciousActivity] = useState<boolean>(false);
 
   // Use refs to prevent unnecessary re-renders
-  const sessionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const activityListenersSetup = useRef<boolean>(false);
   const authSubscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
-  const securityCheckRef = useRef<NodeJS.Timeout | null>(null);
+  const activityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Enhanced security constants
   const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
   const MAX_RETRY_ATTEMPTS = 3;
-  const RETRY_DELAY = 2000;
-  const SECURITY_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
   const MAX_FAILED_ATTEMPTS = 5;
 
   const logSecurityEvent = (event: string, details?: any) => {
@@ -33,60 +29,8 @@ export function useSecureAuth() {
     });
   };
 
-  const detectSuspiciousActivity = () => {
-    const failedAttempts = parseInt(localStorage.getItem('auth_failed_attempts') || '0');
-    
-    if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
-      setSuspiciousActivity(true);
-      logSecurityEvent('SUSPICIOUS_ACTIVITY_DETECTED', { failedAttempts });
-      toast.error("Activité suspecte détectée. Veuillez vous reconnecter.");
-      handleSignOut();
-      return true;
-    }
-    
-    return false;
-  };
-
-  const incrementFailedAttempts = () => {
-    const current = parseInt(localStorage.getItem('auth_failed_attempts') || '0');
-    localStorage.setItem('auth_failed_attempts', (current + 1).toString());
-  };
-
   const resetFailedAttempts = () => {
     localStorage.removeItem('auth_failed_attempts');
-  };
-
-  const handleTokenRefreshError = async () => {
-    incrementFailedAttempts();
-    
-    if (detectSuspiciousActivity()) {
-      return;
-    }
-
-    if (retryCount < MAX_RETRY_ATTEMPTS) {
-      console.log(`Token refresh failed, retrying... (${retryCount + 1}/${MAX_RETRY_ATTEMPTS})`);
-      setRetryCount(prev => prev + 1);
-      
-      setTimeout(async () => {
-        try {
-          const { error } = await supabase.auth.refreshSession();
-          if (error) throw error;
-          
-          console.log("Token refresh retry successful");
-          setRetryCount(0);
-          resetFailedAttempts();
-          logSecurityEvent('TOKEN_REFRESH_SUCCESS');
-        } catch (error) {
-          console.error("Token refresh retry failed:", error);
-          if (retryCount + 1 >= MAX_RETRY_ATTEMPTS) {
-            console.log("Max retry attempts reached, signing out");
-            logSecurityEvent('MAX_RETRY_ATTEMPTS_REACHED');
-            toast.error("Erreur de session persistante. Veuillez vous reconnecter.");
-            handleSignOut();
-          }
-        }
-      }, RETRY_DELAY * retryCount);
-    }
   };
 
   const handleSignOut = async () => {
@@ -94,7 +38,7 @@ export function useSecureAuth() {
       logSecurityEvent('USER_SIGNOUT');
       await supabase.auth.signOut();
       
-      // Enhanced cleanup - clear all sensitive data
+      // Clear sensitive data
       const keysToRemove = [
         'auth_connected',
         'user_data',
@@ -121,32 +65,6 @@ export function useSecureAuth() {
     }
   };
 
-  const checkSessionValidity = () => {
-    const now = Date.now();
-    if (session && (now - lastActivity > SESSION_TIMEOUT)) {
-      console.log("Session expired due to inactivity");
-      logSecurityEvent('SESSION_TIMEOUT');
-      toast.info("Session expirée. Veuillez vous reconnecter.");
-      handleSignOut();
-    }
-  };
-
-  const performSecurityCheck = () => {
-    if (!session) return;
-    
-    // Check for session integrity
-    const storedAuth = localStorage.getItem('auth_connected');
-    if (session && !storedAuth) {
-      logSecurityEvent('SESSION_INTEGRITY_VIOLATION');
-      console.warn("Session integrity violation detected");
-      handleSignOut();
-      return;
-    }
-    
-    // Check for suspicious activity patterns
-    detectSuspiciousActivity();
-  };
-
   const updateActivity = () => {
     setLastActivity(Date.now());
     if (retryCount > 0) {
@@ -157,12 +75,13 @@ export function useSecureAuth() {
     }
   };
 
-  // Initialize auth only once
+  // Single useEffect for auth initialization
   useEffect(() => {
     let mounted = true;
 
     const initAuth = async () => {
       try {
+        // Set up auth state listener
         if (!authSubscriptionRef.current) {
           const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
@@ -205,6 +124,7 @@ export function useSecureAuth() {
           authSubscriptionRef.current = subscription;
         }
         
+        // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error("Session error:", error);
@@ -244,45 +164,45 @@ export function useSecureAuth() {
 
     initAuth();
 
-    return () => {
-      mounted = false;
-      if (authSubscriptionRef.current) {
-        authSubscriptionRef.current.unsubscribe();
-        authSubscriptionRef.current = null;
-      }
-    };
-  }, []);
-
-  // Set up activity monitoring and security checks
-  useEffect(() => {
-    if (activityListenersSetup.current) return;
-
+    // Set up activity monitoring
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
     events.forEach(event => {
       document.addEventListener(event, updateActivity, { passive: true });
     });
 
-    // Set up session check timer
-    sessionTimeoutRef.current = setInterval(checkSessionValidity, 60000);
-    
-    // Set up security check timer
-    securityCheckRef.current = setInterval(performSecurityCheck, SECURITY_CHECK_INTERVAL);
+    // Set up session timeout check
+    const checkSessionTimeout = () => {
+      const now = Date.now();
+      if (session && (now - lastActivity > SESSION_TIMEOUT)) {
+        console.log("Session expired due to inactivity");
+        logSecurityEvent('SESSION_TIMEOUT');
+        toast.info("Session expirée. Veuillez vous reconnecter.");
+        handleSignOut();
+      }
+    };
 
-    activityListenersSetup.current = true;
+    activityTimeoutRef.current = setInterval(checkSessionTimeout, 60000); // Check every minute
 
     return () => {
+      mounted = false;
+      
+      // Cleanup auth subscription
+      if (authSubscriptionRef.current) {
+        authSubscriptionRef.current.unsubscribe();
+        authSubscriptionRef.current = null;
+      }
+      
+      // Cleanup activity listeners
       events.forEach(event => {
         document.removeEventListener(event, updateActivity);
       });
-      if (sessionTimeoutRef.current) {
-        clearInterval(sessionTimeoutRef.current);
+      
+      // Cleanup timeout
+      if (activityTimeoutRef.current) {
+        clearInterval(activityTimeoutRef.current);
       }
-      if (securityCheckRef.current) {
-        clearInterval(securityCheckRef.current);
-      }
-      activityListenersSetup.current = false;
     };
-  }, [session?.user?.id]);
+  }, []); // Empty dependency array to run only once
 
   const refreshSession = async () => {
     try {
@@ -295,12 +215,7 @@ export function useSecureAuth() {
     } catch (error) {
       console.error("Error refreshing session:", error);
       logSecurityEvent('SESSION_REFRESH_ERROR', { error: error.message });
-      
-      if (error?.message?.includes('refresh_token_not_found')) {
-        handleTokenRefreshError();
-      } else {
-        toast.error("Erreur lors du rafraîchissement de la session");
-      }
+      toast.error("Erreur lors du rafraîchissement de la session");
     }
   };
 
