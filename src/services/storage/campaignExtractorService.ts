@@ -30,25 +30,36 @@ class CampaignExtractorService {
       console.log(`📈 ${rows.length} lignes de données à traiter`);
       console.log("🔢 Aperçu des premières lignes:", rows.slice(0, 3));
       
-      // Trouver les indices des colonnes importantes avec plus de flexibilité
+      // Recherche spécifique pour les en-têtes français de votre feuille
       const campaignIndex = this.findColumnIndex(headers, [
-        'campagne', 'campaign', 'nom de la campagne', 'campaign name',
+        'campagnes', 'campagne', 'campaign', 'nom de la campagne', 'campaign name',
         'nom campagne', 'campagne name'
       ]);
       const adGroupIndex = this.findColumnIndex(headers, [
-        'groupe', 'adgroup', 'ad group', 'nom du groupe', 'group name',
+        'groupes d\'annonces', 'groupe d\'annonces', 'groupes d annonces', 'groupe d annonces',
+        'groupes', 'groupe', 'adgroup', 'ad group', 'nom du groupe', 'group name',
         'nom groupe', 'groupe annonces', 'ad group name', 'nom du groupe d\'annonces'
       ]);
       const keywordsIndex = this.findColumnIndex(headers, [
-        'mots-clés', 'keywords', 'mots clés', 'top 3 mots-clés',
-        'top 3 mots clés', 'keyword', 'mots cles', 'top3 mots-clés'
+        'top mots clés', 'top mots-clés', 'mots clés', 'mots-clés', 'keywords', 
+        'top 3 mots-clés', 'top 3 mots clés', 'keyword', 'mots cles', 'top3 mots-clés'
       ]);
       
       console.log(`🎯 Indices trouvés - Campagne: ${campaignIndex}, Groupe: ${adGroupIndex}, Mots-clés: ${keywordsIndex}`);
+      console.log(`📋 En-têtes mappés:`, {
+        campagne: headers[campaignIndex],
+        groupe: headers[adGroupIndex], 
+        motsCles: headers[keywordsIndex]
+      });
       
       if (campaignIndex === -1 || adGroupIndex === -1 || keywordsIndex === -1) {
         console.log("❌ Colonnes requises non trouvées dans les en-têtes");
         console.log("En-têtes disponibles:", headers.map((h, i) => `${i}: "${h}"`));
+        console.log("Recherche de:", {
+          campagne: campaignIndex === -1 ? "NON TROUVÉ" : "✓",
+          groupe: adGroupIndex === -1 ? "NON TROUVÉ" : "✓", 
+          motsCles: keywordsIndex === -1 ? "NON TROUVÉ" : "✓"
+        });
         return this.getDefaultCampaign(sheetData.id || '');
       }
       
@@ -56,20 +67,31 @@ class CampaignExtractorService {
       const campaigns: Campaign[] = [];
       
       rows.forEach((row: any[], index) => {
-        console.log(`📋 Traitement ligne ${index + 2}:`, row);
+        console.log(`📋 Traitement ligne ${index + 2}:`, {
+          rowLength: row.length,
+          requiredLength: Math.max(campaignIndex, adGroupIndex, keywordsIndex) + 1,
+          rawData: row
+        });
         
         if (row.length > Math.max(campaignIndex, adGroupIndex, keywordsIndex)) {
           const campaignName = this.cleanText(row[campaignIndex]);
           const adGroupName = this.cleanText(row[adGroupIndex]);
           const keywordsText = this.cleanText(row[keywordsIndex]);
           
-          console.log(`📝 Données extraites: Campagne="${campaignName}", Groupe="${adGroupName}", Mots-clés="${keywordsText}"`);
+          console.log(`📝 Données extraites ligne ${index + 2}:`, {
+            campagne: `"${campaignName}"`,
+            groupe: `"${adGroupName}"`, 
+            motsCles: `"${keywordsText}"`
+          });
           
-          if (campaignName && adGroupName) {
-            // Extraire les mots-clés
+          // Vérifier que nous avons au minimum le nom de campagne et du groupe
+          if (campaignName && campaignName.length > 0 && adGroupName && adGroupName.length > 0) {
+            // Extraire les mots-clés (gérer différents séparateurs)
             const keywords = keywordsText 
               ? keywordsText.split(/[,;|\n]/).map(k => k.trim()).filter(k => k.length > 0)
               : [];
+
+            console.log(`🔑 Mots-clés extraits pour "${campaignName}":`, keywords);
 
             const campaign: Campaign = {
               id: `${sheetData.id}-campaign-${index}`,
@@ -97,17 +119,26 @@ class CampaignExtractorService {
             };
 
             campaigns.push(campaign);
-            console.log(`✅ Campagne créée: ${campaignName} > ${adGroupName}`);
+            console.log(`✅ Campagne créée: "${campaignName}" > "${adGroupName}" avec ${keywords.length} mots-clés`);
           } else {
-            console.log(`⚠️ Ligne ${index + 2} ignorée: nom de campagne ou groupe manquant`);
+            console.log(`⚠️ Ligne ${index + 2} ignorée: données manquantes`, {
+              campagneVide: !campaignName || campaignName.length === 0,
+              groupeVide: !adGroupName || adGroupName.length === 0
+            });
           }
         } else {
           console.log(`⚠️ Ligne ${index + 2} ignorée: pas assez de colonnes (${row.length} vs ${Math.max(campaignIndex, adGroupIndex, keywordsIndex) + 1} requis)`);
         }
       });
       
-      console.log(`🎉 Extraction terminée: ${campaigns.length} campagnes générées`);
-      return campaigns.length > 0 ? campaigns : this.getDefaultCampaign(sheetData.id || '');
+      console.log(`🎉 Extraction terminée: ${campaigns.length} campagnes générées sur ${rows.length} lignes traitées`);
+      
+      if (campaigns.length === 0) {
+        console.log("❌ Aucune campagne valide créée - retour campagne par défaut");
+        return this.getDefaultCampaign(sheetData.id || '');
+      }
+      
+      return campaigns;
     } catch (error) {
       console.error("💥 Erreur lors de l'extraction des campagnes:", error);
       return this.getDefaultCampaign(sheetData?.id || '');
@@ -125,14 +156,21 @@ class CampaignExtractorService {
       console.log(`🔍 Vérification en-tête ${i}: "${header}"`);
       
       for (const term of searchTerms) {
+        // Recherche exacte d'abord
+        if (header === term.toLowerCase()) {
+          console.log(`✅ Match exact trouvé! En-tête "${header}" = "${term}" à l'index ${i}`);
+          return i;
+        }
+        // Puis recherche par inclusion
         if (header.includes(term.toLowerCase())) {
-          console.log(`✅ Match trouvé! En-tête "${header}" contient "${term}" à l'index ${i}`);
+          console.log(`✅ Match partiel trouvé! En-tête "${header}" contient "${term}" à l'index ${i}`);
           return i;
         }
       }
     }
     
     console.log(`❌ Aucun match trouvé pour les termes:`, searchTerms);
+    console.log(`📋 En-têtes disponibles:`, headers.map((h, i) => `${i}: "${h}"`));
     return -1;
   }
 
