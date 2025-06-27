@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -73,9 +72,10 @@ serve(async (req) => {
 
 async function handleAuth(clientId: string, clientSecret: string, code?: string) {
   if (!code) {
-    // Générer l'URL d'autorisation avec redirection dynamique
-    const origin = Deno.env.get('SUPABASE_URL')?.replace('/rest/v1', '') || 'http://localhost:5173';
-    const redirectUri = `${origin}/auth/callback/google`;
+    // Utiliser une URL fixe au lieu de la construire dynamiquement
+    const redirectUri = 'https://ad-generator-by-ai.lovable.app/auth/callback/google';
+    
+    console.log('Utilisation de l\'URI de redirection:', redirectUri);
     
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}&` +
@@ -91,9 +91,10 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string)
     );
   }
 
-  // Échanger le code contre un token d'accès
-  const origin = Deno.env.get('SUPABASE_URL')?.replace('/rest/v1', '') || 'http://localhost:5173';
-  const redirectUri = `${origin}/auth/callback/google`;
+  // Échanger le code contre un token d'accès avec la même URI fixe
+  const redirectUri = 'https://ad-generator-by-ai.lovable.app/auth/callback/google';
+  
+  console.log('Échange du code avec URI:', redirectUri);
   
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -110,6 +111,7 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string)
   const tokenData = await tokenResponse.json();
   
   if (!tokenResponse.ok) {
+    console.error('Erreur lors de l\'échange du token:', tokenData);
     throw new Error(`Erreur d'authentification: ${tokenData.error_description || tokenData.error}`);
   }
 
