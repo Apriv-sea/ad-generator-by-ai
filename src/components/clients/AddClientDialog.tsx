@@ -6,9 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import ClientForm from "./ClientForm";
 import { Client } from "@/services/types";
 
@@ -29,9 +27,6 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button>Ajouter un client</Button>
-      </DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Ajouter un nouveau client</DialogTitle>
