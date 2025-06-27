@@ -159,43 +159,76 @@ async function handleRead(sheetId: string, range: string, request: Request) {
   console.log(`📖 EDGE FUNCTION - Lecture de la feuille ${sheetId} avec la plage ${range}`);
   console.log(`🔑 EDGE FUNCTION - Token présent: ${accessToken ? 'OUI (***' + accessToken.slice(-4) + ')' : 'NON'}`);
   
+  // Validation de l'ID de la feuille
+  if (!sheetId || sheetId.length < 10 || !/^[a-zA-Z0-9-_]+$/.test(sheetId)) {
+    throw new Error('ID de feuille Google Sheets invalide');
+  }
+  
   const googleApiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`;
   console.log(`🌐 EDGE FUNCTION - URL API Google: ${googleApiUrl}`);
   
-  const response = await fetch(googleApiUrl, {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    }
-  });
-
-  console.log(`📡 EDGE FUNCTION - Réponse Google API Status: ${response.status} ${response.statusText}`);
-  console.log(`📡 EDGE FUNCTION - Headers de réponse Google:`, Object.fromEntries(response.headers.entries()));
-
-  const data = await response.json();
-  
-  if (!response.ok) {
-    console.error('❌ EDGE FUNCTION - Erreur API Google Sheets:', {
-      status: response.status,
-      statusText: response.statusText,
-      error: data.error,
-      message: data.message,
-      details: data
+  try {
+    const response = await fetch(googleApiUrl, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
     });
-    throw new Error(`Erreur lecture: ${data.error?.message || 'Erreur inconnue'}`);
-  }
 
-  console.log('📊 EDGE FUNCTION - Réponse brute Google Sheets API:', {
-    hasValues: !!data.values,
-    valuesIsArray: Array.isArray(data.values),
-    valueCount: data.values?.length || 0,
-    range: data.range,
-    majorDimension: data.majorDimension,
-    rawValues: data.values,
-    completeResponse: data
-  });
+    console.log(`📡 EDGE FUNCTION - Réponse Google API Status: ${response.status} ${response.statusText}`);
+    console.log(`📡 EDGE FUNCTION - Headers de réponse Google:`, Object.fromEntries(response.headers.entries()));
 
-  // Diagnostic ligne par ligne des données brutes de Google
+    // Vérifier le Content-Type de la réponse
+    const contentType = response.headers.get('content-type');
+    console.log(`📡 EDGE FUNCTION - Content-Type: ${contentType}`);
+    
+    if (!contentType || !contentType.includes('application/json')) {
+      console.error('❌ EDGE FUNCTION - Réponse non-JSON détectée:', {
+        status: response.status,
+        statusText: response.statusText,
+        contentType: contentType,
+        url: googleApiUrl
+      });
+      
+      // Lire le contenu de la réponse pour diagnostic
+      const responseText = await response.text();
+      console.log('❌ EDGE FUNCTION - Contenu de la réponse (premiers 200 caractères):', responseText.substring(0, 200));
+      
+      if (response.status === 403) {
+        throw new Error('Accès refusé à la feuille Google Sheets. Vérifiez que la feuille est accessible publiquement ou que votre authentification est valide.');
+      } else if (response.status === 404) {
+        throw new Error('Feuille Google Sheets introuvable. Vérifiez l\'ID de la feuille.');
+      } else if (responseText.includes('<!DOCTYPE')) {
+        throw new Error('La feuille Google Sheets n\'est pas accessible. Assurez-vous qu\'elle est partagée publiquement ou que vous êtes authentifié.');
+      } else {
+        throw new Error(`Erreur API Google Sheets (${response.status}): ${response.statusText}`);
+      }
+    }
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('❌ EDGE FUNCTION - Erreur API Google Sheets:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: data.error,
+        message: data.message,
+        details: data
+      });
+      throw new Error(`Erreur lecture: ${data.error?.message || 'Erreur inconnue'}`);
+    }
+
+    console.log('📊 EDGE FUNCTION - Réponse brute Google Sheets API:', {
+      hasValues: !!data.values,
+      valuesIsArray: Array.isArray(data.values),
+      valueCount: data.values?.length || 0,
+      range: data.range,
+      majorDimension: data.majorDimension,
+      rawValues: data.values,
+      completeResponse: data
+    });
+
+    // Diagnostic ligne par ligne des données brutes de Google
   if (data.values && Array.isArray(data.values)) {
     console.log(`📋 EDGE FUNCTION - Diagnostic ligne par ligne (${data.values.length} lignes brutes de Google):`);
     data.values.forEach((row, index) => {
@@ -255,15 +288,19 @@ async function handleRead(sheetId: string, range: string, request: Request) {
   console.log('📋 EDGE FUNCTION - Premières lignes filtrées:', filteredValues.slice(0, 3));
   console.log('📋 EDGE FUNCTION - Toutes les lignes filtrées:', filteredValues);
 
-  return new Response(
-    JSON.stringify({
-      values: filteredValues,
-      range: data.range,
-      majorDimension: data.majorDimension,
-      title: `Feuille Google Sheets - ${dataRowCount} lignes de données`
-    }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
+    return new Response(
+      JSON.stringify({
+        values: data.values || [],
+        range: data.range,
+        majorDimension: data.majorDimension,
+        title: `Feuille Google Sheets - ${(data.values?.length || 1) - 1} lignes de données`
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('❌ EDGE FUNCTION - Erreur lors de la lecture:', error);
+    throw error;
+  }
 }
 
 async function handleWrite(sheetId: string, data: any[][], range: string, request: Request) {

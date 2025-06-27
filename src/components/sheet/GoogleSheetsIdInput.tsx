@@ -44,6 +44,12 @@ const GoogleSheetsIdInput: React.FC<GoogleSheetsIdInputProps> = ({ onSheetLoaded
 
       console.log("🆔 ID de la feuille extrait:", sheetId);
 
+      // Vérifier d'abord si l'utilisateur est authentifié
+      if (!googleSheetsService.isAuthenticated()) {
+        setConnectionError("Vous devez d'abord vous authentifier avec Google Sheets. Rendez-vous dans l'onglet 'Authentification'.");
+        return;
+      }
+
       // Récupérer les données
       console.log("📊 Récupération des données...");
       const data = await googleSheetsService.getSheetData(sheetId);
@@ -56,7 +62,7 @@ const GoogleSheetsIdInput: React.FC<GoogleSheetsIdInputProps> = ({ onSheetLoaded
       });
 
       if (!data.values || data.values.length === 0) {
-        throw new Error("Aucune donnée trouvée dans la feuille Google Sheets");
+        throw new Error("Aucune donnée trouvée dans la feuille Google Sheets. Vérifiez que votre feuille contient des données et qu'elle est accessible.");
       }
 
       if (data.values.length === 1) {
@@ -74,7 +80,21 @@ const GoogleSheetsIdInput: React.FC<GoogleSheetsIdInputProps> = ({ onSheetLoaded
 
     } catch (error) {
       console.error("❌ Erreur de connexion:", error);
-      const errorMessage = error instanceof Error ? error.message : "Erreur de connexion inconnue";
+      let errorMessage = "Erreur de connexion inconnue";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Messages d'erreur plus spécifiques
+        if (errorMessage.includes("not valid JSON") || errorMessage.includes("DOCTYPE")) {
+          errorMessage = "La feuille Google Sheets n'est pas accessible. Assurez-vous qu'elle est partagée publiquement ou que vous êtes correctement authentifié.";
+        } else if (errorMessage.includes("403")) {
+          errorMessage = "Accès refusé à la feuille. Vérifiez que la feuille est partagée publiquement ou que votre authentification est valide.";
+        } else if (errorMessage.includes("404")) {
+          errorMessage = "Feuille introuvable. Vérifiez l'URL de votre feuille Google Sheets.";
+        }
+      }
+      
       setConnectionError(errorMessage);
       toast.error(`Échec de connexion: ${errorMessage}`);
     } finally {
@@ -154,8 +174,8 @@ const GoogleSheetsIdInput: React.FC<GoogleSheetsIdInputProps> = ({ onSheetLoaded
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Note:</strong> Assurez-vous que votre feuille Google Sheets est partagée en lecture publique 
-              et contient les en-têtes standards avec des données.
+              <strong>Important:</strong> Assurez-vous que votre feuille Google Sheets est partagée publiquement 
+              ou que vous êtes authentifié avec Google Sheets. La feuille doit contenir des en-têtes et des données.
             </AlertDescription>
           </Alert>
         </CardContent>
