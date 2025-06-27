@@ -1,107 +1,94 @@
-
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import GlobalErrorBoundary from "./components/GlobalErrorBoundary";
-import ProtectedRoute from "./components/ProtectedRoute";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import Auth from "./pages/Auth";
-import AuthCallback from "./pages/AuthCallback";
-import Dashboard from "./pages/Dashboard";
-import Settings from "./pages/Settings";
-import Clients from "./pages/Clients";
-import Campaigns from "./pages/Campaigns";
-import Profile from "./pages/Profile";
-import HowItWorks from "./pages/HowItWorks";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
+import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/contexts/AuthContext";
+import GlobalErrorBoundary from "@/components/GlobalErrorBoundary";
+import GlobalLoading from "@/components/GlobalLoading";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
+// Pages
+import Index from "@/pages/Index";
+import Auth from "@/pages/Auth";
+import AuthCallback from "@/pages/AuthCallback";
+import GoogleAuthCallback from "@/pages/GoogleAuthCallback";
+import Dashboard from "@/pages/Dashboard";
+import Campaigns from "@/pages/Campaigns";
+import Clients from "@/pages/Clients";
+import Settings from "@/pages/Settings";
+import Profile from "@/pages/Profile";
+import HowItWorks from "@/pages/HowItWorks";
+import NotFound from "@/pages/NotFound";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import LocalhostRedirect from "@/pages/LocalhostRedirect";
+
+const queryClient = new QueryClient();
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Index />,
   },
-});
+  {
+    path: "/auth",
+    element: <Auth />,
+  },
+  {
+    path: "/auth/callback",
+    element: <AuthCallback />,
+  },
+  {
+    path: "/auth/callback/google",
+    element: <GoogleAuthCallback />,
+  },
+  {
+    path: "/dashboard",
+    element: <Dashboard />,
+  },
+  {
+    path: "/campaigns",
+    element: <Campaigns />,
+  },
+  {
+    path: "/clients",
+    element: <Clients />,
+  },
+  {
+    path: "/settings",
+    element: <Settings />,
+  },
+  {
+    path: "/profile",
+    element: <Profile />,
+  },
+  {
+    path: "/how-it-works",
+    element: <HowItWorks />,
+  },
+  {
+    path: "/privacy-policy",
+    element: <PrivacyPolicy />,
+  },
+  {
+    path: "/localhost-redirect",
+    element: <LocalhostRedirect />,
+  },
+  {
+    path: "*",
+    element: <NotFound />,
+  },
+]);
 
-const App = () => (
-  <GlobalErrorBoundary>
+function App() {
+  return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <AuthProvider>
-          <BrowserRouter>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Index />} />
-              <Route 
-                path="/auth" 
-                element={
-                  <ProtectedRoute requireAuth={false}>
-                    <Auth />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route path="/auth/callback" element={<AuthCallback />} />
-              <Route path="/auth/callback/google" element={<AuthCallback />} />
-              <Route path="/how-it-works" element={<HowItWorks />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              
-              {/* Protected routes */}
-              <Route 
-                path="/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/settings" 
-                element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/clients" 
-                element={
-                  <ProtectedRoute>
-                    <Clients />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/campaigns" 
-                element={
-                  <ProtectedRoute>
-                    <Campaigns />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/profile" 
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Catch-all route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </AuthProvider>
-      </TooltipProvider>
+      <AuthProvider>
+        <GlobalErrorBoundary>
+          <RouterProvider router={router} />
+          <Toaster />
+          <GlobalLoading />
+        </GlobalErrorBoundary>
+      </AuthProvider>
     </QueryClientProvider>
-  </GlobalErrorBoundary>
-);
+  );
+}
 
 export default App;

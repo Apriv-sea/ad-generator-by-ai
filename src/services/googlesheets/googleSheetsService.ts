@@ -3,6 +3,8 @@
  * Service pour interagir avec Google Sheets
  */
 
+import { realGoogleSheetsService } from './realGoogleSheetsService';
+
 export interface GoogleSheet {
   id: string;
   name: string;
@@ -84,54 +86,15 @@ export class GoogleSheetsService {
     console.log("📡 Tentative de récupération des données Google Sheets pour:", sheetId);
 
     try {
-      // Vérifier d'abord si des données existent localement (cache)
-      const localData = localStorage.getItem(`sheet_data_${sheetId}`);
-      if (localData) {
-        console.log("💾 Données trouvées en cache local");
-        return JSON.parse(localData);
+      // Utiliser le vrai service Google Sheets si authentifié
+      if (realGoogleSheetsService.isAuthenticated()) {
+        console.log("✅ Utilisation de l'API Google Sheets authentifiée");
+        return await realGoogleSheetsService.readSheet(sheetId);
       }
 
-      // Construire l'URL d'export CSV de Google Sheets
-      const exportUrl = this.getExportUrl(sheetId);
-      
-      console.log("🔗 URL d'export construite:", exportUrl);
-
-      // Tenter de récupérer les données via l'API CSV
-      const response = await fetch(exportUrl);
-      
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
-      }
-
-      const csvText = await response.text();
-      
-      if (!csvText || csvText.trim().length === 0) {
-        throw new Error("Aucune donnée trouvée dans la feuille");
-      }
-
-      // Parser le CSV
-      const rows = this.parseCSV(csvText);
-      
-      if (rows.length === 0) {
-        throw new Error("Impossible de parser les données CSV");
-      }
-
-      const sheetData: GoogleSheetData = {
-        title: 'Feuille Google Sheets',
-        values: rows
-      };
-
-      // Mettre en cache
-      localStorage.setItem(`sheet_data_${sheetId}`, JSON.stringify(sheetData));
-
-      console.log("✅ Données récupérées:", {
-        title: sheetData.title,
-        rowCount: sheetData.values?.length || 0,
-        headers: sheetData.values?.[0],
-        hasData: sheetData.values && sheetData.values.length > 1
-      });
-
-      return sheetData;
+      // Sinon, utiliser la méthode CSV comme fallback
+      console.log("⚠️ Fallback vers export CSV (non authentifié)");
+      return await this.getSheetDataViaCSV(sheetId);
 
     } catch (error) {
       console.error("❌ Erreur lors de la récupération Google Sheets:", error);
@@ -144,6 +107,60 @@ export class GoogleSheetsService {
         ]
       };
     }
+  }
+
+  /**
+   * Méthode fallback pour récupérer via CSV
+   */
+  private async getSheetDataViaCSV(sheetId: string): Promise<GoogleSheetData> {
+    // Vérifier d'abord si des données existent localement (cache)
+    const localData = localStorage.getItem(`sheet_data_${sheetId}`);
+    if (localData) {
+      console.log("💾 Données trouvées en cache local");
+      return JSON.parse(localData);
+    }
+
+    // Construire l'URL d'export CSV de Google Sheets
+    const exportUrl = this.getExportUrl(sheetId);
+    
+    console.log("🔗 URL d'export construite:", exportUrl);
+
+    // Tenter de récupérer les données via l'API CSV
+    const response = await fetch(exportUrl);
+    
+    if (!response.ok) {
+      throw new Error(`Erreur HTTP: ${response.status}`);
+    }
+
+    const csvText = await response.text();
+    
+    if (!csvText || csvText.trim().length === 0) {
+      throw new Error("Aucune donnée trouvée dans la feuille");
+    }
+
+    // Parser le CSV
+    const rows = this.parseCSV(csvText);
+    
+    if (rows.length === 0) {
+      throw new Error("Impossible de parser les données CSV");
+    }
+
+    const sheetData: GoogleSheetData = {
+      title: 'Feuille Google Sheets',
+      values: rows
+    };
+
+    // Mettre en cache
+    localStorage.setItem(`sheet_data_${sheetId}`, JSON.stringify(sheetData));
+
+    console.log("✅ Données récupérées:", {
+      title: sheetData.title,
+      rowCount: sheetData.values?.length || 0,
+      headers: sheetData.values?.[0],
+      hasData: sheetData.values && sheetData.values.length > 1
+    });
+
+    return sheetData;
   }
 
   /**
@@ -188,20 +205,50 @@ export class GoogleSheetsService {
   }
 
   /**
-   * Sauvegarder des données dans une feuille (simulation pour démo)
+   * Sauvegarder des données dans une feuille
    */
   async saveSheetData(sheetId: string, data: string[][]): Promise<boolean> {
     if (!this.validateSheetId(sheetId)) {
       throw new Error('ID de feuille Google Sheets invalide');
     }
 
-    // Simuler la sauvegarde
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Stocker localement pour la démo
-    localStorage.setItem(`sheet_data_${sheetId}`, JSON.stringify({ values: data }));
-    
-    return true;
+    try {
+      // Utiliser le vrai service Google Sheets si authentifié
+      if (realGoogleSheetsService.isAuthenticated()) {
+        console.log("✅ Sauvegarde via API Google Sheets authentifiée");
+        return await realGoogleSheetsService.writeSheet(sheetId, data);
+      }
+
+      // Sinon, simuler la sauvegarde localement
+      console.log("⚠️ Sauvegarde simulée (non authentifié)");
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Stocker localement pour la démo
+      localStorage.setItem(`sheet_data_${sheetId}`, JSON.stringify({ values: data }));
+      
+      return true;
+    } catch (error) {
+      console.error("❌ Erreur sauvegarde:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Vérifier si l'utilisateur est authentifié
+   */
+  isAuthenticated(): boolean {
+    return realGoogleSheetsService.isAuthenticated();
+  }
+
+  /**
+   * Créer une nouvelle feuille Google Sheets
+   */
+  async createSheet(title: string): Promise<{ id: string; url: string }> {
+    if (!realGoogleSheetsService.isAuthenticated()) {
+      throw new Error('Authentification Google requise pour créer une feuille');
+    }
+
+    return await realGoogleSheetsService.createSheet(title);
   }
 }
 

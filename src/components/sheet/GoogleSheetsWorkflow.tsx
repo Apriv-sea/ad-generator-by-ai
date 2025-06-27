@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, ArrowRight, Loader, AlertCircle } from "lucide-react";
 import GoogleSheetsEmbed from './GoogleSheetsEmbed';
+import GoogleSheetsAuth from '../auth/GoogleSheetsAuth';
 import CampaignExtractorWorkflow from '../campaign/CampaignExtractorWorkflow';
 import ContentGeneratorWorkflow from '../campaign/ContentGeneratorWorkflow';
 import { Sheet, Campaign, Client } from "@/services/types";
@@ -18,7 +19,7 @@ interface GoogleSheetsWorkflowProps {
 }
 
 const GoogleSheetsWorkflow: React.FC<GoogleSheetsWorkflowProps> = ({ sheet, clientInfo }) => {
-  const [activeTab, setActiveTab] = useState("connection");
+  const [activeTab, setActiveTab] = useState("auth");
   const [sheetUrl, setSheetUrl] = useState("");
   const [sheetData, setSheetData] = useState<any[][] | null>(null);
   const [extractedCampaigns, setExtractedCampaigns] = useState<Campaign[]>([]);
@@ -26,14 +27,30 @@ const GoogleSheetsWorkflow: React.FC<GoogleSheetsWorkflowProps> = ({ sheet, clie
   const [workflowClientInfo, setWorkflowClientInfo] = useState<Client | null>(clientInfo || null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Workflow state tracking
   const [workflowState, setWorkflowState] = useState({
+    authenticated: false,
     connected: false,
     dataLoaded: false,
     campaignsExtracted: false,
     contentGenerated: false
   });
+
+  // Vérifier l'authentification au chargement
+  useEffect(() => {
+    const authenticated = googleSheetsService.isAuthenticated();
+    setIsAuthenticated(authenticated);
+    setWorkflowState(prev => ({
+      ...prev,
+      authenticated
+    }));
+
+    if (authenticated) {
+      setActiveTab("connection");
+    }
+  }, []);
 
   // Restaurer l'état du workflow au chargement
   useEffect(() => {
@@ -48,12 +65,12 @@ const GoogleSheetsWorkflow: React.FC<GoogleSheetsWorkflowProps> = ({ sheet, clie
         setConnectedSheetId(lastSession.sheetId);
         setExtractedCampaigns(lastSession.campaigns);
         setWorkflowClientInfo(lastSession.clientInfo || null);
-        setWorkflowState({
+        setWorkflowState(prev => ({
+          ...prev,
           connected: true,
           dataLoaded: true,
-          campaignsExtracted: lastSession.campaigns.length > 0,
-          contentGenerated: false
-        });
+          campaignsExtracted: lastSession.campaigns.length > 0
+        }));
         setActiveTab("content");
       }
     }
@@ -70,6 +87,16 @@ const GoogleSheetsWorkflow: React.FC<GoogleSheetsWorkflowProps> = ({ sheet, clie
       });
     }
   }, [activeTab, connectedSheetId, extractedCampaigns]);
+
+  const handleAuthSuccess = () => {
+    setIsAuthenticated(true);
+    setWorkflowState(prev => ({
+      ...prev,
+      authenticated: true
+    }));
+    setActiveTab("connection");
+    toast.success("Authentification réussie ! Vous pouvez maintenant vous connecter à vos feuilles.");
+  };
 
   const handleConnectionSuccess = async (sheetId: string) => {
     console.log("Connexion réussie, chargement des données...");
@@ -146,10 +173,15 @@ const GoogleSheetsWorkflow: React.FC<GoogleSheetsWorkflowProps> = ({ sheet, clie
 
   const getTabStatus = (tabName: string) => {
     switch (tabName) {
+      case "auth":
+        if (workflowState.authenticated) return { icon: CheckCircle, color: "text-green-500" };
+        return { icon: ArrowRight, color: "text-blue-500" };
+      
       case "connection":
         if (isConnecting) return { icon: Loader, color: "text-blue-500", animate: true };
         if (connectionError) return { icon: AlertCircle, color: "text-red-500" };
         if (workflowState.connected) return { icon: CheckCircle, color: "text-green-500" };
+        if (workflowState.authenticated) return { icon: ArrowRight, color: "text-blue-500" };
         return { icon: ArrowRight, color: "text-gray-400" };
       
       case "extraction":
@@ -172,21 +204,25 @@ const GoogleSheetsWorkflow: React.FC<GoogleSheetsWorkflowProps> = ({ sheet, clie
       <div className="text-center">
         <h2 className="text-2xl font-bold mb-2">Workflow Google Sheets</h2>
         <p className="text-muted-foreground">
-          Connectez votre feuille Google Sheets, extrayez vos campagnes et générez du contenu IA
+          Authentifiez-vous, connectez votre feuille Google Sheets, extrayez vos campagnes et générez du contenu IA
         </p>
         
         {/* Indicateur de progression */}
         <div className="flex justify-center items-center mt-4 space-x-2">
+          <Badge variant={workflowState.authenticated ? "default" : "secondary"}>
+            1. Authentification {workflowState.authenticated && "✓"}
+          </Badge>
+          <ArrowRight className="h-4 w-4 text-gray-400" />
           <Badge variant={workflowState.connected ? "default" : "secondary"}>
-            1. Connexion {workflowState.connected && "✓"}
+            2. Connexion {workflowState.connected && "✓"}
           </Badge>
           <ArrowRight className="h-4 w-4 text-gray-400" />
           <Badge variant={workflowState.campaignsExtracted ? "default" : "secondary"}>
-            2. Extraction {workflowState.campaignsExtracted && "✓"}
+            3. Extraction {workflowState.campaignsExtracted && "✓"}
           </Badge>
           <ArrowRight className="h-4 w-4 text-gray-400" />
           <Badge variant={workflowState.contentGenerated ? "default" : "secondary"}>
-            3. Contenu IA {workflowState.contentGenerated && "✓"}
+            4. Contenu IA {workflowState.contentGenerated && "✓"}
           </Badge>
         </div>
       </div>
@@ -202,15 +238,31 @@ const GoogleSheetsWorkflow: React.FC<GoogleSheetsWorkflowProps> = ({ sheet, clie
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="connection" className="flex items-center space-x-2">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="auth" className="flex items-center space-x-2">
+            {(() => {
+              const status = getTabStatus("auth");
+              const Icon = status.icon;
+              return (
+                <>
+                  <Icon className={`h-4 w-4 ${status.color}`} />
+                  <span>1. Auth</span>
+                </>
+              );
+            })()}
+          </TabsTrigger>
+          <TabsTrigger 
+            value="connection" 
+            disabled={!isAuthenticated}
+            className="flex items-center space-x-2"
+          >
             {(() => {
               const status = getTabStatus("connection");
               const Icon = status.icon;
               return (
                 <>
                   <Icon className={`h-4 w-4 ${status.color} ${status.animate ? 'animate-spin' : ''}`} />
-                  <span>1. Connexion</span>
+                  <span>2. Connexion</span>
                 </>
               );
             })()}
@@ -226,7 +278,7 @@ const GoogleSheetsWorkflow: React.FC<GoogleSheetsWorkflowProps> = ({ sheet, clie
               return (
                 <>
                   <Icon className={`h-4 w-4 ${status.color}`} />
-                  <span>2. Extraction</span>
+                  <span>3. Extraction</span>
                 </>
               );
             })()}
@@ -242,12 +294,16 @@ const GoogleSheetsWorkflow: React.FC<GoogleSheetsWorkflowProps> = ({ sheet, clie
               return (
                 <>
                   <Icon className={`h-4 w-4 ${status.color}`} />
-                  <span>3. Contenu IA</span>
+                  <span>4. Contenu IA</span>
                 </>
               );
             })()}
           </TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="auth" className="space-y-4">
+          <GoogleSheetsAuth onAuthSuccess={handleAuthSuccess} />
+        </TabsContent>
         
         <TabsContent value="connection" className="space-y-4">
           <GoogleSheetsEmbed
