@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ExternalLink, AlertCircle, CheckCircle, Loader } from "lucide-react";
-import { googleSheetsService } from "@/services/googlesheets/googleSheetsService";
+import { GoogleSheetsApiService } from "@/services/googlesheets/googleSheetsApiService";
+import { GoogleSheetsAuthService } from "@/services/googlesheets/googleSheetsAuthService";
 import { googleSheetsValidationService } from "@/services/sheets/googleSheetsValidationService";
 import { toast } from "sonner";
 
@@ -37,22 +38,22 @@ const GoogleSheetsIdInput: React.FC<GoogleSheetsIdInputProps> = ({ onSheetLoaded
       }
 
       // Extraire l'ID de la feuille
-      const sheetId = googleSheetsService.extractSheetId(url);
+      const sheetId = GoogleSheetsApiService.extractSheetId(url);
       if (!sheetId) {
         throw new Error("Impossible d'extraire l'ID de la feuille depuis cette URL");
       }
 
       console.log("🆔 ID de la feuille extrait:", sheetId);
 
-      // Vérifier d'abord si l'utilisateur est authentifié
-      if (!googleSheetsService.isAuthenticated()) {
+      // Vérifier l'authentification
+      if (!GoogleSheetsAuthService.isAuthenticated()) {
         setConnectionError("Vous devez d'abord vous authentifier avec Google Sheets. Rendez-vous dans l'onglet 'Authentification'.");
         return;
       }
 
       // Récupérer les données
       console.log("📊 Récupération des données...");
-      const data = await googleSheetsService.getSheetData(sheetId);
+      const data = await GoogleSheetsApiService.getSheetData(sheetId);
       
       console.log("✅ Données récupérées:", {
         title: data.title,
@@ -80,21 +81,7 @@ const GoogleSheetsIdInput: React.FC<GoogleSheetsIdInputProps> = ({ onSheetLoaded
 
     } catch (error) {
       console.error("❌ Erreur de connexion:", error);
-      let errorMessage = "Erreur de connexion inconnue";
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-        
-        // Messages d'erreur plus spécifiques
-        if (errorMessage.includes("not valid JSON") || errorMessage.includes("DOCTYPE")) {
-          errorMessage = "La feuille Google Sheets n'est pas accessible. Assurez-vous qu'elle est partagée publiquement ou que vous êtes correctement authentifié.";
-        } else if (errorMessage.includes("403")) {
-          errorMessage = "Accès refusé à la feuille. Vérifiez que la feuille est partagée publiquement ou que votre authentification est valide.";
-        } else if (errorMessage.includes("404")) {
-          errorMessage = "Feuille introuvable. Vérifiez l'URL de votre feuille Google Sheets.";
-        }
-      }
-      
+      const errorMessage = error instanceof Error ? error.message : "Erreur de connexion inconnue";
       setConnectionError(errorMessage);
       toast.error(`Échec de connexion: ${errorMessage}`);
     } finally {
@@ -107,7 +94,7 @@ const GoogleSheetsIdInput: React.FC<GoogleSheetsIdInputProps> = ({ onSheetLoaded
   };
 
   const createNewSheet = () => {
-    window.open(googleSheetsService.createNewSheetUrl(), "_blank");
+    window.open(GoogleSheetsApiService.createNewSheetUrl(), "_blank");
   };
 
   return (

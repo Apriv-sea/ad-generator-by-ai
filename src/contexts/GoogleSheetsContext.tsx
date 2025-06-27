@@ -1,13 +1,14 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { unifiedGoogleSheetsService, GoogleSheetsData } from '@/services/googlesheets/unifiedGoogleSheetsService';
+import { GoogleSheetsAuthService } from '@/services/googlesheets/googleSheetsAuthService';
+import { GoogleSheetsApiService, SheetData } from '@/services/googlesheets/googleSheetsApiService';
 import { toast } from 'sonner';
 
 interface GoogleSheetsContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   currentSheetId: string | null;
-  currentSheetData: GoogleSheetsData | null;
+  currentSheetData: SheetData | null;
   error: string | null;
   
   // Actions
@@ -29,11 +30,11 @@ export const GoogleSheetsProvider: React.FC<GoogleSheetsProviderProps> = ({ chil
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentSheetId, setCurrentSheetId] = useState<string | null>(null);
-  const [currentSheetData, setCurrentSheetData] = useState<GoogleSheetsData | null>(null);
+  const [currentSheetData, setCurrentSheetData] = useState<SheetData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const authenticated = unifiedGoogleSheetsService.isAuthenticated();
+    const authenticated = GoogleSheetsAuthService.isAuthenticated();
     console.log('État d\'authentification initial:', authenticated);
     setIsAuthenticated(authenticated);
   }, []);
@@ -44,7 +45,7 @@ export const GoogleSheetsProvider: React.FC<GoogleSheetsProviderProps> = ({ chil
     
     try {
       console.log('Initiation de l\'authentification Google Sheets...');
-      const authUrl = await unifiedGoogleSheetsService.initiateAuth();
+      const authUrl = await GoogleSheetsAuthService.initiateAuth();
       console.log('URL d\'authentification générée:', authUrl);
       return authUrl;
     } catch (err) {
@@ -64,10 +65,10 @@ export const GoogleSheetsProvider: React.FC<GoogleSheetsProviderProps> = ({ chil
     
     try {
       console.log('Completion de l\'authentification avec le code:', code);
-      await unifiedGoogleSheetsService.completeAuth(code);
+      await GoogleSheetsAuthService.completeAuth(code);
       
       // Vérifier l'état d'authentification après completion
-      const authenticated = unifiedGoogleSheetsService.isAuthenticated();
+      const authenticated = GoogleSheetsAuthService.isAuthenticated();
       console.log('État d\'authentification après completion:', authenticated);
       
       setIsAuthenticated(authenticated);
@@ -95,7 +96,7 @@ export const GoogleSheetsProvider: React.FC<GoogleSheetsProviderProps> = ({ chil
     
     try {
       console.log('Connexion à la feuille:', sheetId);
-      const data = await unifiedGoogleSheetsService.getSheetData(sheetId);
+      const data = await GoogleSheetsApiService.getSheetData(sheetId);
       setCurrentSheetId(sheetId);
       setCurrentSheetData(data);
       console.log('Connexion à la feuille réussie !');
@@ -120,7 +121,7 @@ export const GoogleSheetsProvider: React.FC<GoogleSheetsProviderProps> = ({ chil
     setError(null);
     
     try {
-      const success = await unifiedGoogleSheetsService.saveSheetData(currentSheetId, data);
+      const success = await GoogleSheetsApiService.saveSheetData(currentSheetId, data);
       if (success) {
         // Mettre à jour les données locales
         setCurrentSheetData(prev => prev ? { ...prev, values: data } : null);
@@ -139,7 +140,7 @@ export const GoogleSheetsProvider: React.FC<GoogleSheetsProviderProps> = ({ chil
 
   const logout = (): void => {
     console.log('Déconnexion Google Sheets');
-    unifiedGoogleSheetsService.logout();
+    GoogleSheetsAuthService.clearTokens();
     setIsAuthenticated(false);
     setCurrentSheetId(null);
     setCurrentSheetData(null);
