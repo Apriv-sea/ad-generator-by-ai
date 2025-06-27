@@ -16,6 +16,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
+  // Pour les callbacks Google Sheets, on laisse passer sans vérification
+  if (location.pathname === '/auth/callback/google') {
+    return <>{children}</>;
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
