@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 
 export interface GoogleSheetsData {
@@ -33,6 +34,62 @@ class GoogleSheetsService {
     this.refreshToken = null;
     localStorage.removeItem('google_sheets_access_token');
     localStorage.removeItem('google_sheets_refresh_token');
+  }
+
+  // Nouvelle méthode pour extraire l'ID de la feuille depuis l'URL
+  extractSheetId(url: string): string | null {
+    console.log('🔍 Extraction de l\'ID depuis l\'URL:', url);
+    
+    // Pattern pour les URLs Google Sheets
+    const patterns = [
+      /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/,
+      /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)\/edit/,
+      /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)\/edit#gid=/
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) {
+        console.log('✅ ID extrait:', match[1]);
+        return match[1];
+      }
+    }
+
+    console.warn('❌ Impossible d\'extraire l\'ID de la feuille depuis l\'URL');
+    return null;
+  }
+
+  // Nouvelle méthode pour créer une URL de nouvelle feuille
+  createNewSheetUrl(): string {
+    return 'https://docs.google.com/spreadsheets/create';
+  }
+
+  // Nouvelle méthode pour obtenir les en-têtes standards
+  getStandardHeaders(): string[] {
+    return [
+      'Nom de la campagne',
+      'Nom du groupe d\'annonces',
+      'État du groupe d\'annonces',
+      'Type de correspondance par défaut',
+      'Top 3 mots-clés (séparés par des virgules)',
+      'Titre 1',
+      'Titre 2', 
+      'Titre 3',
+      'Description 1',
+      'Description 2',
+      'URL finale',
+      'Chemin d\'affichage 1',
+      'Chemin d\'affichage 2',
+      'Mots-clés ciblés',
+      'Mots-clés négatifs',
+      'Audience ciblée',
+      'Extensions d\'annonces'
+    ];
+  }
+
+  // Nouvelle méthode pour sauvegarder les données dans une feuille
+  async saveSheetData(sheetId: string, data: string[][]): Promise<boolean> {
+    return await this.writeSheet(sheetId, data);
   }
 
   async initiateAuth(): Promise<string> {
@@ -120,7 +177,7 @@ class GoogleSheetsService {
 
       const data = await response.json();
       
-      console.log(`📊 DIAGNOSTIC - Réponse brute complète:`, {
+      console.log(`📊 DIAGNOSTIC SERVICE - Réponse brute complète:`, {
         status: response.status,
         ok: response.ok,
         hasData: !!data,
@@ -155,7 +212,7 @@ class GoogleSheetsService {
 
       // Diagnostic approfondi des données reçues
       if (!data.values) {
-        console.log('⚠️ DIAGNOSTIC - Pas de propriété "values" dans la réponse');
+        console.log('⚠️ DIAGNOSTIC SERVICE - Pas de propriété "values" dans la réponse');
         console.log('Structure de la réponse:', JSON.stringify(data, null, 2));
         return {
           values: [],
@@ -164,7 +221,7 @@ class GoogleSheetsService {
       }
 
       if (!Array.isArray(data.values)) {
-        console.log('⚠️ DIAGNOSTIC - "values" n\'est pas un tableau');
+        console.log('⚠️ DIAGNOSTIC SERVICE - "values" n\'est pas un tableau');
         console.log('Type de values:', typeof data.values);
         console.log('Contenu de values:', data.values);
         return {
@@ -174,7 +231,7 @@ class GoogleSheetsService {
       }
 
       if (data.values.length === 0) {
-        console.log('⚠️ DIAGNOSTIC - Tableau values vide');
+        console.log('⚠️ DIAGNOSTIC SERVICE - Tableau values vide');
         return {
           values: [],
           title: 'Feuille vide - aucune donnée'
@@ -182,9 +239,9 @@ class GoogleSheetsService {
       }
 
       // Diagnostic ligne par ligne
-      console.log(`📋 DIAGNOSTIC LIGNE PAR LIGNE (${data.values.length} lignes totales):`);
+      console.log(`📋 DIAGNOSTIC SERVICE LIGNE PAR LIGNE (${data.values.length} lignes totales):`);
       data.values.forEach((row, index) => {
-        console.log(`  Ligne ${index}: [${Array.isArray(row) ? row.length : 'N/A'} cellules] = ${JSON.stringify(row)}`);
+        console.log(`  Service Ligne ${index}: [${Array.isArray(row) ? row.length : 'N/A'} cellules] = ${JSON.stringify(row)}`);
         
         if (Array.isArray(row)) {
           const nonEmptyCells = row.filter(cell => {
@@ -192,12 +249,12 @@ class GoogleSheetsService {
             const cellStr = String(cell).trim();
             return cellStr !== '';
           });
-          console.log(`    -> ${nonEmptyCells.length} cellules non vides: ${JSON.stringify(nonEmptyCells)}`);
+          console.log(`    Service -> ${nonEmptyCells.length} cellules non vides: ${JSON.stringify(nonEmptyCells)}`);
         }
       });
 
       if (data.values.length === 1) {
-        console.log('⚠️ DIAGNOSTIC - Une seule ligne trouvée (probablement les en-têtes)');
+        console.log('⚠️ DIAGNOSTIC SERVICE - Une seule ligne trouvée (probablement les en-têtes)');
         console.log('En-têtes:', data.values[0]);
         toast.warning('Seuls les en-têtes ont été détectés. Vérifiez que votre feuille contient des données.');
         return {
@@ -206,17 +263,17 @@ class GoogleSheetsService {
         };
       }
 
-      console.log(`✅ DIAGNOSTIC - ${data.values.length} lignes détectées (${data.values.length - 1} lignes de données + en-têtes)`);
-      console.log('Première ligne (en-têtes):', data.values[0]);
-      console.log('Deuxième ligne (premier enregistrement):', data.values[1]);
-      console.log('Dernière ligne:', data.values[data.values.length - 1]);
+      console.log(`✅ DIAGNOSTIC SERVICE - ${data.values.length} lignes détectées (${data.values.length - 1} lignes de données + en-têtes)`);
+      console.log('Service Première ligne (en-têtes):', data.values[0]);
+      console.log('Service Deuxième ligne (premier enregistrement):', data.values[1]);
+      console.log('Service Dernière ligne:', data.values[data.values.length - 1]);
 
       return {
         values: data.values,
         title: data.title || `Feuille Google Sheets - ${data.values.length - 1} lignes de données`
       };
     } catch (error) {
-      console.error('❌ DIAGNOSTIC - Erreur lors de la lecture:', {
+      console.error('❌ DIAGNOSTIC SERVICE - Erreur lors de la lecture:', {
         error: error,
         message: error instanceof Error ? error.message : 'Erreur inconnue',
         stack: error instanceof Error ? error.stack : undefined
