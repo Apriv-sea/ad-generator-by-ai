@@ -141,38 +141,100 @@ async function discoverOpenAIModels(apiKey: string) {
 }
 
 async function discoverAnthropicModels(apiKey: string) {
-  // Anthropic ne fournit pas d'endpoint de liste de modèles publique
-  // On retourne les modèles disponibles statiquement
-  return [
-    {
-      id: 'claude-3-5-sonnet-20241022',
-      name: 'Claude 3.5 Sonnet',
-      description: 'Modèle le plus récent et performant de Claude',
-      contextWindow: 200000,
-      supportsVision: true
-    },
-    {
-      id: 'claude-3-opus-20240229',
-      name: 'Claude 3 Opus',
-      description: 'Le modèle le plus puissant pour les tâches complexes',
-      contextWindow: 200000,
-      supportsVision: true
-    },
-    {
-      id: 'claude-3-sonnet-20240229',
-      name: 'Claude 3 Sonnet',
-      description: 'Équilibre performance et rapidité',
-      contextWindow: 200000,
-      supportsVision: true
-    },
-    {
-      id: 'claude-3-haiku-20240307',
-      name: 'Claude 3 Haiku',
-      description: 'Le plus rapide pour les réponses instantanées',
-      contextWindow: 200000,
-      supportsVision: true
+  // Anthropic ne fournit pas d'endpoint public pour lister les modèles
+  // Mais nous pouvons vérifier la validité de la clé API en faisant un petit appel test
+  try {
+    const testResponse = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'test' }]
+      })
+    })
+
+    // Si la clé API est invalide, Anthropic retourne 401
+    if (testResponse.status === 401) {
+      throw new Error('Invalid API key')
     }
-  ]
+
+    // Retourner la liste complète et mise à jour des modèles Claude
+    return [
+      {
+        id: 'claude-3-5-sonnet-20241022',
+        name: 'Claude 3.5 Sonnet (Nouveau)',
+        description: 'Le modèle le plus récent et performant de Claude 3.5',
+        contextWindow: 200000,
+        supportsVision: true
+      },
+      {
+        id: 'claude-3-5-sonnet-20240620',
+        name: 'Claude 3.5 Sonnet',
+        description: 'Version précédente de Claude 3.5 Sonnet',
+        contextWindow: 200000,
+        supportsVision: true
+      },
+      {
+        id: 'claude-3-opus-20240229',
+        name: 'Claude 3 Opus',
+        description: 'Le modèle le plus puissant pour les tâches complexes',
+        contextWindow: 200000,
+        supportsVision: true
+      },
+      {
+        id: 'claude-3-sonnet-20240229',
+        name: 'Claude 3 Sonnet',
+        description: 'Équilibre performance et rapidité',
+        contextWindow: 200000,
+        supportsVision: true
+      },
+      {
+        id: 'claude-3-haiku-20240307',
+        name: 'Claude 3 Haiku',
+        description: 'Le plus rapide pour les réponses instantanées',
+        contextWindow: 200000,
+        supportsVision: true
+      }
+    ]
+  } catch (error) {
+    // En cas d'erreur, retourner une liste de base pour éviter une interface vide
+    console.error('Error testing Anthropic API key:', error)
+    return [
+      {
+        id: 'claude-3-5-sonnet-20241022',
+        name: 'Claude 3.5 Sonnet',
+        description: 'Modèle le plus récent et performant de Claude',
+        contextWindow: 200000,
+        supportsVision: true
+      },
+      {
+        id: 'claude-3-opus-20240229',
+        name: 'Claude 3 Opus',
+        description: 'Le modèle le plus puissant pour les tâches complexes',
+        contextWindow: 200000,
+        supportsVision: true
+      },
+      {
+        id: 'claude-3-sonnet-20240229',
+        name: 'Claude 3 Sonnet',
+        description: 'Équilibre performance et rapidité',
+        contextWindow: 200000,
+        supportsVision: true
+      },
+      {
+        id: 'claude-3-haiku-20240307',
+        name: 'Claude 3 Haiku',
+        description: 'Le plus rapide pour les réponses instantanées',
+        contextWindow: 200000,
+        supportsVision: true
+      }
+    ]
+  }
 }
 
 async function discoverGoogleModels(apiKey: string) {
