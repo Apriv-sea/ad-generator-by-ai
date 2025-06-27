@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Users, Target, FileText } from "lucide-react";
 import ClientsList from "@/components/clients/ClientsList";
 import AddClientDialog from "@/components/clients/AddClientDialog";
 import { getClients, addClient, updateClient, deleteClient } from "@/services/clientService";
@@ -24,7 +24,6 @@ const Clients = () => {
     editorialGuidelines: ''
   });
 
-  // Charger les clients au montage du composant
   useEffect(() => {
     loadClients();
   }, []);
@@ -67,9 +66,9 @@ const Clients = () => {
     }
 
     try {
-      const result = await addClient(newClient as Client);
-      if (result.error) {
-        throw result.error;
+      const clientId = await addClient(newClient as Client);
+      if (!clientId) {
+        throw new Error("Impossible de créer le client");
       }
       
       toast({
@@ -106,9 +105,9 @@ const Clients = () => {
     }
 
     try {
-      const result = await deleteClient(clientId);
-      if (result.error) {
-        throw result.error;
+      const success = await deleteClient(clientId);
+      if (!success) {
+        throw new Error("Impossible de supprimer le client");
       }
       
       toast({
@@ -134,21 +133,19 @@ const Clients = () => {
   return (
     <>
       <Navigation />
-      <div className="container mx-auto py-8 px-4">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Clients</h1>
-            <p className="text-gray-600">
-              Gérez vos clients et personnalisez le contenu généré
-            </p>
-          </div>
-          <Button onClick={() => setIsAddDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
+      <div className="container mx-auto py-8 px-4 max-w-6xl">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-4">Gestion des Clients</h1>
+          <p className="text-xl text-muted-foreground mb-8">
+            Créez des profils clients pour personnaliser vos campagnes
+          </p>
+          <Button size="lg" onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="w-5 h-5 mr-2" />
             Nouveau client
           </Button>
         </div>
 
-        <div className="grid gap-6">
+        <div className="grid gap-8">
           <ClientsList 
             clients={clients}
             isLoading={isLoading}
@@ -157,34 +154,43 @@ const Clients = () => {
             navigateToCampaigns={navigateToCampaigns}
           />
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Pourquoi créer des profils clients ?</CardTitle>
-              <CardDescription>
-                Personnalisez vos campagnes selon chaque contexte métier
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
-                <div>
-                  <p className="text-sm"><strong>Contexte métier :</strong> Adaptez le vocabulaire au secteur d'activité</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
-                <div>
-                  <p className="text-sm"><strong>Objectifs ciblés :</strong> Orientez la génération selon les buts marketing</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
-                <div>
-                  <p className="text-sm"><strong>Ton éditorial :</strong> Respectez les guidelines de communication</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid md:grid-cols-3 gap-6">
+            <Card className="text-center p-6">
+              <Users className="w-12 h-12 mx-auto mb-4 text-blue-600" />
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Contexte Métier</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Définissez le secteur et les spécificités de chaque client
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center p-6">
+              <Target className="w-12 h-12 mx-auto mb-4 text-green-600" />
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Objectifs Ciblés</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Adaptez la génération selon les buts marketing
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center p-6">
+              <FileText className="w-12 h-12 mx-auto mb-4 text-purple-600" />
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Ton Éditorial</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Respectez les guidelines de communication
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
