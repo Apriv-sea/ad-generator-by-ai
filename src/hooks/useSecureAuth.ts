@@ -11,15 +11,14 @@ export function useSecureAuth() {
   const [lastActivity, setLastActivity] = useState<number>(Date.now());
   const [retryCount, setRetryCount] = useState<number>(0);
   const [suspiciousActivity, setSuspiciousActivity] = useState<boolean>(false);
-
-  // Use refs to prevent unnecessary re-renders
+  
   const authSubscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
   const activityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mountedRef = useRef(true);
 
   // Enhanced security constants
   const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
   const MAX_RETRY_ATTEMPTS = 3;
-  const MAX_FAILED_ATTEMPTS = 5;
 
   const logSecurityEvent = (event: string, details?: any) => {
     console.log(`🔒 Security Event: ${event}`, {
@@ -51,11 +50,9 @@ export function useSecureAuth() {
         sessionStorage.removeItem(key);
       });
       
-      // Clear session storage OAuth states
       sessionStorage.removeItem('oauth_state');
       sessionStorage.removeItem('google_auth_state');
       
-      // Reset security state
       setSuspiciousActivity(false);
       setRetryCount(0);
       
@@ -66,6 +63,7 @@ export function useSecureAuth() {
   };
 
   const updateActivity = () => {
+    if (!mountedRef.current) return;
     setLastActivity(Date.now());
     if (retryCount > 0) {
       setRetryCount(0);
@@ -75,21 +73,25 @@ export function useSecureAuth() {
     }
   };
 
-  // Single useEffect for auth initialization
+  // Single useEffect for complete auth setup
   useEffect(() => {
-    let mounted = true;
+    mountedRef.current = true;
+    let cleanup = false;
 
     const initAuth = async () => {
+      if (cleanup) return;
+
       try {
-        // Set up auth state listener
+        // Set up auth state listener first
         if (!authSubscriptionRef.current) {
           const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
-              if (!mounted) return;
+            (event, session) => {
+              if (cleanup || !mountedRef.current) return;
               
               console.log("Auth state changed:", event);
               logSecurityEvent('AUTH_STATE_CHANGE', { event });
               
+              // Handle different auth events
               if (event === 'TOKEN_REFRESHED' && session) {
                 console.log("Token refreshed successfully");
                 setLastActivity(Date.now());
@@ -126,6 +128,8 @@ export function useSecureAuth() {
         
         // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
+        if (cleanup) return;
+
         if (error) {
           console.error("Session error:", error);
           logSecurityEvent('SESSION_ERROR', { error: error.message });
@@ -136,19 +140,18 @@ export function useSecureAuth() {
             await handleSignOut();
           }
         } else {
-          if (mounted) {
-            setSession(session);
-            setUser(session?.user || null);
-            
-            if (session?.user) {
-              setLastActivity(Date.now());
-              localStorage.setItem('auth_connected', 'true');
-              resetFailedAttempts();
-            }
+          setSession(session);
+          setUser(session?.user || null);
+          
+          if (session?.user) {
+            setLastActivity(Date.now());
+            localStorage.setItem('auth_connected', 'true');
+            resetFailedAttempts();
           }
         }
         
       } catch (error) {
+        if (cleanup) return;
         console.error("Error initializing authentication:", error);
         logSecurityEvent('AUTH_INIT_ERROR', { error: error.message });
         
@@ -156,13 +159,11 @@ export function useSecureAuth() {
           await handleSignOut();
         }
       } finally {
-        if (mounted) {
+        if (!cleanup && mountedRef.current) {
           setIsLoading(false);
         }
       }
     };
-
-    initAuth();
 
     // Set up activity monitoring
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
@@ -172,6 +173,7 @@ export function useSecureAuth() {
 
     // Set up session timeout check
     const checkSessionTimeout = () => {
+      if (cleanup) return;
       const now = Date.now();
       if (session && (now - lastActivity > SESSION_TIMEOUT)) {
         console.log("Session expired due to inactivity");
@@ -181,28 +183,30 @@ export function useSecureAuth() {
       }
     };
 
-    activityTimeoutRef.current = setInterval(checkSessionTimeout, 60000); // Check every minute
+    activityTimeoutRef.current = setInterval(checkSessionTimeout, 60000);
 
+    // Initialize auth
+    initAuth();
+
+    // Cleanup function
     return () => {
-      mounted = false;
+      cleanup = true;
+      mountedRef.current = false;
       
-      // Cleanup auth subscription
       if (authSubscriptionRef.current) {
         authSubscriptionRef.current.unsubscribe();
         authSubscriptionRef.current = null;
       }
       
-      // Cleanup activity listeners
       events.forEach(event => {
         document.removeEventListener(event, updateActivity);
       });
       
-      // Cleanup timeout
       if (activityTimeoutRef.current) {
         clearInterval(activityTimeoutRef.current);
       }
     };
-  }, []); // Empty dependency array to run only once
+  }, []); // Empty dependency array - runs only once
 
   const refreshSession = async () => {
     try {
@@ -224,7 +228,6 @@ export function useSecureAuth() {
       logSecurityEvent('MANUAL_SIGNOUT');
       await supabase.auth.signOut();
       
-      // Enhanced security cleanup
       localStorage.clear();
       sessionStorage.clear();
       
