@@ -1,5 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,16 +13,21 @@ interface GoogleSheetsRequest {
   data?: any[][];
   range?: string;
   title?: string;
-  code?: string; // Code d'autorisation OAuth
+  code?: string;
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Initialize Supabase client
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
     const { action, sheetId, data, range, title, code }: GoogleSheetsRequest = await req.json();
     
     const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID');
@@ -35,19 +41,19 @@ serve(async (req) => {
 
     switch (action) {
       case 'auth':
-        return handleAuth(clientId, clientSecret, code);
+        return await handleAuth(clientId, clientSecret, code);
       
       case 'read':
         if (!sheetId) throw new Error('sheetId requis pour la lecture');
-        return await handleRead(sheetId, range);
+        return await handleRead(sheetId, range, supabaseClient);
       
       case 'write':
         if (!sheetId || !data) throw new Error('sheetId et data requis pour l\'écriture');
-        return await handleWrite(sheetId, data, range);
+        return await handleWrite(sheetId, data, range, supabaseClient);
       
       case 'create':
         if (!title) throw new Error('title requis pour la création');
-        return await handleCreate(title);
+        return await handleCreate(title, supabaseClient);
       
       default:
         throw new Error('Action non supportée');
@@ -67,13 +73,17 @@ serve(async (req) => {
 
 async function handleAuth(clientId: string, clientSecret: string, code?: string) {
   if (!code) {
-    // Retourner l'URL d'autorisation
+    // Générer l'URL d'autorisation avec redirection dynamique
+    const origin = Deno.env.get('SUPABASE_URL')?.replace('/rest/v1', '') || 'http://localhost:5173';
+    const redirectUri = `${origin}/auth/callback/google`;
+    
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}&` +
-      `redirect_uri=${encodeURIComponent('http://localhost:5173/auth/callback/google')}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `response_type=code&` +
       `scope=${encodeURIComponent('https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file')}&` +
-      `access_type=offline`;
+      `access_type=offline&` +
+      `prompt=consent`;
     
     return new Response(
       JSON.stringify({ authUrl }),
@@ -82,6 +92,9 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string)
   }
 
   // Échanger le code contre un token d'accès
+  const origin = Deno.env.get('SUPABASE_URL')?.replace('/rest/v1', '') || 'http://localhost:5173';
+  const redirectUri = `${origin}/auth/callback/google`;
+  
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -90,7 +103,7 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string)
       client_secret: clientSecret,
       code: code,
       grant_type: 'authorization_code',
-      redirect_uri: 'http://localhost:5173/auth/callback/google'
+      redirect_uri: redirectUri
     })
   });
 
@@ -106,8 +119,18 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string)
   );
 }
 
-async function handleRead(sheetId: string, range: string = 'A:Z') {
-  const accessToken = await getStoredAccessToken();
+async function getAccessToken(supabaseClient: any): Promise<string> {
+  // Récupérer le token depuis le header Authorization
+  const authHeader = Deno.env.get('AUTHORIZATION') || '';
+  if (!authHeader.startsWith('Bearer ')) {
+    throw new Error('Token d\'accès manquant dans les headers');
+  }
+  
+  return authHeader.replace('Bearer ', '');
+}
+
+async function handleRead(sheetId: string, range: string = 'A:Z', supabaseClient: any) {
+  const accessToken = await getAccessToken(supabaseClient);
   
   const response = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`,
@@ -131,8 +154,8 @@ async function handleRead(sheetId: string, range: string = 'A:Z') {
   );
 }
 
-async function handleWrite(sheetId: string, data: any[][], range: string = 'A1') {
-  const accessToken = await getStoredAccessToken();
+async function handleWrite(sheetId: string, data: any[][], range: string = 'A1', supabaseClient: any) {
+  const accessToken = await getAccessToken(supabaseClient);
   
   const response = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?valueInputOption=USER_ENTERED`,
@@ -160,8 +183,8 @@ async function handleWrite(sheetId: string, data: any[][], range: string = 'A1')
   );
 }
 
-async function handleCreate(title: string) {
-  const accessToken = await getStoredAccessToken();
+async function handleCreate(title: string, supabaseClient: any) {
+  const accessToken = await getAccessToken(supabaseClient);
   
   const response = await fetch(
     'https://sheets.googleapis.com/v4/spreadsheets',
@@ -189,14 +212,4 @@ async function handleCreate(title: string) {
     JSON.stringify(result),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
-}
-
-async function getStoredAccessToken(): Promise<string> {
-  // Pour l'instant, on retourne un token fictif
-  // Dans une vraie implémentation, on récupérerait le token depuis le stockage
-  const token = 'stored_access_token';
-  if (!token) {
-    throw new Error('Token d\'accès manquant. Veuillez vous réauthentifier.');
-  }
-  return token;
 }

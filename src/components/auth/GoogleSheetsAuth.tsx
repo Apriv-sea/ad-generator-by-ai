@@ -1,28 +1,34 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, ExternalLink, LogOut } from "lucide-react";
-import { realGoogleSheetsService } from "@/services/googlesheets/realGoogleSheetsService";
-import { toast } from "sonner";
+import { CheckCircle, ExternalLink, LogOut, AlertCircle } from "lucide-react";
+import { useGoogleSheets } from '@/contexts/GoogleSheetsContext';
 
 interface GoogleSheetsAuthProps {
   onAuthSuccess?: () => void;
 }
 
 const GoogleSheetsAuth: React.FC<GoogleSheetsAuthProps> = ({ onAuthSuccess }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { 
+    isAuthenticated, 
+    isLoading, 
+    error, 
+    initiateAuth, 
+    logout, 
+    clearError 
+  } = useGoogleSheets();
 
   useEffect(() => {
-    setIsAuthenticated(realGoogleSheetsService.isAuthenticated());
-  }, []);
+    if (isAuthenticated && onAuthSuccess) {
+      onAuthSuccess();
+    }
+  }, [isAuthenticated, onAuthSuccess]);
 
   const handleAuth = async () => {
-    setIsLoading(true);
     try {
-      const authUrl = await realGoogleSheetsService.initiateAuth();
+      const authUrl = await initiateAuth();
       
       // Ouvrir la fenêtre d'authentification
       window.open(authUrl, 'google-auth', 'width=500,height=600');
@@ -41,26 +47,16 @@ const GoogleSheetsAuth: React.FC<GoogleSheetsAuthProps> = ({ onAuthSuccess }) =>
       
     } catch (error) {
       console.error('Erreur authentification:', error);
-      toast.error('Impossible de démarrer l\'authentification Google');
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleAuthSuccess = async (code: string) => {
     try {
-      await realGoogleSheetsService.completeAuth(code);
-      setIsAuthenticated(true);
-      onAuthSuccess?.();
+      // Cette fonction sera appelée par le contexte via useEffect
+      // Pas besoin de logique supplémentaire ici
     } catch (error) {
       console.error('Erreur completion auth:', error);
-      toast.error('Erreur lors de l\'authentification');
     }
-  };
-
-  const handleLogout = () => {
-    realGoogleSheetsService.logout();
-    setIsAuthenticated(false);
   };
 
   if (isAuthenticated) {
@@ -73,7 +69,7 @@ const GoogleSheetsAuth: React.FC<GoogleSheetsAuthProps> = ({ onAuthSuccess }) =>
             <Button
               variant="outline"
               size="sm"
-              onClick={handleLogout}
+              onClick={logout}
               className="ml-2"
             >
               <LogOut className="h-4 w-4 mr-1" />
@@ -91,6 +87,18 @@ const GoogleSheetsAuth: React.FC<GoogleSheetsAuthProps> = ({ onAuthSuccess }) =>
         <CardTitle>Connexion Google Sheets</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error}
+              <Button variant="outline" size="sm" onClick={clearError} className="ml-2">
+                Masquer
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <p className="text-sm text-gray-600">
           Connectez-vous à Google Sheets pour accéder à vos feuilles de calcul et les modifier directement.
         </p>

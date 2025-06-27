@@ -1,31 +1,9 @@
 
-import React, { useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React from 'react';
+import { useGoogleAuthCallback } from '@/hooks/useGoogleAuthCallback';
 
 const GoogleAuthCallback: React.FC = () => {
-  const [searchParams] = useSearchParams();
-
-  useEffect(() => {
-    const code = searchParams.get('code');
-    const error = searchParams.get('error');
-
-    if (error) {
-      console.error('Erreur authentification Google:', error);
-      window.close();
-      return;
-    }
-
-    if (code) {
-      // Envoyer le code à la fenêtre parent
-      if (window.opener) {
-        window.opener.postMessage({
-          type: 'GOOGLE_AUTH_SUCCESS',
-          code: code
-        }, window.location.origin);
-        window.close();
-      }
-    }
-  }, [searchParams]);
+  useGoogleAuthCallback();
 
   return (
     <div className="flex items-center justify-center min-h-screen">
