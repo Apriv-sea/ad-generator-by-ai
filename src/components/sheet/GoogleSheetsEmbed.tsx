@@ -6,7 +6,7 @@ import { Sheet } from "@/services/types";
 import GoogleSheetsIdInput from './GoogleSheetsIdInput';
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ExternalLink, History } from "lucide-react";
+import { ExternalLink, History, Trash2 } from "lucide-react";
 import { googleSheetsPersistenceService } from "@/services/storage/googleSheetsPersistenceService";
 
 interface GoogleSheetsEmbedProps {
@@ -27,11 +27,15 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
   const [recentSessions, setRecentSessions] = useState<any[]>([]);
   const [showRecentSessions, setShowRecentSessions] = useState(false);
 
-  useEffect(() => {
-    // Charger les sessions récentes au montage
+  const loadRecentSessions = () => {
     const sessions = googleSheetsPersistenceService.getSessions();
     setRecentSessions(sessions.slice(0, 5)); // Les 5 plus récentes
     setShowRecentSessions(sessions.length > 0 && !sheetData);
+  };
+
+  useEffect(() => {
+    // Charger les sessions récentes au montage
+    loadRecentSessions();
   }, [sheetData]);
 
   const handleSheetLoaded = (sheetId: string, data: any) => {
@@ -73,6 +77,16 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
     }
   };
 
+  const handleDeleteSession = (sessionId: string, sessionName: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Empêcher la restauration quand on clique sur supprimer
+    
+    if (confirm(`Êtes-vous sûr de vouloir supprimer la session "${sessionName}" ?`)) {
+      googleSheetsPersistenceService.removeSession(sessionId);
+      loadRecentSessions(); // Recharger la liste
+      toast.success("Session supprimée avec succès");
+    }
+  };
+
   const openInNewTab = () => {
     if (currentSheetId) {
       window.open(`https://docs.google.com/spreadsheets/d/${currentSheetId}/edit`, '_blank');
@@ -97,16 +111,26 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
                   className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
                   onClick={() => handleRestoreSession(session)}
                 >
-                  <div>
+                  <div className="flex-1">
                     <p className="font-medium">{session.name}</p>
                     <p className="text-sm text-gray-500">
                       {new Date(session.lastConnected).toLocaleDateString()} • 
                       {session.dataPreview?.rowCount || 0} lignes
                     </p>
                   </div>
-                  <Button variant="outline" size="sm">
-                    Restaurer
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm">
+                      Restaurer
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={(e) => handleDeleteSession(session.id, session.name, e)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
