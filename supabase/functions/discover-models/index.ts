@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -141,100 +140,39 @@ async function discoverOpenAIModels(apiKey: string) {
 }
 
 async function discoverAnthropicModels(apiKey: string) {
-  // Anthropic ne fournit pas d'endpoint public pour lister les modèles
-  // Mais nous pouvons vérifier la validité de la clé API en faisant un petit appel test
-  try {
-    const testResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
-        max_tokens: 1,
-        messages: [{ role: 'user', content: 'test' }]
-      })
-    })
-
-    // Si la clé API est invalide, Anthropic retourne 401
-    if (testResponse.status === 401) {
-      throw new Error('Invalid API key')
+  const response = await fetch('https://api.anthropic.com/v1/models', {
+    method: 'GET',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
     }
+  })
 
-    // Retourner la liste complète et mise à jour des modèles Claude
-    return [
-      {
-        id: 'claude-3-5-sonnet-20241022',
-        name: 'Claude 3.5 Sonnet (Nouveau)',
-        description: 'Le modèle le plus récent et performant de Claude 3.5',
-        contextWindow: 200000,
-        supportsVision: true
-      },
-      {
-        id: 'claude-3-5-sonnet-20240620',
-        name: 'Claude 3.5 Sonnet',
-        description: 'Version précédente de Claude 3.5 Sonnet',
-        contextWindow: 200000,
-        supportsVision: true
-      },
-      {
-        id: 'claude-3-opus-20240229',
-        name: 'Claude 3 Opus',
-        description: 'Le modèle le plus puissant pour les tâches complexes',
-        contextWindow: 200000,
-        supportsVision: true
-      },
-      {
-        id: 'claude-3-sonnet-20240229',
-        name: 'Claude 3 Sonnet',
-        description: 'Équilibre performance et rapidité',
-        contextWindow: 200000,
-        supportsVision: true
-      },
-      {
-        id: 'claude-3-haiku-20240307',
-        name: 'Claude 3 Haiku',
-        description: 'Le plus rapide pour les réponses instantanées',
-        contextWindow: 200000,
-        supportsVision: true
-      }
-    ]
-  } catch (error) {
-    // En cas d'erreur, retourner une liste de base pour éviter une interface vide
-    console.error('Error testing Anthropic API key:', error)
-    return [
-      {
-        id: 'claude-3-5-sonnet-20241022',
-        name: 'Claude 3.5 Sonnet',
-        description: 'Modèle le plus récent et performant de Claude',
-        contextWindow: 200000,
-        supportsVision: true
-      },
-      {
-        id: 'claude-3-opus-20240229',
-        name: 'Claude 3 Opus',
-        description: 'Le modèle le plus puissant pour les tâches complexes',
-        contextWindow: 200000,
-        supportsVision: true
-      },
-      {
-        id: 'claude-3-sonnet-20240229',
-        name: 'Claude 3 Sonnet',
-        description: 'Équilibre performance et rapidité',
-        contextWindow: 200000,
-        supportsVision: true
-      },
-      {
-        id: 'claude-3-haiku-20240307',
-        name: 'Claude 3 Haiku',
-        description: 'Le plus rapide pour les réponses instantanées',
-        contextWindow: 200000,
-        supportsVision: true
-      }
-    ]
+  if (!response.ok) {
+    throw new Error(`Anthropic API Error: ${response.status} ${response.statusText}`)
   }
+
+  const data = await response.json()
+  
+  // Mapper les modèles depuis la réponse de l'API
+  return data.data
+    .filter((model: any) => model.type === 'model')
+    .map((model: any) => ({
+      id: model.id,
+      name: getAnthropicModelDisplayName(model.display_name || model.id),
+      description: getAnthropicModelDescription(model.id),
+      contextWindow: getAnthropicContextWindow(model.id),
+      supportsVision: getAnthropicVisionSupport(model.id)
+    }))
+    .sort((a: any, b: any) => {
+      // Prioriser les modèles les plus récents
+      const priority = ['claude-3-5-sonnet', 'claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku']
+      for (const p of priority) {
+        if (a.id.includes(p) && !b.id.includes(p)) return -1
+        if (!a.id.includes(p) && b.id.includes(p)) return 1
+      }
+      return a.name.localeCompare(b.name)
+    })
 }
 
 async function discoverGoogleModels(apiKey: string) {
@@ -290,6 +228,33 @@ function getOpenAIContextWindow(id: string): number {
   if (id.includes('gpt-3.5-turbo')) return 16385
   if (id.includes('o1')) return 128000
   return 4096
+}
+
+function getAnthropicModelDisplayName(displayName: string): string {
+  if (displayName.includes('Claude 3.5 Sonnet')) return 'Claude 3.5 Sonnet'
+  if (displayName.includes('Claude 3 Opus')) return 'Claude 3 Opus'
+  if (displayName.includes('Claude 3 Sonnet')) return 'Claude 3 Sonnet'
+  if (displayName.includes('Claude 3 Haiku')) return 'Claude 3 Haiku'
+  return displayName
+}
+
+function getAnthropicModelDescription(id: string): string {
+  if (id.includes('claude-3-5-sonnet')) return 'Le modèle le plus récent et performant de Claude'
+  if (id.includes('claude-3-opus')) return 'Le modèle le plus puissant pour les tâches complexes'
+  if (id.includes('claude-3-sonnet')) return 'Équilibre performance et rapidité'
+  if (id.includes('claude-3-haiku')) return 'Le plus rapide pour les réponses instantanées'
+  return 'Modèle Claude d\'Anthropic'
+}
+
+function getAnthropicContextWindow(id: string): number {
+  // Tous les modèles Claude 3 ont une fenêtre de contexte de 200k tokens
+  if (id.includes('claude-3')) return 200000
+  return 100000 // Valeur par défaut pour les anciens modèles
+}
+
+function getAnthropicVisionSupport(id: string): boolean {
+  // Tous les modèles Claude 3 supportent la vision
+  return id.includes('claude-3')
 }
 
 function getGoogleModelDisplayName(name: string): string {
