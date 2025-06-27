@@ -43,15 +43,29 @@ export function useSheetData(sheet: Sheet | null) {
       
       const data = await googleSheetsService.getSheetData(sheet.id);
       
+      console.log("🔍 Données reçues du service:", {
+        hasData: !!data,
+        hasValues: !!data?.values,
+        valuesLength: data?.values?.length || 0,
+        title: data?.title,
+        firstRow: data?.values?.[0],
+        allRows: data?.values
+      });
+      
       if (data && data.values && data.values.length > 0) {
         console.log(`📊 Données chargées:`, {
           totalRows: data.values.length,
           firstRow: data.values[0],
-          sampleData: data.values.slice(0, 3)
+          allData: data.values
         });
         
         setSheetData(data.values);
-        toast.success(`Données chargées avec succès (${data.values.length} lignes)`);
+        
+        if (data.values.length === 1) {
+          toast.warning(`Seuls les en-têtes ont été trouvés. Vérifiez que votre feuille contient des données.`);
+        } else {
+          toast.success(`Données chargées avec succès (${data.values.length} lignes dont ${data.values.length - 1} lignes de données)`);
+        }
       } else {
         console.log("❌ Aucune donnée trouvée dans la feuille");
         toast.error("Aucune donnée trouvée dans la feuille. Vérifiez que votre feuille contient des données.");

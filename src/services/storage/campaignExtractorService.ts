@@ -7,7 +7,7 @@ import { inputSanitizationService } from "../security/inputSanitizationService";
  */
 class CampaignExtractorService {
   /**
-   * Extract campaigns from sheet data with input sanitization
+   * Extract campaigns from sheet data with enhanced security
    */
   extractCampaigns(sheetData: SheetData): Campaign[] {
     try {
@@ -31,7 +31,7 @@ class CampaignExtractorService {
       
       console.log("📊 En-têtes détectés:", headers);
       console.log(`📈 ${rows.length} lignes de données à traiter`);
-      console.log("🔢 Aperçu des premières lignes:", rows.slice(0, 3));
+      console.log("🔢 Toutes les lignes brutes:", rows);
       
       // Recherche spécifique pour les en-têtes français de votre feuille
       const campaignIndex = this.findColumnIndex(headers, [
@@ -66,14 +66,17 @@ class CampaignExtractorService {
         return this.getDefaultCampaign(sheetData.id || '');
       }
       
-      // Process rows with enhanced security
+      // Process rows with enhanced security - validation beaucoup moins stricte
       const campaigns: Campaign[] = [];
       
       rows.forEach((row: any[], index) => {
         console.log(`📋 Traitement ligne ${index + 2}:`, {
           rowLength: row.length,
           requiredLength: Math.max(campaignIndex, adGroupIndex, keywordsIndex) + 1,
-          rawData: row
+          rawData: row,
+          campaignValue: row[campaignIndex],
+          adGroupValue: row[adGroupIndex],
+          keywordsValue: row[keywordsIndex]
         });
         
         if (row.length > Math.max(campaignIndex, adGroupIndex, keywordsIndex)) {
@@ -81,14 +84,14 @@ class CampaignExtractorService {
           const adGroupName = this.cleanAndSanitizeText(row[adGroupIndex]);
           const keywordsText = this.cleanAndSanitizeText(row[keywordsIndex]);
           
-          console.log(`📝 Données extraites ligne ${index + 2}:`, {
+          console.log(`📝 Données extraites et nettoyées ligne ${index + 2}:`, {
             campagne: `"${campaignName}"`,
             groupe: `"${adGroupName}"`, 
             motsCles: `"${keywordsText}"`
           });
           
-          // Enhanced validation
-          if (campaignName && campaignName.length > 0 && adGroupName && adGroupName.length > 0) {
+          // Validation beaucoup moins stricte - accepter même des données partielles
+          if (campaignName || adGroupName || keywordsText) {
             // Extract and sanitize keywords
             const keywords = keywordsText 
               ? keywordsText.split(/[,;|\n]/)
@@ -101,15 +104,15 @@ class CampaignExtractorService {
             const campaign: Campaign = {
               id: `${sheetData.id}-campaign-${index}`,
               sheetId: sheetData.id || '',
-              name: campaignName,
-              campaignName: campaignName,
-              adGroupName: adGroupName,
-              keywords: keywords.join(', '),
+              name: campaignName || `Campagne ${index + 1}`,
+              campaignName: campaignName || `Campagne ${index + 1}`,
+              adGroupName: adGroupName || `Groupe ${index + 1}`,
+              keywords: keywords.length > 0 ? keywords.join(', ') : keywordsText || '',
               titles: ['', '', ''],
               descriptions: ['', ''],
               finalUrls: [''],
               displayPaths: ['', ''],
-              targetedKeywords: keywords.join(', '),
+              targetedKeywords: keywords.length > 0 ? keywords.join(', ') : keywordsText || '',
               negativeKeywords: '',
               targetedAudiences: '',
               adExtensions: '',
@@ -117,8 +120,8 @@ class CampaignExtractorService {
               clientInfo: sheetData.clientInfo || null,
               context: '',
               adGroups: [{
-                name: adGroupName,
-                keywords: keywords.length > 0 ? keywords : [""],
+                name: adGroupName || `Groupe ${index + 1}`,
+                keywords: keywords.length > 0 ? keywords : [keywordsText || ""],
                 context: ""
               }]
             };
@@ -127,12 +130,9 @@ class CampaignExtractorService {
             const sanitizedCampaign = inputSanitizationService.sanitizeCampaignData(campaign);
             campaigns.push(sanitizedCampaign);
             
-            console.log(`✅ Campagne créée: "${campaignName}" > "${adGroupName}" avec ${keywords.length} mots-clés`);
+            console.log(`✅ Campagne créée: "${campaignName || 'Sans nom'}" > "${adGroupName || 'Sans nom'}" avec ${keywords.length} mots-clés`);
           } else {
-            console.log(`⚠️ Ligne ${index + 2} ignorée: données manquantes`, {
-              campagneVide: !campaignName || campaignName.length === 0,
-              groupeVide: !adGroupName || adGroupName.length === 0
-            });
+            console.log(`⚠️ Ligne ${index + 2} ignorée: toutes les données sont vides`);
           }
         } else {
           console.log(`⚠️ Ligne ${index + 2} ignorée: pas assez de colonnes (${row.length} vs ${Math.max(campaignIndex, adGroupIndex, keywordsIndex) + 1} requis)`);

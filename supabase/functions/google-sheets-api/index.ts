@@ -197,27 +197,27 @@ async function handleRead(sheetId: string, range: string, request: Request) {
     );
   }
 
-  // Améliorer le filtrage des lignes vides - être plus permissif
+  // Filtrage beaucoup moins strict - seulement éliminer les lignes complètement vides
   const filteredValues = data.values.filter((row: any[], index: number) => {
     // Toujours garder la première ligne (en-têtes)
     if (index === 0) return true;
     
-    // Pour les autres lignes, vérifier qu'il y a au moins une cellule non vide
+    // Pour les autres lignes, vérifier qu'il y a au moins une cellule non nulle/non vide
     if (!row || row.length === 0) return false;
     
-    // Vérifier s'il y a au moins une cellule avec du contenu
+    // Beaucoup plus permissif : garder la ligne si au moins une cellule a du contenu
     const hasContent = row.some(cell => {
       if (cell === null || cell === undefined) return false;
       const cellStr = String(cell).trim();
-      return cellStr !== '' && cellStr !== '0'; // Ne pas exclure les cellules avec '0'
+      return cellStr !== '';
     });
     
-    console.log(`Ligne ${index}: [${row.join(', ')}] -> ${hasContent ? 'GARDÉE' : 'SUPPRIMÉE'}`);
+    console.log(`Ligne ${index}: [${row.slice(0, 3).join(', ')}...] -> ${hasContent ? 'GARDÉE' : 'SUPPRIMÉE'}`);
     return hasContent;
   });
 
-  console.log(`✅ Résultat final: ${filteredValues.length} lignes (${filteredValues.length - 1} lignes de données + 1 ligne d'en-têtes)`);
-  console.log('📋 Données filtrées:', filteredValues);
+  console.log(`✅ Résultat final: ${filteredValues.length} lignes (${Math.max(0, filteredValues.length - 1)} lignes de données + en-têtes)`);
+  console.log('📋 Premières lignes filtrées:', filteredValues.slice(0, 3));
 
   return new Response(
     JSON.stringify({
