@@ -1,10 +1,11 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, ExternalLink, LogOut, AlertCircle } from "lucide-react";
 import { useGoogleSheets } from '@/contexts/GoogleSheetsContext';
+import { toast } from 'sonner';
 
 interface GoogleSheetsAuthProps {
   onAuthSuccess?: () => void;
@@ -20,42 +21,89 @@ const GoogleSheetsAuth: React.FC<GoogleSheetsAuthProps> = ({ onAuthSuccess }) =>
     clearError 
   } = useGoogleSheets();
 
+  const authWindowRef = useRef<Window | null>(null);
+
   useEffect(() => {
     if (isAuthenticated && onAuthSuccess) {
+      console.log('Authentification détectée, appel du callback');
       onAuthSuccess();
     }
   }, [isAuthenticated, onAuthSuccess]);
 
+  useEffect(() => {
+    // Écouter les messages de la fenêtre popup
+    const handleMessage = (event: MessageEvent) => {
+      // Vérifier l'origine pour la sécurité
+      if (event.origin !== window.location.origin) {
+        console.log('Message ignoré - origine non autorisée:', event.origin);
+        return;
+      }
+
+      console.log('Message reçu de la popup:', event.data);
+
+      if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
+        console.log('Authentification Google réussie !');
+        toast.success('Authentification Google Sheets réussie !');
+        
+        // Fermer la fenêtre popup
+        if (authWindowRef.current) {
+          authWindowRef.current.close();
+          authWindowRef.current = null;
+        }
+        
+        // Le contexte devrait déjà être mis à jour via completeAuth
+        // L'effet useEffect ci-dessus se chargera d'appeler onAuthSuccess
+      } else if (event.data.type === 'GOOGLE_AUTH_ERROR') {
+        console.error('Erreur authentification Google:', event.data.error);
+        toast.error(`Erreur d'authentification: ${event.data.error}`);
+        
+        // Fermer la fenêtre popup
+        if (authWindowRef.current) {
+          authWindowRef.current.close();
+          authWindowRef.current = null;
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
+
   const handleAuth = async () => {
     try {
+      clearError();
+      console.log('Démarrage de l\'authentification Google Sheets...');
+      
       const authUrl = await initiateAuth();
+      console.log('URL d\'authentification générée:', authUrl);
       
       // Ouvrir la fenêtre d'authentification
-      window.open(authUrl, 'google-auth', 'width=500,height=600');
+      authWindowRef.current = window.open(
+        authUrl, 
+        'google-auth', 
+        'width=500,height=600,scrollbars=yes,resizable=yes'
+      );
       
-      // Écouter les messages de la fenêtre popup
-      const handleMessage = (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) return;
-        
-        if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
-          handleAuthSuccess(event.data.code);
-          window.removeEventListener('message', handleMessage);
-        }
-      };
-      
-      window.addEventListener('message', handleMessage);
-      
-    } catch (error) {
-      console.error('Erreur authentification:', error);
-    }
-  };
+      if (!authWindowRef.current) {
+        toast.error('Impossible d\'ouvrir la fenêtre de connexion. Vérifiez que les popups ne sont pas bloquées.');
+        return;
+      }
 
-  const handleAuthSuccess = async (code: string) => {
-    try {
-      // Cette fonction sera appelée par le contexte via useEffect
-      // Pas besoin de logique supplémentaire ici
+      // Surveiller la fermeture de la fenêtre
+      const checkClosed = setInterval(() => {
+        if (authWindowRef.current?.closed) {
+          clearInterval(checkClosed);
+          authWindowRef.current = null;
+          console.log('Fenêtre popup fermée');
+        }
+      }, 1000);
+      
     } catch (error) {
-      console.error('Erreur completion auth:', error);
+      console.error('Erreur lors de l\'initiation de l\'authentification:', error);
+      toast.error('Erreur lors de l\'ouverture de l\'authentification');
     }
   };
 

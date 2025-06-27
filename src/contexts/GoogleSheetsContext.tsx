@@ -33,7 +33,9 @@ export const GoogleSheetsProvider: React.FC<GoogleSheetsProviderProps> = ({ chil
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setIsAuthenticated(unifiedGoogleSheetsService.isAuthenticated());
+    const authenticated = unifiedGoogleSheetsService.isAuthenticated();
+    console.log('État d\'authentification initial:', authenticated);
+    setIsAuthenticated(authenticated);
   }, []);
 
   const initiateAuth = async (): Promise<string> => {
@@ -41,10 +43,13 @@ export const GoogleSheetsProvider: React.FC<GoogleSheetsProviderProps> = ({ chil
     setError(null);
     
     try {
+      console.log('Initiation de l\'authentification Google Sheets...');
       const authUrl = await unifiedGoogleSheetsService.initiateAuth();
+      console.log('URL d\'authentification générée:', authUrl);
       return authUrl;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur d\'authentification';
+      console.error('Erreur lors de l\'initiation de l\'authentification:', errorMessage);
       setError(errorMessage);
       toast.error(errorMessage);
       throw err;
@@ -58,11 +63,24 @@ export const GoogleSheetsProvider: React.FC<GoogleSheetsProviderProps> = ({ chil
     setError(null);
     
     try {
+      console.log('Completion de l\'authentification avec le code:', code);
       await unifiedGoogleSheetsService.completeAuth(code);
-      setIsAuthenticated(true);
-      toast.success('Authentification réussie !');
+      
+      // Vérifier l'état d'authentification après completion
+      const authenticated = unifiedGoogleSheetsService.isAuthenticated();
+      console.log('État d\'authentification après completion:', authenticated);
+      
+      setIsAuthenticated(authenticated);
+      
+      if (authenticated) {
+        console.log('Authentification Google Sheets réussie !');
+        toast.success('Authentification Google Sheets réussie !');
+      } else {
+        throw new Error('Échec de l\'authentification - token non valide');
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors de l\'authentification';
+      console.error('Erreur lors de la completion de l\'authentification:', errorMessage);
       setError(errorMessage);
       toast.error(errorMessage);
       throw err;
@@ -76,12 +94,15 @@ export const GoogleSheetsProvider: React.FC<GoogleSheetsProviderProps> = ({ chil
     setError(null);
     
     try {
+      console.log('Connexion à la feuille:', sheetId);
       const data = await unifiedGoogleSheetsService.getSheetData(sheetId);
       setCurrentSheetId(sheetId);
       setCurrentSheetData(data);
+      console.log('Connexion à la feuille réussie !');
       toast.success('Connexion à la feuille réussie !');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur de connexion à la feuille';
+      console.error('Erreur de connexion:', errorMessage);
       setError(errorMessage);
       toast.error(errorMessage);
       throw err;
@@ -117,11 +138,13 @@ export const GoogleSheetsProvider: React.FC<GoogleSheetsProviderProps> = ({ chil
   };
 
   const logout = (): void => {
+    console.log('Déconnexion Google Sheets');
     unifiedGoogleSheetsService.logout();
     setIsAuthenticated(false);
     setCurrentSheetId(null);
     setCurrentSheetData(null);
     setError(null);
+    toast.info('Déconnecté de Google Sheets');
   };
 
   const clearError = (): void => {
