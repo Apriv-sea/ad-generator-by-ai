@@ -1,10 +1,10 @@
+
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { GoogleSheetsProvider } from "@/contexts/GoogleSheetsContext";
 import GlobalErrorBoundary from "@/components/GlobalErrorBoundary";
-import GlobalLoading from "@/components/GlobalLoading";
 
 // Pages
 import Index from "@/pages/Index";
@@ -21,7 +21,14 @@ import NotFound from "@/pages/NotFound";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import LocalhostRedirect from "@/pages/LocalhostRedirect";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    },
+  },
+});
 
 const router = createBrowserRouter([
   {
@@ -86,7 +93,6 @@ function App() {
           <GlobalErrorBoundary>
             <RouterProvider router={router} />
             <Toaster />
-            <GlobalLoading />
           </GlobalErrorBoundary>
         </GoogleSheetsProvider>
       </AuthProvider>
