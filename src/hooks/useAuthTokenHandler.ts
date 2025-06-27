@@ -8,7 +8,6 @@ export const useAuthTokenHandler = () => {
   const navigate = useNavigate();
   const { isAuthenticated, processAuthTokens } = useAuth();
   const [authError, setAuthError] = useState<string | null>(null);
-  const [processingAuth, setProcessingAuth] = useState(false);
   const processedRef = useRef(false);
 
   useEffect(() => {
@@ -17,40 +16,26 @@ export const useAuthTokenHandler = () => {
       if (processedRef.current) return;
 
       const hasHashToken = window.location.hash?.includes('access_token');
-      const isLocalhost = window.location.hostname === 'localhost';
       
-      // Redirection localhost
-      if (isLocalhost && hasHashToken) {
-        console.log("Redirection vers localhost-redirect");
-        navigate('/localhost-redirect');
-        return;
-      }
-
-      // Traitement des tokens
+      // Traitement des tokens uniquement s'ils sont présents
       if (hasHashToken) {
         console.log("Traitement des tokens d'authentification");
         processedRef.current = true;
-        setProcessingAuth(true);
         
         try {
           const processed = await processAuthTokens();
           if (processed) {
             toast.success("Authentification réussie!");
             window.history.replaceState({}, document.title, window.location.pathname);
-            setTimeout(() => {
-              if (isAuthenticated) {
-                navigate("/dashboard");
-              }
-            }, 1000);
+            navigate("/dashboard");
           } else {
             setAuthError("Échec du traitement du jeton d'authentification.");
           }
         } catch (error) {
           console.error("Erreur lors du traitement des jetons:", error);
           setAuthError(`Erreur d'authentification: ${error instanceof Error ? error.message : String(error)}`);
-        } finally {
-          setProcessingAuth(false);
         }
+        return;
       }
 
       // Gestion des erreurs OAuth
@@ -64,18 +49,17 @@ export const useAuthTokenHandler = () => {
     };
 
     handleAuthTokens();
-  }, []); // Pas de dépendances pour éviter les re-exécutions
+  }, [processAuthTokens, navigate]);
 
-  // Redirection des utilisateurs authentifiés
+  // Redirection simple pour les utilisateurs authentifiés
   useEffect(() => {
-    if (isAuthenticated && !processingAuth && !window.location.hash?.includes('access_token')) {
+    if (isAuthenticated && !window.location.hash?.includes('access_token')) {
       navigate("/dashboard");
     }
-  }, [isAuthenticated, processingAuth, navigate]);
+  }, [isAuthenticated, navigate]);
 
   return {
     authError,
-    processingAuth,
     setAuthError
   };
 };

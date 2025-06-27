@@ -71,7 +71,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ authError }) => {
                 <div className={`bg-gradient-to-br ${action.color} p-4`}>
                   <div className="flex items-center text-white">
                     <IconComponent className="w-6 h-6 mr-3" />
-                    <CardTitle className="text-lg">{action.title}</CardTitle>
+                    <CardTitle className="text-lg text-white">{action.title}</CardTitle>
                   </div>
                 </div>
                 <CardContent className="p-4">
