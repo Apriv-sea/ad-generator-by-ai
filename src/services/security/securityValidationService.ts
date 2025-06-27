@@ -43,7 +43,8 @@ export class SecurityValidationService {
     // Vérifier la longueur
     if (input.length > 10000) {
       violations.push('Entrée trop longue');
-      if (risk !== 'high') {
+      // Seulement élever le risque à medium si ce n'est pas déjà high
+      if (risk === 'low') {
         risk = 'medium';
       }
     }
