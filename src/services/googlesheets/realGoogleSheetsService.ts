@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 
 export interface GoogleSheetsData {
@@ -129,15 +128,17 @@ class RealGoogleSheetsService {
         throw new Error(data.error || 'Erreur lors de la lecture de la feuille');
       }
 
-      console.log('📊 Données récupérées:', {
+      console.log('📊 Données récupérées depuis l\'API:', {
         rowCount: data.values?.length || 0,
         hasHeaders: data.values?.length > 0,
         hasData: data.values?.length > 1,
         firstRow: data.values?.[0],
-        totalRows: data.values?.length || 0
+        secondRow: data.values?.[1],
+        totalRows: data.values?.length || 0,
+        rawData: data.values
       });
 
-      // Vérifier si nous avons des données au-delà des en-têtes
+      // Vérification améliorée des données
       if (!data.values || data.values.length === 0) {
         console.warn('⚠️ Aucune donnée trouvée dans la feuille');
         return {
@@ -147,23 +148,19 @@ class RealGoogleSheetsService {
       }
 
       if (data.values.length === 1) {
-        console.warn('⚠️ Seulement les en-têtes trouvés, aucune donnée');
+        console.warn('⚠️ Seulement les en-têtes trouvés, aucune ligne de données');
         return {
           values: data.values,
           title: 'Feuille avec en-têtes seulement'
         };
       }
 
-      // Filtrer les lignes vides
-      const filteredValues = data.values.filter((row: string[]) => {
-        return row && row.length > 0 && row.some(cell => cell && cell.trim() !== '');
-      });
-
-      console.log(`✅ ${filteredValues.length} lignes utiles trouvées (en-têtes inclus)`);
+      // Ne pas re-filtrer ici car c'est déjà fait côté serveur
+      console.log(`✅ ${data.values.length} lignes récupérées (${data.values.length - 1} lignes de données + en-têtes)`);
 
       return {
-        values: filteredValues,
-        title: data.title || 'Feuille Google Sheets'
+        values: data.values,
+        title: data.title || `Feuille Google Sheets - ${data.values.length - 1} lignes de données`
       };
     } catch (error) {
       console.error('❌ Erreur lors de la lecture:', error);

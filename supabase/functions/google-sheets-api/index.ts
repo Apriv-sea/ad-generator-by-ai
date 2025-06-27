@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -151,15 +150,15 @@ async function handleRead(sheetId: string, range: string, request: Request) {
     throw new Error(`Erreur lecture: ${data.error?.message || 'Erreur inconnue'}`);
   }
 
-  // Améliorer les logs pour le débogage
-  console.log('📊 Réponse Google Sheets API:', {
+  console.log('📊 Réponse brute Google Sheets API:', {
     hasValues: !!data.values,
     valueCount: data.values?.length || 0,
     range: data.range,
-    majorDimension: data.majorDimension
+    majorDimension: data.majorDimension,
+    rawValues: data.values
   });
 
-  // Si pas de données, retourner une structure vide
+  // Si pas de données du tout
   if (!data.values || data.values.length === 0) {
     console.log('⚠️ Aucune donnée trouvée dans la plage spécifiée');
     return new Response(
@@ -172,19 +171,34 @@ async function handleRead(sheetId: string, range: string, request: Request) {
     );
   }
 
-  // Filtrer les lignes complètement vides
-  const filteredValues = data.values.filter((row: any[]) => {
-    return row && row.length > 0 && row.some(cell => cell !== null && cell !== undefined && String(cell).trim() !== '');
+  // Améliorer le filtrage des lignes vides - être plus permissif
+  const filteredValues = data.values.filter((row: any[], index: number) => {
+    // Toujours garder la première ligne (en-têtes)
+    if (index === 0) return true;
+    
+    // Pour les autres lignes, vérifier qu'il y a au moins une cellule non vide
+    if (!row || row.length === 0) return false;
+    
+    // Vérifier s'il y a au moins une cellule avec du contenu
+    const hasContent = row.some(cell => {
+      if (cell === null || cell === undefined) return false;
+      const cellStr = String(cell).trim();
+      return cellStr !== '' && cellStr !== '0'; // Ne pas exclure les cellules avec '0'
+    });
+    
+    console.log(`Ligne ${index}: [${row.join(', ')}] -> ${hasContent ? 'GARDÉE' : 'SUPPRIMÉE'}`);
+    return hasContent;
   });
 
-  console.log(`✅ ${filteredValues.length} lignes non vides trouvées`);
+  console.log(`✅ Résultat final: ${filteredValues.length} lignes (${filteredValues.length - 1} lignes de données + 1 ligne d'en-têtes)`);
+  console.log('📋 Données filtrées:', filteredValues);
 
   return new Response(
     JSON.stringify({
       values: filteredValues,
       range: data.range,
       majorDimension: data.majorDimension,
-      title: `Feuille Google Sheets - ${filteredValues.length} lignes`
+      title: `Feuille Google Sheets - ${Math.max(0, filteredValues.length - 1)} lignes de données`
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
