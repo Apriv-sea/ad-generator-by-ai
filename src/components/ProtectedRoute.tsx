@@ -27,10 +27,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
+  // Si l'authentification est requise et l'utilisateur n'est pas connecté
   if (requireAuth && !isAuthenticated) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
+  // Si l'utilisateur est connecté et essaie d'accéder à la page d'auth, le rediriger vers le dashboard
   if (!requireAuth && isAuthenticated && location.pathname === '/auth') {
     return <Navigate to="/dashboard" replace />;
   }

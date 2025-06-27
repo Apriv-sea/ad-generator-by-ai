@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { GoogleSheetsProvider } from "@/contexts/GoogleSheetsContext";
 import GlobalErrorBoundary from "@/components/GlobalErrorBoundary";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Pages
 import Index from "@/pages/Index";
@@ -33,55 +34,107 @@ const queryClient = new QueryClient({
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Index />,
+    element: (
+      <ProtectedRoute requireAuth={false}>
+        <Index />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/auth",
-    element: <Auth />,
+    element: (
+      <ProtectedRoute requireAuth={false}>
+        <Auth />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/auth/callback",
-    element: <AuthCallback />,
+    element: (
+      <ProtectedRoute requireAuth={false}>
+        <AuthCallback />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/auth/callback/google",
-    element: <GoogleAuthCallback />,
+    element: (
+      <ProtectedRoute requireAuth={false}>
+        <GoogleAuthCallback />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/dashboard",
-    element: <Dashboard />,
+    element: (
+      <ProtectedRoute>
+        <Dashboard />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/campaigns",
-    element: <Campaigns />,
+    element: (
+      <ProtectedRoute>
+        <Campaigns />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/clients",
-    element: <Clients />,
+    element: (
+      <ProtectedRoute>
+        <Clients />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/settings",
-    element: <Settings />,
+    element: (
+      <ProtectedRoute>
+        <Settings />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/profile",
-    element: <Profile />,
+    element: (
+      <ProtectedRoute>
+        <Profile />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/how-it-works",
-    element: <HowItWorks />,
+    element: (
+      <ProtectedRoute requireAuth={false}>
+        <HowItWorks />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/privacy-policy",
-    element: <PrivacyPolicy />,
+    element: (
+      <ProtectedRoute requireAuth={false}>
+        <PrivacyPolicy />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/localhost-redirect",
-    element: <LocalhostRedirect />,
+    element: (
+      <ProtectedRoute requireAuth={false}>
+        <LocalhostRedirect />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "*",
-    element: <NotFound />,
+    element: (
+      <ProtectedRoute requireAuth={false}>
+        <NotFound />
+      </ProtectedRoute>
+    ),
   },
 ]);
 
