@@ -1,82 +1,111 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { ArrowRight, Settings, Users, Wand2 } from "lucide-react";
 
 const HowItWorks = () => {
   const navigate = useNavigate();
 
+  const steps = [
+    {
+      icon: Settings,
+      title: "Configuration",
+      description: "Connectez-vous et configurez vos clés API (OpenAI, Anthropic, Claude)",
+      details: [
+        "Création de compte sécurisée",
+        "Ajout de clés API chiffrées",
+        "Configuration des modèles IA"
+      ]
+    },
+    {
+      icon: Users,
+      title: "Clients",
+      description: "Créez les profils de vos clients avec leur contexte métier",
+      details: [
+        "Informations secteur d'activité",
+        "Objectifs marketing spécifiques",
+        "Charte éditoriale et ton souhaité"
+      ]
+    },
+    {
+      icon: Wand2,
+      title: "Génération",
+      description: "Créez vos campagnes et générez le contenu avec l'IA",
+      details: [
+        "Définition des groupes d'annonces",
+        "Sélection des mots-clés principaux",
+        "Génération automatique de titres et descriptions"
+      ]
+    }
+  ];
+
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Comment ça marche</h1>
-          <Button onClick={() => navigate('/')}>Retour</Button>
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Button variant="ghost" onClick={() => navigate('/')}>
+              ← Retour
+            </Button>
+            <Button onClick={() => navigate('/auth')}>
+              Commencer
+            </Button>
+          </div>
         </div>
-        
-        <div className="space-y-12">
-          <Card>
-            <CardHeader>
-              <CardTitle>Étape 1: Connexion et configuration</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="font-semibold text-lg mb-2">Connexion à votre compte</h3>
-                <p>Créez un compte ou connectez-vous pour accéder à l'application.</p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-2">Configuration des clés API</h3>
-                <p>Configurez au moins une clé API pour les services de génération de contenu (OpenAI, Anthropic).</p>
-              </div>
-            </CardContent>
-          </Card>
+      </header>
+
+      <div className="container mx-auto py-16 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold mb-4">Comment ça marche</h1>
+            <p className="text-xl text-gray-600">
+              Créez des campagnes Google Ads performantes en 3 étapes simples
+            </p>
+          </div>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Étape 2: Création de votre base client</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="font-semibold text-lg mb-2">Ajoutez vos clients</h3>
-                <p>Renseignez les informations clés pour chaque client: nom, contexte métier, spécificités, charte éditoriale.</p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-2">Personnalisation du contenu</h3>
-                <p>Ces informations seront utilisées pour personnaliser le contenu généré pour chaque client.</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-12">
+            {steps.map((step, index) => {
+              const IconComponent = step.icon;
+              return (
+                <Card key={index} className="overflow-hidden">
+                  <div className="flex">
+                    <div className="bg-blue-600 text-white p-6 flex items-center justify-center min-w-[120px]">
+                      <div className="text-center">
+                        <IconComponent className="w-8 h-8 mx-auto mb-2" />
+                        <div className="text-2xl font-bold">{index + 1}</div>
+                      </div>
+                    </div>
+                    <div className="flex-1 p-6">
+                      <CardHeader className="p-0 mb-4">
+                        <CardTitle className="text-xl">{step.title}</CardTitle>
+                        <p className="text-gray-600">{step.description}</p>
+                      </CardHeader>
+                      <CardContent className="p-0">
+                        <ul className="space-y-2">
+                          {step.details.map((detail, detailIndex) => (
+                            <li key={detailIndex} className="flex items-center text-sm">
+                              <div className="w-2 h-2 bg-blue-600 rounded-full mr-3"></div>
+                              {detail}
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Étape 3: Génération de contenu</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="font-semibold text-lg mb-2">Création d'une feuille</h3>
-                <p>Créez ou sélectionnez une feuille dans l'éditeur intégré pour y stocker les campagnes.</p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-2">Remplissage des premières colonnes</h3>
-                <p>Complétez les informations de base: nom de campagne, nom d'ad group, top 3 keywords.</p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-2">Génération automatique</h3>
-                <p>Notre système générera automatiquement 10 titres et 5 descriptions pour chaque ligne.</p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-2">Intégration dans l'éditeur</h3>
-                <p>Les résultats sont automatiquement intégrés dans votre tableur.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="mt-8 text-center">
-          <Button size="lg" onClick={() => navigate('/auth')}>
-            Commencer maintenant
-          </Button>
+          <div className="text-center mt-12">
+            <Button size="lg" onClick={() => navigate('/auth')}>
+              Commencer maintenant
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
@@ -7,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import AuthDebugDialog from "@/components/AuthDebugDialog";
-import { Zap, Brain, Users, Shield, ArrowRight, Sparkles, Target, FileSpreadsheet, Wand2 } from "lucide-react";
+import { Zap, Brain, Users, Shield, ArrowRight, FileSpreadsheet, Wand2 } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -96,7 +95,7 @@ const Index = () => {
     {
       icon: Brain,
       title: "IA Multi-Modèles",
-      description: "Choisissez entre OpenAI, Anthropic ou Claude selon vos besoins"
+      description: "OpenAI, Anthropic, Claude selon vos besoins"
     },
     {
       icon: Zap,
@@ -106,60 +105,63 @@ const Index = () => {
     {
       icon: Shield,
       title: "Données Sécurisées",
-      description: "Traitement local, vos données restent confidentielles"
-    },
-    {
-      icon: Target,
-      title: "Optimisation SEA",
-      description: "Conçu pour maximiser vos performances publicitaires"
+      description: "Traitement local, vos données restent privées"
     }
   ];
 
-  // Accès rapide pour les utilisateurs authentifiés
   const quickActions = [
     {
       icon: FileSpreadsheet,
-      title: "Campagnes CryptPad",
-      description: "Connectez directement votre feuille CryptPad",
+      title: "Campagnes",
+      description: "Gérez vos campagnes publicitaires",
       action: () => navigate("/campaigns"),
       color: "from-blue-600 to-blue-700"
     },
     {
       icon: Wand2,
       title: "Génération IA",
-      description: "Créez du contenu publicitaire avec l'IA",
+      description: "Créez du contenu avec l'IA",
       action: () => navigate("/campaigns"),
       color: "from-green-600 to-green-700"
     },
     {
       icon: Users,
-      title: "Gestion Clients",
-      description: "Configurez vos clients et contextes",
+      title: "Clients",
+      description: "Configurez vos clients",
       action: () => navigate("/clients"),
       color: "from-purple-600 to-purple-700"
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
-        
-        <div className="container mx-auto px-4 pt-16 pb-20 py-[14px]">
-          <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-6">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Innovation IA pour Google Ads
-            </div>
-            
-            <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-slate-900 via-blue-800 to-slate-900 bg-clip-text text-transparent mb-6">
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Link to="/" className="text-xl font-bold text-slate-900">
               Ad Content Generator
+            </Link>
+            {!isAuthenticated && (
+              <Button onClick={() => navigate("/auth")} variant="outline">
+                Connexion
+              </Button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto">
+          {/* Hero Section */}
+          <div className="text-center mb-16">
+            <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">
+              Générateur de contenu publicitaire avec IA
             </h1>
             
-            <p className="text-xl md:text-2xl text-slate-600 mb-8 leading-relaxed">
-              Révolutionnez vos campagnes publicitaires avec l'intelligence artificielle.<br />
-              <span className="text-blue-600 font-semibold">Générez du contenu performant en quelques clics.</span>
+            <p className="text-xl text-slate-600 mb-8 max-w-2xl mx-auto">
+              Créez des campagnes Google Ads performantes grâce à l'intelligence artificielle
             </p>
 
             {authError && (
@@ -173,155 +175,106 @@ const Index = () => {
               </Alert>
             )}
 
-            {/* Actions principales - différentes selon l'état d'authentification */}
+            {/* Actions principales */}
             {isAuthenticated ? (
-              <div className="mb-16">
-                <h2 className="text-2xl font-semibold mb-6 text-slate-800">Accès rapide</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-                  {quickActions.map((action, index) => {
-                    const IconComponent = action.icon;
-                    return (
-                      <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer" onClick={action.action}>
-                        <div className={`bg-gradient-to-br ${action.color} p-4`}>
-                          <div className="flex items-center text-white">
-                            <IconComponent className="w-6 h-6 mr-3" />
-                            <CardTitle className="text-lg">{action.title}</CardTitle>
-                          </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+                {quickActions.map((action, index) => {
+                  const IconComponent = action.icon;
+                  return (
+                    <Card key={index} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={action.action}>
+                      <div className={`bg-gradient-to-br ${action.color} p-4`}>
+                        <div className="flex items-center text-white">
+                          <IconComponent className="w-6 h-6 mr-3" />
+                          <CardTitle className="text-lg">{action.title}</CardTitle>
                         </div>
-                        <CardContent className="p-4">
-                          <p className="text-slate-600 text-sm">{action.description}</p>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
+                      </div>
+                      <CardContent className="p-4">
+                        <p className="text-slate-600 text-sm">{action.description}</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             ) : (
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
                 <Button 
                   size="lg" 
                   onClick={() => navigate("/auth")} 
-                  className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+                  className="px-8 py-3"
                 >
-                  Commencer maintenant
+                  Commencer
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
                 <Button 
                   variant="outline" 
                   size="lg" 
-                  onClick={() => navigate("/how-it-works")} 
-                  className="px-8 py-3 border-2 border-slate-300 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
+                  onClick={() => navigate("/how-it-works")}
+                  className="px-8 py-3"
                 >
-                  Découvrir le processus
+                  Comment ça marche
                 </Button>
               </div>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* Features Grid */}
-      <div className="container mx-auto px-4 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-slate-900 mb-4">
-            Une solution complète et innovante
-          </h2>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Technologie de pointe au service de vos objectifs marketing
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          {features.map((feature, index) => {
-          const IconComponent = feature.icon;
-          return <Card key={index} className="border-0 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white/70">
-                <CardHeader className="text-center pb-2">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                    <IconComponent className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <CardTitle className="text-lg">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <p className="text-slate-600 text-sm">{feature.description}</p>
-                </CardContent>
-              </Card>;
-        })}
-        </div>
-
-        {/* Main Action Cards - uniquement pour les non-authentifiés */}
-        {!isAuthenticated && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
-              <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-6">
-                <CardTitle className="text-white text-xl mb-2">Prêt à commencer ?</CardTitle>
-                <CardDescription className="text-blue-100">
-                  Connectez-vous et lancez votre première campagne en quelques minutes
-                </CardDescription>
-              </div>
-              <CardContent className="p-6">
-                <p className="text-slate-600 mb-6">
-                  Accédez à tous les outils de génération de contenu et configurez vos modèles IA préférés.
-                </p>
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 group-hover:bg-blue-700 transition-colors" onClick={() => navigate("/auth")}>
-                  Se connecter
-                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
-              <div className="bg-gradient-to-br from-slate-700 to-slate-800 p-6">
-                <CardTitle className="text-white text-xl mb-2">Comment ça fonctionne ?</CardTitle>
-                <CardDescription className="text-slate-300">
-                  Découvrez notre méthodologie et les étapes du processus
-                </CardDescription>
-              </div>
-              <CardContent className="p-6">
-                <p className="text-slate-600 mb-6">
-                  Intégration Google Sheets, génération IA intelligente et optimisation automatique.
-                </p>
-                <Button variant="outline" className="w-full border-2 border-slate-300 hover:border-slate-400 hover:bg-slate-50 group-hover:bg-slate-50 transition-colors" onClick={() => navigate("/how-it-works")}>
-                  En savoir plus
-                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </CardContent>
-            </Card>
+          {/* Features */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            {features.map((feature, index) => {
+              const IconComponent = feature.icon;
+              return (
+                <Card key={index} className="text-center">
+                  <CardHeader>
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                      <IconComponent className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <CardTitle className="text-lg">{feature.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-slate-600 text-sm">{feature.description}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
-        )}
-      </div>
 
-      {/* About Section */}
-      <div className="bg-slate-100/50 py-16">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h3 className="text-2xl font-bold text-slate-900 mb-6">
-              Une approche moderne du marketing digital
-            </h3>
-            <div className="bg-white rounded-2xl p-8 shadow-md">
-              <p className="text-slate-700 mb-4 leading-relaxed">
-                Cette solution révolutionne la création de contenu publicitaire en combinant 
-                les dernières avancées en intelligence artificielle avec une interface intuitive 
-                et des fonctionnalités avancées.
-              </p>
-              <p className="text-slate-700 mb-4 leading-relaxed">
-                <strong>Flexibilité totale :</strong> Utilisez OpenAI, Anthropic, Claude ou d'autres modèles selon vos préférences. 
-                Configurez vos clés API et personnalisez les prompts pour des résultats ultra-pertinents.
-              </p>
-              <p className="text-slate-700 leading-relaxed">
-                <strong>Confidentialité garantie :</strong> Toutes les données sont traitées localement dans votre navigateur. 
-                Vos informations restent privées et sécurisées.
-              </p>
+          {/* How it works - Simple */}
+          {!isAuthenticated && (
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-slate-900 mb-8">
+                Processus en 3 étapes
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                <div>
+                  <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-sm font-bold">1</div>
+                  <h3 className="font-semibold mb-2">Configurez vos clients</h3>
+                  <p className="text-sm text-slate-600">Ajoutez les informations de vos clients et leur contexte métier</p>
+                </div>
+                <div>
+                  <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-sm font-bold">2</div>
+                  <h3 className="font-semibold mb-2">Créez vos campagnes</h3>
+                  <p className="text-sm text-slate-600">Définissez vos groupes d'annonces et mots-clés principaux</p>
+                </div>
+                <div>
+                  <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-sm font-bold">3</div>
+                  <h3 className="font-semibold mb-2">Générez avec l'IA</h3>
+                  <p className="text-sm text-slate-600">L'IA crée automatiquement titres et descriptions optimisés</p>
+                </div>
+              </div>
+              
+              <Button size="lg" onClick={() => navigate("/auth")}>
+                Commencer maintenant
+              </Button>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
       {/* Footer */}
-      <div className="py-8 text-center border-t border-slate-200 bg-white">
+      <footer className="border-t py-8 text-center">
         <Link to="/privacy-policy" className="text-slate-500 hover:text-blue-600 transition-colors text-sm">
           Politique de confidentialité
         </Link>
-      </div>
+      </footer>
     </div>
   );
 };
