@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -157,74 +156,111 @@ async function getAccessToken(request: Request): Promise<string> {
 async function handleRead(sheetId: string, range: string, request: Request) {
   const accessToken = await getAccessToken(request);
   
-  console.log(`📖 Lecture de la feuille ${sheetId} avec la plage ${range}`);
+  console.log(`📖 EDGE FUNCTION - Lecture de la feuille ${sheetId} avec la plage ${range}`);
+  console.log(`🔑 EDGE FUNCTION - Token présent: ${accessToken ? 'OUI (***' + accessToken.slice(-4) + ')' : 'NON'}`);
   
-  const response = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`,
-    {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
+  const googleApiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`;
+  console.log(`🌐 EDGE FUNCTION - URL API Google: ${googleApiUrl}`);
+  
+  const response = await fetch(googleApiUrl, {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
     }
-  );
+  });
+
+  console.log(`📡 EDGE FUNCTION - Réponse Google API Status: ${response.status} ${response.statusText}`);
+  console.log(`📡 EDGE FUNCTION - Headers de réponse Google:`, Object.fromEntries(response.headers.entries()));
 
   const data = await response.json();
   
   if (!response.ok) {
-    console.error('Erreur API Google Sheets:', data);
+    console.error('❌ EDGE FUNCTION - Erreur API Google Sheets:', {
+      status: response.status,
+      statusText: response.statusText,
+      error: data.error,
+      message: data.message,
+      details: data
+    });
     throw new Error(`Erreur lecture: ${data.error?.message || 'Erreur inconnue'}`);
   }
 
-  console.log('📊 Réponse brute Google Sheets API:', {
+  console.log('📊 EDGE FUNCTION - Réponse brute Google Sheets API:', {
     hasValues: !!data.values,
+    valuesIsArray: Array.isArray(data.values),
     valueCount: data.values?.length || 0,
     range: data.range,
     majorDimension: data.majorDimension,
-    rawValues: data.values
+    rawValues: data.values,
+    completeResponse: data
   });
 
+  // Diagnostic ligne par ligne des données brutes de Google
+  if (data.values && Array.isArray(data.values)) {
+    console.log(`📋 EDGE FUNCTION - Diagnostic ligne par ligne (${data.values.length} lignes brutes de Google):`);
+    data.values.forEach((row, index) => {
+      console.log(`  Ligne brute ${index}: [${Array.isArray(row) ? row.length : 'N/A'} cellules] = ${JSON.stringify(row)}`);
+    });
+  } else {
+    console.log('⚠️ EDGE FUNCTION - Pas de données values ou pas un tableau');
+  }
+
   // Si pas de données du tout
-  if (!data.values || data.values.length === 0) {
-    console.log('⚠️ Aucune donnée trouvée dans la plage spécifiée');
+  if (!data.values || !Array.isArray(data.values) || data.values.length === 0) {
+    console.log('⚠️ EDGE FUNCTION - Aucune donnée trouvée dans la plage spécifiée');
     return new Response(
       JSON.stringify({
         values: [],
         range: data.range,
-        majorDimension: data.majorDimension
+        majorDimension: data.majorDimension,
+        title: 'Feuille vide'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
-  // Filtrage beaucoup moins strict - seulement éliminer les lignes complètement vides
+  // Filtrage des lignes vides - ENCORE PLUS PERMISSIF
+  console.log('🔍 EDGE FUNCTION - Début du filtrage des lignes...');
   const filteredValues = data.values.filter((row: any[], index: number) => {
     // Toujours garder la première ligne (en-têtes)
-    if (index === 0) return true;
+    if (index === 0) {
+      console.log(`  Ligne ${index} (en-têtes): TOUJOURS GARDÉE = ${JSON.stringify(row)}`);
+      return true;
+    }
     
-    // Pour les autres lignes, vérifier qu'il y a au moins une cellule non nulle/non vide
-    if (!row || row.length === 0) return false;
+    // Pour les autres lignes, vérifier qu'il y a au moins une cellule avec du contenu
+    if (!row || !Array.isArray(row) || row.length === 0) {
+      console.log(`  Ligne ${index}: SUPPRIMÉE (ligne nulle/vide) = ${JSON.stringify(row)}`);
+      return false;
+    }
     
-    // Beaucoup plus permissif : garder la ligne si au moins une cellule a du contenu
-    const hasContent = row.some(cell => {
+    // Compter les cellules avec du contenu réel
+    const nonEmptyCells = row.filter(cell => {
       if (cell === null || cell === undefined) return false;
       const cellStr = String(cell).trim();
-      return cellStr !== '';
+      return cellStr !== '' && cellStr !== '0'; // Même accepter les zéros
     });
     
-    console.log(`Ligne ${index}: [${row.slice(0, 3).join(', ')}...] -> ${hasContent ? 'GARDÉE' : 'SUPPRIMÉE'}`);
+    const hasContent = nonEmptyCells.length > 0;
+    console.log(`  Ligne ${index}: [${row.length} cellules, ${nonEmptyCells.length} non vides] ${hasContent ? 'GARDÉE' : 'SUPPRIMÉE'} = ${JSON.stringify(row)}`);
+    console.log(`    Cellules non vides: ${JSON.stringify(nonEmptyCells)}`);
+    
     return hasContent;
   });
 
-  console.log(`✅ Résultat final: ${filteredValues.length} lignes (${Math.max(0, filteredValues.length - 1)} lignes de données + en-têtes)`);
-  console.log('📋 Premières lignes filtrées:', filteredValues.slice(0, 3));
+  const finalRowCount = filteredValues.length;
+  const dataRowCount = Math.max(0, finalRowCount - 1);
+  
+  console.log(`✅ EDGE FUNCTION - Résultat final: ${finalRowCount} lignes total (${dataRowCount} lignes de données + en-têtes)`);
+  console.log('📋 EDGE FUNCTION - Premières lignes filtrées:', filteredValues.slice(0, 3));
+  console.log('📋 EDGE FUNCTION - Toutes les lignes filtrées:', filteredValues);
 
   return new Response(
     JSON.stringify({
       values: filteredValues,
       range: data.range,
       majorDimension: data.majorDimension,
-      title: `Feuille Google Sheets - ${Math.max(0, filteredValues.length - 1)} lignes de données`
+      title: `Feuille Google Sheets - ${dataRowCount} lignes de données`
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
