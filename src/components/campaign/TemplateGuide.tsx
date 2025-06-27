@@ -20,7 +20,7 @@ const TemplateGuide: React.FC<TemplateGuideProps> = ({ onSheetUrlSubmitted }) =>
 
   const handleSubmit = async () => {
     if (!sheetUrl.trim()) {
-      toast.error("Veuillez saisir l'URL de votre feuille CryptPad");
+      toast.error("Veuillez saisir l'URL de votre feuille Google Sheets");
       return;
     }
 
@@ -41,21 +41,21 @@ const TemplateGuide: React.FC<TemplateGuideProps> = ({ onSheetUrlSubmitted }) =>
         <CardHeader>
           <CardTitle className="flex items-center">
             <FileSpreadsheet className="h-5 w-5 mr-2" />
-            Étape 1: Créer votre feuille CryptPad
+            Étape 1: Créer votre feuille Google Sheets
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Créez une nouvelle feuille de calcul sur CryptPad pour vos campagnes publicitaires.
+            Créez une nouvelle feuille de calcul Google Sheets pour vos campagnes publicitaires.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
-              onClick={() => window.open('https://cryptpad.fr/sheet/', '_blank')}
+              onClick={() => window.open('https://sheets.google.com/create', '_blank')}
               className="flex items-center"
             >
               <ExternalLink className="h-4 w-4 mr-2" />
-              Créer une feuille CryptPad
+              Créer une feuille Google Sheets
             </Button>
           </div>
           
@@ -80,11 +80,11 @@ const TemplateGuide: React.FC<TemplateGuideProps> = ({ onSheetUrlSubmitted }) =>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="sheet-url">URL de votre feuille CryptPad</Label>
+            <Label htmlFor="sheet-url">URL de votre feuille Google Sheets</Label>
             <Input
               id="sheet-url"
               type="url"
-              placeholder="https://cryptpad.fr/sheet/#/2/sheet/edit/..."
+              placeholder="https://docs.google.com/spreadsheets/d/..."
               value={sheetUrl}
               onChange={(e) => setSheetUrl(e.target.value)}
             />
@@ -93,8 +93,8 @@ const TemplateGuide: React.FC<TemplateGuideProps> = ({ onSheetUrlSubmitted }) =>
           <div className="bg-green-50 p-3 rounded-lg">
             <p className="text-sm font-medium text-green-900">🔒 Sécurité</p>
             <p className="text-sm text-green-800">
-              CryptPad offre un chiffrement de bout en bout pour protéger vos données.
-              Vos campagnes restent privées et sécurisées.
+              Vos données Google Sheets sont protégées par l'authentification OAuth2.
+              Seules les feuilles que vous autorisez sont accessibles.
             </p>
           </div>
 

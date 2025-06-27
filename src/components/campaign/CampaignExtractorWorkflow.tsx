@@ -150,7 +150,7 @@ const CampaignExtractorWorkflow: React.FC<CampaignExtractorWorkflowProps> = ({
       {/* État des données */}
       <Card>
         <CardHeader>
-          <CardTitle>Analyse de la feuille CryptPad</CardTitle>
+          <CardTitle>Analyse de la feuille Google Sheets</CardTitle>
         </CardHeader>
         <CardContent>
           <div className={`p-4 rounded-lg ${dataStatus.bg}`}>
@@ -273,7 +273,7 @@ const CampaignExtractorWorkflow: React.FC<CampaignExtractorWorkflowProps> = ({
                 <AlertCircle className="h-4 w-4 text-amber-600" />
                 <AlertDescription className="text-amber-700">
                   L'extraction a produit des résultats, mais certaines données semblent manquantes. 
-                  Vérifiez que votre feuille CryptPad contient bien des données dans les colonnes attendues.
+                  Vérifiez que votre feuille Google Sheets contient bien des données dans les colonnes attendues.
                 </AlertDescription>
               </Alert>
             )}

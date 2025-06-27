@@ -6,7 +6,6 @@ import ClientInfoCard from "./campaign/ClientInfoCard";
 import LoadingState from "./campaign/LoadingState";
 import EmptyState from "./campaign/EmptyState";
 import ContentGenerator from "./campaign/ContentGenerator";
-import SpreadsheetSaver from "./campaign/SpreadsheetSaver";
 import CampaignExtractor from "./campaign/CampaignExtractor";
 import { useSheetData } from "@/hooks/useSheetData";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -51,7 +50,6 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
       <Tabs defaultValue="extraction" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="extraction">Extraction de campagnes</TabsTrigger>
-          <TabsTrigger value="spreadsheet">CryptPad</TabsTrigger>
           <TabsTrigger value="content">Génération de contenu</TabsTrigger>
         </TabsList>
         
@@ -62,20 +60,6 @@ const CampaignManager: React.FC<CampaignManagerProps> = ({ sheet, onUpdateComple
             onUpdateComplete={onUpdateComplete}
             refreshData={refreshData}
           />
-        </TabsContent>
-        
-        <TabsContent value="spreadsheet" className="space-y-4">
-          <Card>
-            <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-4">Feuille CryptPad</h2>
-              <SpreadsheetSaver 
-                sheet={sheet}
-                sheetData={sheetData}
-                setSheetData={setSheetData}
-                onUpdateComplete={onUpdateComplete}
-              />
-            </CardContent>
-          </Card>
         </TabsContent>
         
         <TabsContent value="content" className="space-y-4">

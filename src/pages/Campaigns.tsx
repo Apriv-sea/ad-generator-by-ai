@@ -22,7 +22,7 @@ const Campaigns = () => {
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              <strong>Processus de création :</strong> Sélectionnez un client, définissez vos groupes d'annonces et mots-clés, 
+              <strong>Processus de création :</strong> Connectez-vous à Google Sheets, définissez vos groupes d'annonces et mots-clés, 
               puis laissez l'IA générer des titres et descriptions optimisés pour chaque groupe.
             </AlertDescription>
           </Alert>

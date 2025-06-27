@@ -60,9 +60,8 @@ const CampaignWorkflow: React.FC = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="googlesheets" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="googlesheets">Google Sheets</TabsTrigger>
-          <TabsTrigger value="sheets">Feuilles locales</TabsTrigger>
           <TabsTrigger value="manager" disabled={!selectedSheet}>
             Gestion
           </TabsTrigger>
@@ -72,17 +71,6 @@ const CampaignWorkflow: React.FC = () => {
           <GoogleSheetsWorkflow 
             sheet={selectedSheet} 
             clientInfo={clientInfo}
-          />
-        </TabsContent>
-
-        <TabsContent value="sheets" className="space-y-6">
-          <SheetsTab
-            sheets={sheets}
-            isLoading={isLoading}
-            onSelectSheet={handleSelectSheet}
-            onDeleteSheet={handleDeleteSheet}
-            onSheetCreated={handleSheetCreated}
-            onRefreshSheets={loadSheets}
           />
         </TabsContent>
 
