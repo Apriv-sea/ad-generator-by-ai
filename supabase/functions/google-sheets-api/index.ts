@@ -29,29 +29,50 @@ serve(async (req) => {
   }
 
   try {
-    // Vérifier les variables d'environnement
+    // Vérifier les variables d'environnement avec plus de détails
     const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID');
     const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET');
     
-    console.log('🔑 Variables d\'environnement:', {
+    console.log('🔑 Diagnostic des variables d\'environnement:', {
       hasClientId: !!clientId,
       hasClientSecret: !!clientSecret,
-      clientIdLength: clientId?.length || 0
+      clientIdPrefix: clientId ? clientId.substring(0, 20) + '...' : 'MANQUANT',
+      clientSecretPrefix: clientSecret ? clientSecret.substring(0, 20) + '...' : 'MANQUANT',
+      envKeys: Object.keys(Deno.env.toObject()).filter(key => key.includes('GOOGLE')),
+      allEnvKeys: Object.keys(Deno.env.toObject())
     });
 
-    if (!clientId || !clientSecret) {
-      console.error('❌ Configuration Google Sheets manquante');
-      throw new Error('Configuration Google Sheets manquante - vérifiez les secrets Supabase');
+    if (!clientId) {
+      console.error('❌ GOOGLE_SHEETS_CLIENT_ID manquant');
+      throw new Error('Configuration manquante: GOOGLE_SHEETS_CLIENT_ID non défini dans les secrets Supabase');
+    }
+
+    if (!clientSecret) {
+      console.error('❌ GOOGLE_SHEETS_CLIENT_SECRET manquant');
+      throw new Error('Configuration manquante: GOOGLE_SHEETS_CLIENT_SECRET non défini dans les secrets Supabase');
+    }
+
+    // Vérifier que les secrets ont une longueur raisonnable
+    if (clientId.length < 50) {
+      console.error('❌ GOOGLE_SHEETS_CLIENT_ID semble invalide (trop court)');
+      throw new Error('Configuration invalide: GOOGLE_SHEETS_CLIENT_ID semble incorrect');
+    }
+
+    if (clientSecret.length < 20) {
+      console.error('❌ GOOGLE_SHEETS_CLIENT_SECRET semble invalide (trop court)');
+      throw new Error('Configuration invalide: GOOGLE_SHEETS_CLIENT_SECRET semble incorrect');
     }
 
     // Parser le body de la requête
     let requestBody;
     try {
-      requestBody = await req.json();
-      console.log('📨 Corps de la requête:', { action: requestBody.action });
+      const bodyText = await req.text();
+      console.log('📨 Corps de la requête (brut):', bodyText);
+      requestBody = JSON.parse(bodyText);
+      console.log('📨 Corps de la requête (parsé):', requestBody);
     } catch (error) {
       console.error('❌ Impossible de parser le JSON:', error);
-      throw new Error('Corps de requête JSON invalide');
+      throw new Error('Corps de requête JSON invalide: ' + error.message);
     }
 
     const { action, sheetId, data, range, title, code }: GoogleSheetsRequest = requestBody;
@@ -79,17 +100,24 @@ serve(async (req) => {
     }
 
   } catch (error) {
-    console.error('❌ Erreur Google Sheets API:', error);
+    console.error('❌ Erreur Google Sheets API:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      cause: error.cause
+    });
     
     const errorResponse = {
       error: error.message || 'Erreur inconnue',
-      details: error.stack || 'Pas de détails disponibles'
+      details: error.stack || 'Pas de détails disponibles',
+      timestamp: new Date().toISOString(),
+      action: 'Vérifiez la configuration des secrets Google Sheets dans Supabase'
     };
 
     return new Response(
       JSON.stringify(errorResponse),
       { 
-        status: 400,
+        status: error.message.includes('Configuration') ? 500 : 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
@@ -97,7 +125,11 @@ serve(async (req) => {
 });
 
 async function handleAuth(clientId: string, clientSecret: string, code?: string) {
-  console.log('🔐 Gestion de l\'authentification:', { hasCode: !!code });
+  console.log('🔐 Gestion de l\'authentification:', { 
+    hasCode: !!code,
+    clientIdLength: clientId.length,
+    clientSecretLength: clientSecret.length
+  });
 
   if (!code) {
     // Déterminer l'URL de redirection
@@ -113,7 +145,7 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string)
       `access_type=offline&` +
       `prompt=consent`;
     
-    console.log('✅ URL d\'authentification générée');
+    console.log('✅ URL d\'authentification générée avec succès');
     
     return new Response(
       JSON.stringify({ authUrl }),
@@ -124,7 +156,10 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string)
   // Échange du code d'autorisation
   const redirectUri = 'https://ad-generator-by-ai.lovable.app/auth/callback/google';
   
-  console.log('🔄 Échange du code d\'autorisation...');
+  console.log('🔄 Échange du code d\'autorisation...', {
+    codeLength: code.length,
+    redirectUri
+  });
   
   try {
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -142,19 +177,32 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string)
       })
     });
 
+    console.log('📡 Réponse OAuth Google:', {
+      status: tokenResponse.status,
+      statusText: tokenResponse.statusText,
+      headers: Object.fromEntries(tokenResponse.headers.entries())
+    });
+
     const tokenData = await tokenResponse.json();
     
     if (!tokenResponse.ok) {
       console.error('❌ Erreur lors de l\'échange du token:', {
         status: tokenResponse.status,
         error: tokenData.error,
-        error_description: tokenData.error_description
+        error_description: tokenData.error_description,
+        fullResponse: tokenData
       });
       
-      throw new Error(`Erreur OAuth: ${tokenData.error_description || tokenData.error || 'Erreur inconnue'}`);
+      throw new Error(`Erreur OAuth Google (${tokenResponse.status}): ${tokenData.error_description || tokenData.error || 'Erreur inconnue'}`);
     }
 
-    console.log('✅ Token échangé avec succès');
+    console.log('✅ Token échangé avec succès:', {
+      hasAccessToken: !!tokenData.access_token,
+      hasRefreshToken: !!tokenData.refresh_token,
+      tokenType: tokenData.token_type,
+      expiresIn: tokenData.expires_in
+    });
+
     return new Response(
       JSON.stringify(tokenData),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
