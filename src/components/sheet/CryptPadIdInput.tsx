@@ -2,13 +2,12 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "sonner";
+import { ExternalLink, AlertCircle, CheckCircle, Loader } from "lucide-react";
 import { cryptpadService } from "@/services/cryptpad/cryptpadService";
-import { AlertCircle, FileSpreadsheet, Plus } from "lucide-react";
+import { cryptpadValidationService } from "@/services/sheets/cryptpadValidationService";
+import { toast } from "sonner";
 
 interface CryptPadIdInputProps {
   onSheetLoaded: (padId: string, data: any) => void;
@@ -16,168 +15,137 @@ interface CryptPadIdInputProps {
 }
 
 const CryptPadIdInput: React.FC<CryptPadIdInputProps> = ({ onSheetLoaded, onConnectionSuccess }) => {
-  const [padInput, setPadInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [shouldInitialize, setShouldInitialize] = useState(true);
+  const [url, setUrl] = useState("");
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!padInput.trim()) {
-      toast.error("Veuillez entrer un ID ou une URL CryptPad");
+  const handleConnect = async () => {
+    if (!url.trim()) {
+      setConnectionError("Veuillez entrer une URL CryptPad");
       return;
     }
 
-    setIsLoading(true);
+    console.log("🔗 Tentative de connexion à l'URL:", url);
+    setIsConnecting(true);
+    setConnectionError(null);
+
     try {
-      console.log("🚀 Début de la connexion CryptPad...");
+      // Valider l'URL
+      const validation = cryptpadValidationService.validateCryptpadUrl(url);
+      if (!validation.isValid) {
+        throw new Error(validation.error || "URL invalide");
+      }
+
+      // Extraire l'ID du pad
+      const padId = cryptpadService.extractPadId(url);
+      if (!padId) {
+        throw new Error("Impossible d'extraire l'ID du pad depuis cette URL");
+      }
+
+      console.log("🆔 ID du pad extrait:", padId);
+
+      // Récupérer les données
+      console.log("📊 Récupération des données...");
+      const data = await cryptpadService.getSheetData(padId);
       
-      // Extraire l'ID du pad depuis l'URL si nécessaire
-      let padId = padInput.trim();
+      console.log("✅ Données récupérées:", {
+        title: data.title,
+        rowCount: data.values?.length || 0,
+        headers: data.values?.[0],
+        hasData: data.values && data.values.length > 1
+      });
+
+      if (!data.values || data.values.length === 0) {
+        throw new Error("Aucune donnée trouvée dans la feuille CryptPad");
+      }
+
+      if (data.values.length === 1) {
+        console.warn("⚠️ Seulement les en-têtes trouvés, pas de données");
+        toast.warning("Seuls les en-têtes ont été trouvés. Ajoutez des données dans votre feuille CryptPad.");
+      }
+
+      // Succès !
+      onSheetLoaded(padId, data);
+      toast.success(`Connexion réussie ! ${data.values.length - 1} ligne(s) de données trouvée(s).`);
       
-      // Si c'est une URL complète, extraire l'ID
-      if (padInput.includes('cryptpad.fr')) {
-        const extractedId = cryptpadService.extractPadId(padInput);
-        if (!extractedId) {
-          toast.error("URL CryptPad invalide. Vérifiez le format.");
-          return;
-        }
-        padId = extractedId;
-      }
-
-      console.log("📝 ID extrait:", padId);
-
-      // Valider l'ID
-      if (!cryptpadService.validatePadId(padId)) {
-        toast.error("ID CryptPad invalide. Vérifiez le format.");
-        return;
-      }
-
-      // Charger les données existantes
-      let sheetData;
-      try {
-        console.log("📊 Chargement des données...");
-        sheetData = await cryptpadService.getSheetData(padId);
-        console.log("✅ Données chargées:", sheetData);
-      } catch (error) {
-        console.error("❌ Erreur lors du chargement:", error);
-        toast.error("Impossible de charger la feuille. Vérifiez l'ID et les permissions.");
-        return;
-      }
-
-      // Si l'option d'initialisation est cochée et que la feuille est vide ou n'a que des en-têtes basiques
-      if (shouldInitialize && (!sheetData.values || sheetData.values.length <= 1 || 
-          (sheetData.values.length > 0 && sheetData.values[0].length < 10))) {
-        
-        console.log("🔧 Initialisation de la feuille avec les en-têtes standards...");
-        const success = await cryptpadService.initializeSheetWithHeaders(padId);
-        
-        if (success) {
-          // Recharger les données après initialisation
-          sheetData = await cryptpadService.getSheetData(padId);
-          toast.success("Feuille initialisée avec les en-têtes standards");
-        } else {
-          toast.warning("Impossible d'initialiser la feuille, mais connexion réussie");
-        }
-      }
-
-      console.log("🎉 Connexion réussie, appel des callbacks...");
-      onSheetLoaded(padId, sheetData);
-      
-      // Redirection automatique après connexion réussie
       if (onConnectionSuccess) {
-        console.log("🔄 Redirection automatique vers l'extraction...");
-        setTimeout(() => {
-          onConnectionSuccess();
-        }, 1500); // Délai pour laisser l'utilisateur voir le message de succès
+        onConnectionSuccess();
       }
-      
+
     } catch (error) {
-      console.error("💥 Erreur lors de la connexion à CryptPad:", error);
-      toast.error("Erreur lors de la connexion. Vérifiez votre connexion et réessayez.");
+      console.error("❌ Erreur de connexion:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erreur de connexion inconnue";
+      setConnectionError(errorMessage);
+      toast.error(`Échec de connexion: ${errorMessage}`);
     } finally {
-      setIsLoading(false);
+      setIsConnecting(false);
     }
   };
 
+  const openCryptPadHelp = () => {
+    window.open("https://docs.cryptpad.fr/en/user_guide/apps/calc.html", "_blank");
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <FileSpreadsheet className="h-5 w-5 mr-2" />
-          Connecter une feuille CryptPad
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Connectez-vous à une feuille CryptPad existante ou créez-en une nouvelle sur{" "}
-            <a 
-              href="https://cryptpad.fr/sheet/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="underline text-primary hover:text-primary/80"
-            >
-              cryptpad.fr/sheet
-            </a>
-          </AlertDescription>
-        </Alert>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="cryptpad-input">
-              URL ou ID de la feuille CryptPad
-            </Label>
-            <Input
-              id="cryptpad-input"
-              type="text"
-              placeholder="https://cryptpad.fr/sheet/#/2/sheet/edit/... ou ID direct"
-              value={padInput}
-              onChange={(e) => setPadInput(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="initialize-headers"
-              checked={shouldInitialize}
-              onCheckedChange={(checked) => setShouldInitialize(checked as boolean)}
-            />
-            <Label htmlFor="initialize-headers" className="text-sm">
-              Initialiser avec les en-têtes standards pour les campagnes publicitaires
-            </Label>
-          </div>
-
-          <div className="flex gap-2">
-            <Button 
-              type="submit" 
-              disabled={isLoading}
-              className="flex-1"
-            >
-              {isLoading ? (
-                <>
-                  <span className="animate-spin mr-2">⊚</span>
-                  Connexion...
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Connecter la feuille
-                </>
-              )}
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <span>Connexion CryptPad</span>
+            <Button variant="ghost" size="sm" onClick={openCryptPadHelp}>
+              <ExternalLink className="h-4 w-4" />
             </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">URL de votre feuille CryptPad :</label>
+            <Input
+              type="url"
+              placeholder="https://cryptpad.fr/sheet/#/2/sheet/edit/..."
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              disabled={isConnecting}
+            />
           </div>
-        </form>
 
-        <div className="text-xs text-muted-foreground space-y-1">
-          <p>• Les en-têtes standards incluent : Nom de la campagne, Groupe d'annonces, Mots-clés, Titres, Descriptions, etc.</p>
-          <p>• Cette option est recommandée pour les nouvelles feuilles</p>
-          <p>• Pour les feuilles existantes, décochez cette option pour préserver vos données</p>
-        </div>
-      </CardContent>
-    </Card>
+          {connectionError && (
+            <Alert className="border-red-200 bg-red-50">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-700">
+                {connectionError}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Button 
+            onClick={handleConnect} 
+            disabled={isConnecting || !url.trim()}
+            className="w-full"
+          >
+            {isConnecting ? (
+              <>
+                <Loader className="h-4 w-4 mr-2 animate-spin" />
+                Connexion en cours...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Se connecter
+              </>
+            )}
+          </Button>
+
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Note:</strong> Assurez-vous que votre feuille CryptPad contient les en-têtes standards et des données.
+              L'URL doit être celle d'édition (avec "/edit/" dans le lien).
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

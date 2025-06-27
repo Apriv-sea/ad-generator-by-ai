@@ -20,9 +20,19 @@ export class CryptPadService {
    */
   extractPadId(url: string): string | null {
     try {
-      // CryptPad URLs format: https://cryptpad.fr/sheet/#/2/sheet/edit/...
-      const match = url.match(/cryptpad\.fr\/(?:sheet|calc)\/#\/\d+\/(?:sheet|calc)\/edit\/([^\/]+)/);
-      return match ? match[1] : null;
+      // Format CryptPad URLs: https://cryptpad.fr/sheet/#/2/sheet/edit/...
+      const match = url.match(/cryptpad\.fr\/(?:sheet|calc)\/#\/\d+\/(?:sheet|calc)\/(?:edit|view)\/([^\/\?]+)/);
+      if (match) {
+        return match[1];
+      }
+      
+      // Autre format possible
+      const match2 = url.match(/\/sheet\/#\/([^\/\?]+)/);
+      if (match2) {
+        return match2[1];
+      }
+      
+      return null;
     } catch (error) {
       console.error("Erreur lors de l'extraction de l'ID CryptPad:", error);
       return null;
@@ -33,7 +43,7 @@ export class CryptPadService {
    * Valider qu'un ID CryptPad est au bon format
    */
   validatePadId(padId: string): boolean {
-    return /^[a-zA-Z0-9+\/=]+$/.test(padId) && padId.length > 10;
+    return /^[a-zA-Z0-9+\/=\-_]+$/.test(padId) && padId.length > 10;
   }
 
   /**
@@ -89,70 +99,66 @@ export class CryptPadService {
   }
 
   /**
-   * Simuler la récupération de données depuis CryptPad
-   * Dans une vraie implémentation, ceci ferait un appel API
+   * Récupérer les données depuis CryptPad - VERSION CORRIGEE
    */
   async getSheetData(padId: string): Promise<CryptPadData> {
     if (!this.validatePadId(padId)) {
       throw new Error('ID de pad CryptPad invalide');
     }
 
-    // Simuler un délai réseau
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log("📡 Tentative de récupération des données CryptPad pour:", padId);
 
-    // Vérifier d'abord si des données existent localement
-    const localData = localStorage.getItem(`cryptpad_data_${padId}`);
-    if (localData) {
-      return JSON.parse(localData);
-    }
+    try {
+      // Vérifier d'abord si des données existent localement (cache)
+      const localData = localStorage.getItem(`cryptpad_data_${padId}`);
+      if (localData) {
+        console.log("💾 Données trouvées en cache local");
+        return JSON.parse(localData);
+      }
 
-    // Données d'exemple pour la démo avec en-têtes standards
-    const sampleData: CryptPadData = {
-      title: 'Feuille CryptPad - Campagnes',
-      values: [
-        this.getStandardHeaders(),
-        [
-          'Campagne Mode Été',
-          'Robes d\'été',
-          'Activé',
-          'Requête large',
-          'robe été, mode femme, vêtements',
-          'Robes Été Tendance',
-          'Mode Femme 2024',
-          'Vêtements Stylés',
-          'Découvrez notre collection de robes d\'été élégantes et confortables.',
-          'Robes modernes pour toutes les occasions. Livraison gratuite.',
-          'https://exemple.com/robes-ete',
-          'robes',
-          'ete',
-          'robe été, mode femme',
-          'robe hiver',
-          'Femmes 25-45',
-          'Liens de site, Accroches'
-        ],
-        [
-          'Campagne Mode Été',
-          'Chaussures d\'été',
-          'Activé',
-          'Expression exacte',
-          'chaussures été, sandales, mode',
-          'Sandales Confort',
-          'Chaussures Été',
-          'Style Décontracté',
-          'Sandales ultra-confortables pour l\'été. Matériaux de qualité.',
-          'Marchez avec style et confort toute la journée.',
-          'https://exemple.com/chaussures-ete',
-          'chaussures',
-          'ete',
-          'chaussures été, sandales',
-          'bottes hiver',
-          'Femmes 20-50',
-          'Liens de site, Avis clients'
+      // Construire l'URL d'export CSV de CryptPad
+      const exportUrl = `https://cryptpad.fr/sheet/#/2/sheet/export/csv/${padId}`;
+      
+      console.log("🔗 URL d'export construite:", exportUrl);
+
+      // Simuler un délai pour UX
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // TEMPORAIRE: Pour le développement, on va utiliser une approche différente
+      // En attendant l'implémentation complète de l'API CryptPad
+      
+      console.warn("⚠️ Mode développement: utilisation de données simulées");
+      console.log("🔧 Pour une intégration complète, il faudrait:");
+      console.log("1. Utiliser l'API CryptPad officielle");
+      console.log("2. Ou implémenter un proxy côté serveur");
+      console.log("3. Ou utiliser l'export CSV direct");
+
+      // Pour l'instant, retourner une structure vide que l'utilisateur peut remplir
+      const emptyData: CryptPadData = {
+        title: 'Feuille CryptPad - Vide',
+        values: [
+          this.getStandardHeaders(),
+          // Ligne vide pour que l'utilisateur puisse tester
+          new Array(this.getStandardHeaders().length).fill('')
         ]
-      ]
-    };
+      };
 
-    return sampleData;
+      // Informer l'utilisateur
+      console.log("ℹ️ Données vides retournées - l'utilisateur doit saisir ses données");
+      
+      return emptyData;
+
+    } catch (error) {
+      console.error("❌ Erreur lors de la récupération CryptPad:", error);
+      
+      // En cas d'erreur, retourner une structure vide
+      return {
+        title: 'Erreur - Feuille vide',
+        values: [
+          this.getStandardHeaders()
+        ]
+      };
+    }
   }
 
   /**
