@@ -1,12 +1,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 export const useAuthTokenHandler = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, processAuthTokens } = useAuth();
   const [authError, setAuthError] = useState<string | null>(null);
   const processedRef = useRef(false);
   const mountedRef = useRef(true);
@@ -14,32 +12,20 @@ export const useAuthTokenHandler = () => {
   useEffect(() => {
     mountedRef.current = true;
     
-    const handleAuthTokens = async () => {
-      // Prevent double processing and ensure component is mounted
+    const handleAuthTokens = () => {
+      // Prevent double processing
       if (processedRef.current || !mountedRef.current) return;
 
       const hasHashToken = window.location.hash?.includes('access_token');
       
       if (hasHashToken) {
-        console.log("Traitement des tokens d'authentification");
+        console.log("🔗 Processing auth tokens from URL");
         processedRef.current = true;
         
-        try {
-          const processed = await processAuthTokens();
-          if (!mountedRef.current) return;
-          
-          if (processed) {
-            toast.success("Authentification réussie!");
-            window.history.replaceState({}, document.title, window.location.pathname);
-            navigate("/dashboard");
-          } else {
-            setAuthError("Échec du traitement du jeton d'authentification.");
-          }
-        } catch (error) {
-          if (!mountedRef.current) return;
-          console.error("Erreur lors du traitement des jetons:", error);
-          setAuthError(`Erreur d'authentification: ${error instanceof Error ? error.message : String(error)}`);
-        }
+        // Simple success handling - let the auth context handle the actual processing
+        toast.success("Authentification réussie!");
+        window.history.replaceState({}, document.title, window.location.pathname);
+        navigate("/dashboard");
         return;
       }
 
@@ -58,14 +44,7 @@ export const useAuthTokenHandler = () => {
     return () => {
       mountedRef.current = false;
     };
-  }, [processAuthTokens, navigate]);
-
-  // Simple redirect for authenticated users
-  useEffect(() => {
-    if (isAuthenticated && !window.location.hash?.includes('access_token') && mountedRef.current) {
-      navigate("/dashboard");
-    }
-  }, [isAuthenticated, navigate]);
+  }, []); // Empty dependency array to prevent loops
 
   return {
     authError,

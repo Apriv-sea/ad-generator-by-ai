@@ -15,6 +15,7 @@ export function useSecureAuth() {
   const authSubscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
   const activityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
+  const initializedRef = useRef(false);
 
   // Enhanced security constants
   const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
@@ -73,70 +74,59 @@ export function useSecureAuth() {
     }
   };
 
-  // Single useEffect for complete auth setup
+  // Single initialization effect - runs only once
   useEffect(() => {
+    if (initializedRef.current) return;
+    
     mountedRef.current = true;
-    let cleanup = false;
+    initializedRef.current = true;
 
-    const initAuth = async () => {
-      if (cleanup) return;
-
+    const initializeAuth = async () => {
       try {
-        // Set up auth state listener first
-        if (!authSubscriptionRef.current) {
-          const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            (event, session) => {
-              if (cleanup || !mountedRef.current) return;
-              
-              console.log("Auth state changed:", event);
-              logSecurityEvent('AUTH_STATE_CHANGE', { event });
-              
-              // Handle different auth events
-              if (event === 'TOKEN_REFRESHED' && session) {
-                console.log("Token refreshed successfully");
-                setLastActivity(Date.now());
-                setRetryCount(0);
-                resetFailedAttempts();
-                logSecurityEvent('TOKEN_REFRESH_SUCCESS');
-              } else if (event === 'SIGNED_IN' && session?.user) {
-                console.log("User signed in:", session.user.id);
-                setLastActivity(Date.now());
-                setRetryCount(0);
-                resetFailedAttempts();
-                localStorage.setItem('auth_connected', 'true');
-                
-                logSecurityEvent('USER_SIGNIN', {
-                  userId: session.user.id,
-                  provider: session.user.app_metadata?.provider
-                });
-              } else if (event === 'SIGNED_OUT') {
-                console.log("User signed out");
-                logSecurityEvent('USER_SIGNOUT');
-                localStorage.removeItem('auth_connected');
-                localStorage.removeItem('user_data');
-                sessionStorage.removeItem('oauth_state');
-                sessionStorage.removeItem('google_auth_state');
-              }
-              
-              setSession(session);
-              setUser(session?.user || null);
-            }
-          );
+        console.log("🔐 Initializing secure auth...");
+        
+        // Set up auth state listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          if (!mountedRef.current) return;
           
-          authSubscriptionRef.current = subscription;
-        }
+          console.log("🔐 Auth state changed:", event);
+          logSecurityEvent('AUTH_STATE_CHANGE', { event });
+          
+          setSession(session);
+          setUser(session?.user || null);
+          
+          if (event === 'SIGNED_IN' && session?.user) {
+            setLastActivity(Date.now());
+            setRetryCount(0);
+            resetFailedAttempts();
+            localStorage.setItem('auth_connected', 'true');
+            logSecurityEvent('USER_SIGNIN', {
+              userId: session.user.id,
+              provider: session.user.app_metadata?.provider
+            });
+          } else if (event === 'SIGNED_OUT') {
+            localStorage.removeItem('auth_connected');
+            localStorage.removeItem('user_data');
+            sessionStorage.removeItem('oauth_state');
+            sessionStorage.removeItem('google_auth_state');
+            logSecurityEvent('USER_SIGNOUT');
+          }
+        });
+        
+        authSubscriptionRef.current = subscription;
         
         // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
-        if (cleanup) return;
-
+        
+        if (!mountedRef.current) return;
+        
         if (error) {
-          console.error("Session error:", error);
+          console.error("🔐 Session error:", error);
           logSecurityEvent('SESSION_ERROR', { error: error.message });
           
           if (error.message?.includes('refresh_token_not_found') || 
               error.message?.includes('Invalid Refresh Token')) {
-            console.log("Invalid refresh token detected, clearing session");
+            console.log("🔐 Invalid refresh token, clearing session");
             await handleSignOut();
           }
         } else {
@@ -151,46 +141,46 @@ export function useSecureAuth() {
         }
         
       } catch (error) {
-        if (cleanup) return;
-        console.error("Error initializing authentication:", error);
+        if (!mountedRef.current) return;
+        console.error("🔐 Error initializing auth:", error);
         logSecurityEvent('AUTH_INIT_ERROR', { error: error.message });
-        
-        if (error?.message?.includes('refresh_token_not_found')) {
-          await handleSignOut();
-        }
       } finally {
-        if (!cleanup && mountedRef.current) {
+        if (mountedRef.current) {
           setIsLoading(false);
+          console.log("🔐 Auth initialization complete");
         }
       }
     };
 
     // Set up activity monitoring
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    events.forEach(event => {
-      document.addEventListener(event, updateActivity, { passive: true });
+    const eventListeners = events.map(event => {
+      const listener = () => updateActivity();
+      document.addEventListener(event, listener, { passive: true });
+      return { event, listener };
     });
 
     // Set up session timeout check
-    const checkSessionTimeout = () => {
-      if (cleanup) return;
+    const timeoutCheck = setInterval(() => {
+      if (!mountedRef.current || !session) return;
+      
       const now = Date.now();
-      if (session && (now - lastActivity > SESSION_TIMEOUT)) {
-        console.log("Session expired due to inactivity");
+      if (now - lastActivity > SESSION_TIMEOUT) {
+        console.log("🔐 Session expired due to inactivity");
         logSecurityEvent('SESSION_TIMEOUT');
         toast.info("Session expirée. Veuillez vous reconnecter.");
         handleSignOut();
       }
-    };
+    }, 60000);
 
-    activityTimeoutRef.current = setInterval(checkSessionTimeout, 60000);
+    activityTimeoutRef.current = timeoutCheck;
 
-    // Initialize auth
-    initAuth();
+    // Initialize
+    initializeAuth();
 
-    // Cleanup function
+    // Cleanup
     return () => {
-      cleanup = true;
+      console.log("🔐 Cleaning up secure auth");
       mountedRef.current = false;
       
       if (authSubscriptionRef.current) {
@@ -198,12 +188,13 @@ export function useSecureAuth() {
         authSubscriptionRef.current = null;
       }
       
-      events.forEach(event => {
-        document.removeEventListener(event, updateActivity);
+      eventListeners.forEach(({ event, listener }) => {
+        document.removeEventListener(event, listener);
       });
       
       if (activityTimeoutRef.current) {
         clearInterval(activityTimeoutRef.current);
+        activityTimeoutRef.current = null;
       }
     };
   }, []); // Empty dependency array - runs only once

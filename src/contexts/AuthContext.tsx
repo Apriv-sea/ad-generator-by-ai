@@ -53,6 +53,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     retryCount
   };
 
+  // Simplified rendering - no conditional logic that could cause loops
   return (
     <AuthContext.Provider value={contextValue}>
       {children}
