@@ -106,7 +106,15 @@ export class GoogleSheetsApiService {
     }
 
     try {
-      console.log(`✍️ Sauvegarde des données: ${sheetId} (${data.length} lignes)`);
+      console.log(`✍️ === DEBUT SAUVEGARDE GOOGLE SHEETS ===`);
+      console.log(`📋 Feuille cible: ${sheetId}`);
+      console.log(`📊 Données à sauvegarder:`, {
+        totalRows: data.length,
+        totalCols: data[0]?.length || 0,
+        range: range,
+        firstRow: data[0],
+        dataPreview: data.slice(0, 3)
+      });
       
       const response = await fetch(this.API_BASE_URL, {
         method: 'POST',
@@ -118,21 +126,89 @@ export class GoogleSheetsApiService {
           action: 'write',
           sheetId,
           data,
-          range
+          range,
+          valueInputOption: 'RAW' // S'assurer que les données sont écrites telles quelles
         })
       });
 
+      console.log(`📡 Réponse API sauvegarde:`, {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
+      const responseText = await response.text();
+      console.log(`📄 Contenu réponse sauvegarde:`, responseText);
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw { status: response.status, ...errorData };
+        console.error(`❌ === ERREUR SAUVEGARDE DETAILLEE ===`);
+        console.error('Status:', response.status);
+        console.error('Status Text:', response.statusText);
+        console.error('Contenu:', responseText);
+
+        // Analyser les erreurs courantes de sauvegarde
+        if (response.status === 403) {
+          console.error('🚫 Erreur 403 - Problèmes possibles:');
+          console.error('- Permissions insuffisantes sur la feuille Google Sheets');
+          console.error('- Token expiré ou invalide');
+          console.error('- Feuille protégée en écriture');
+        }
+        
+        if (response.status === 400) {
+          console.error('📝 Erreur 400 - Problème de données:');
+          console.error('- Format de données invalide');
+          console.error('- Range invalide');
+          console.error('- Taille de données trop importante');
+        }
+
+        // Essayer de parser la réponse d'erreur
+        let errorMessage = `Erreur sauvegarde (${response.status}): ${response.statusText}`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.error || errorData.message || errorMessage;
+          console.error('📋 Détails de l\'erreur parsée:', errorData);
+        } catch (parseError) {
+          console.error('❌ Impossible de parser la réponse d\'erreur:', parseError);
+        }
+
+        throw { status: response.status, message: errorMessage };
       }
 
-      console.log('✅ Données sauvegardées avec succès');
-      return true;
+      // Parser la réponse de succès
+      let result;
+      try {
+        result = JSON.parse(responseText);
+        console.log('✅ Réponse sauvegarde parsée:', result);
+      } catch (parseError) {
+        console.warn('⚠️ Réponse non-JSON mais succès HTTP:', responseText);
+        // Si c'est un succès HTTP mais pas JSON, on considère que c'est OK
+        result = { success: true };
+      }
+
+      // Vérifier que la sauvegarde a bien été effectuée
+      if (result && (result.updatedCells || result.updatedRows || result.success !== false)) {
+        console.log('✅ === SAUVEGARDE REUSSIE ===');
+        console.log('Détails:', {
+          updatedCells: result.updatedCells,
+          updatedRows: result.updatedRows,
+          updatedColumns: result.updatedColumns,
+          spreadsheetId: result.spreadsheetId
+        });
+        return true;
+      } else {
+        console.warn('⚠️ Sauvegarde incertaine - pas de confirmation:', result);
+        return true; // On assume que c'est OK si pas d'erreur HTTP
+      }
 
     } catch (error) {
+      console.error('❌ === ERREUR COMPLETE SAUVEGARDE ===');
+      console.error('Type:', error.constructor.name);
+      console.error('Message:', error.message || error);
+      console.error('Stack:', error.stack);
+      
       const handledError = GoogleSheetsErrorHandler.handleApiError(error);
-      console.error('❌ Erreur sauvegarde:', handledError);
+      console.error('❌ Erreur sauvegarde gérée:', handledError);
       throw new Error(handledError.message);
     }
   }

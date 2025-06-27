@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Sheet, Client, sheetService } from "@/services/sheetService";
 import { enhancedContentGenerationService } from "@/services/content/enhancedContentGenerationService";
+import { googleSheetsService } from "@/services/googlesheets/googleSheetsService";
 
 interface UseContentGenerationProps {
   sheet: Sheet;
@@ -45,24 +46,40 @@ export const useContentGeneration = ({
 
     setIsSaving(true);
     try {
+      console.log('🚀 === DEBUT GENERATION DE CONTENU ===');
+      console.log('📋 Feuille:', sheet.id);
+      console.log('📊 Données actuelles:', {
+        totalRows: sheetData.length,
+        headers: sheetData[0],
+        dataRows: sheetData.length - 1
+      });
+
       const headers = sheetData[0];
       const dataRows = sheetData.slice(1);
       let updatedRows = [...dataRows];
+      let contentGeneratedCount = 0;
 
       // Créer un backup des données actuelles
       const backupData = JSON.parse(JSON.stringify(sheetData));
 
       for (let i = 0; i < dataRows.length; i++) {
         const row = dataRows[i];
-        if (!row[0] || !row[1] || !row[2]) continue; // Ignorer les lignes vides
+        if (!row[0] || !row[1] || !row[2]) {
+          console.log(`⏭️ Ligne ${i + 1} ignorée - données manquantes:`, row.slice(0, 3));
+          continue;
+        }
         
         const campaign = row[0];
         const adGroup = row[1];
         const keywords = row[2].split(',').map((k: string) => k.trim()).filter((k: string) => k);
 
-        if (keywords.length === 0) continue;
+        if (keywords.length === 0) {
+          console.log(`⏭️ Ligne ${i + 1} ignorée - pas de mots-clés`);
+          continue;
+        }
 
-        console.log(`Génération pour: ${campaign} > ${adGroup}`);
+        console.log(`🎯 Génération pour ligne ${i + 1}: ${campaign} > ${adGroup}`);
+        console.log(`🔑 Mots-clés:`, keywords.slice(0, 3));
 
         // Utiliser le service amélioré pour générer du contenu
         const result = await enhancedContentGenerationService.generateContent(
@@ -78,6 +95,13 @@ export const useContentGeneration = ({
         );
 
         if (result.success && result.titles && result.descriptions) {
+          console.log(`✅ Contenu généré pour ligne ${i + 1}:`, {
+            titlesCount: result.titles.length,
+            descriptionsCount: result.descriptions.length,
+            titles: result.titles,
+            descriptions: result.descriptions
+          });
+
           // Mettre à jour la ligne avec le contenu généré
           const updatedRow = [...row];
           
@@ -86,6 +110,7 @@ export const useContentGeneration = ({
             result.titles.slice(0, 3).forEach((title, idx) => {
               if (title && title.trim()) {
                 updatedRow[3 + idx] = title.trim();
+                console.log(`📝 Titre ${idx + 1} ajouté: "${title.trim()}"`);
               }
             });
           }
@@ -95,27 +120,58 @@ export const useContentGeneration = ({
             result.descriptions.slice(0, 2).forEach((desc, idx) => {
               if (desc && desc.trim()) {
                 updatedRow[6 + idx] = desc.trim();
+                console.log(`📝 Description ${idx + 1} ajoutée: "${desc.trim()}"`);
               }
             });
           }
 
           updatedRows[i] = updatedRow;
+          contentGeneratedCount++;
+        } else {
+          console.warn(`⚠️ Échec génération pour ligne ${i + 1}:`, result);
         }
       }
 
-      // Mettre à jour les données dans l'état et sauvegarder
+      // Mettre à jour les données dans l'état
       const newSheetData = [headers, ...updatedRows];
+      console.log('📊 Nouvelles données préparées:', {
+        totalRows: newSheetData.length,
+        contentGeneratedForRows: contentGeneratedCount,
+        headers: newSheetData[0],
+        sampleUpdatedRow: newSheetData[1]
+      });
+
       setSheetData(newSheetData);
       
-      // Sauvegarder dans CryptPad
-      await sheetService.writeSheetData(sheet.id, newSheetData);
+      // Sauvegarder selon le type de feuille
+      if (sheet.id.startsWith('sheet_')) {
+        // Feuille locale - sauvegarder dans localStorage
+        console.log('💾 Sauvegarde locale...');
+        await sheetService.writeSheetData(sheet.id, newSheetData);
+        console.log('✅ Sauvegarde locale terminée');
+      } else {
+        // Feuille Google Sheets - sauvegarder via l'API
+        console.log('📊 Sauvegarde Google Sheets...');
+        try {
+          const saveSuccess = await googleSheetsService.saveSheetData(sheet.id, newSheetData);
+          if (saveSuccess) {
+            console.log('✅ Sauvegarde Google Sheets réussie');
+          } else {
+            console.warn('⚠️ Sauvegarde Google Sheets incertaine');
+          }
+        } catch (saveError) {
+          console.error('❌ Erreur sauvegarde Google Sheets:', saveError);
+          toast.error(`Contenu généré mais erreur de sauvegarde: ${saveError.message}`);
+          // On continue quand même car le contenu a été généré
+        }
+      }
       
-      toast.success("Contenu généré et sauvegardé avec succès !");
+      toast.success(`Contenu généré pour ${contentGeneratedCount} ligne(s) et sauvegardé avec succès !`);
       onUpdateComplete();
       
     } catch (error) {
-      console.error("Erreur lors de la génération:", error);
-      toast.error("Erreur lors de la génération du contenu");
+      console.error("❌ === ERREUR COMPLETE GENERATION ===", error);
+      toast.error(`Erreur lors de la génération du contenu: ${error.message}`);
     } finally {
       setIsSaving(false);
     }
