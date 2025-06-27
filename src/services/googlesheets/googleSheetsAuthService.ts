@@ -44,50 +44,131 @@ export class GoogleSheetsAuthService {
 
   static async initiateAuth(): Promise<string> {
     try {
+      console.log('🔑 Initiation de l\'authentification Google Sheets...');
+      console.log('📡 URL de l\'API:', this.API_BASE_URL);
+
       const response = await fetch(this.API_BASE_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({ action: 'auth' })
       });
 
+      console.log('📡 Réponse de l\'Edge Function:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
       if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
+        const errorText = await response.text();
+        console.error('❌ Erreur HTTP détaillée:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+
+        // Tenter de parser en JSON si possible
+        let errorMessage = `Erreur serveur (${response.status})`;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // Si ce n'est pas du JSON, utiliser le message par défaut
+          if (errorText.includes('<!DOCTYPE')) {
+            errorMessage = 'L\'Edge Function retourne du HTML au lieu de JSON. Vérifiez la configuration Supabase.';
+          }
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      // Vérifier le Content-Type de la réponse
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        console.error('❌ Réponse non-JSON reçue:', contentType);
+        throw new Error('L\'Edge Function ne retourne pas du JSON valide');
       }
 
       const data = await response.json();
+      console.log('✅ Données reçues:', { hasAuthUrl: !!data.authUrl });
+
       if (!data.authUrl) {
-        throw new Error('URL d\'authentification manquante');
+        console.error('❌ URL d\'authentification manquante dans la réponse:', data);
+        throw new Error('URL d\'authentification manquante dans la réponse');
       }
 
+      console.log('✅ URL d\'authentification générée avec succès');
       return data.authUrl;
+
     } catch (error) {
-      console.error('Erreur initiation auth:', error);
-      throw new Error('Impossible d\'initier l\'authentification Google');
+      console.error('❌ Erreur complète lors de l\'initiation:', error);
+      
+      // Messages d'erreur plus spécifiques selon le type d'erreur
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Impossible de contacter le serveur. Vérifiez votre connexion internet.');
+      }
+      
+      if (error.message?.includes('HTML')) {
+        throw new Error('Configuration Supabase incorrecte. L\'Edge Function ne répond pas correctement.');
+      }
+
+      // Utiliser le message d'erreur original ou un message générique
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue lors de l\'authentification';
+      throw new Error(`Impossible d'initier l'authentification Google: ${errorMessage}`);
     }
   }
 
   static async completeAuth(code: string): Promise<void> {
     try {
+      console.log('🔑 Completion de l\'authentification avec le code...');
+      
       const response = await fetch(this.API_BASE_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({ action: 'auth', code })
       });
 
+      console.log('📡 Réponse completion auth:', {
+        status: response.status,
+        statusText: response.statusText
+      });
+
       if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
+        const errorText = await response.text();
+        console.error('❌ Erreur completion auth:', errorText);
+        
+        let errorMessage = `Erreur serveur (${response.status})`;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // Message générique si pas de JSON
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const tokens = await response.json();
+      console.log('✅ Tokens reçus:', { hasAccessToken: !!tokens.access_token });
+
       if (!tokens.access_token) {
-        throw new Error('Token d\'accès manquant');
+        console.error('❌ Token d\'accès manquant:', tokens);
+        throw new Error('Token d\'accès manquant dans la réponse');
       }
 
       this.storeTokens(tokens);
-      console.log('Authentification complétée avec succès');
+      console.log('✅ Authentification complétée avec succès');
+
     } catch (error) {
-      console.error('Erreur completion auth:', error);
-      throw new Error('Impossible de compléter l\'authentification');
+      console.error('❌ Erreur completion auth:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      throw new Error(`Impossible de compléter l'authentification: ${errorMessage}`);
     }
   }
 
