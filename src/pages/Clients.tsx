@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Users, Target, FileText } from "lucide-react";
 import ClientsList from "@/components/clients/ClientsList";
 import AddClientDialog from "@/components/clients/AddClientDialog";
+import EditClientDialog from "@/components/clients/EditClientDialog";
 import { getClients, addClient, updateClient, deleteClient } from "@/services/clientService";
 import { Client } from "@/services/types";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +18,8 @@ const Clients = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [newClient, setNewClient] = useState<Partial<Client>>({
     name: '',
     businessContext: '',
@@ -53,6 +56,13 @@ const Clients = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleEditClientChange = (field: string, value: string) => {
+    setEditingClient(prev => prev ? ({
+      ...prev,
+      [field]: value
+    }) : null);
   };
 
   const handleAddClient = async () => {
@@ -95,8 +105,51 @@ const Clients = () => {
   };
 
   const handleEditClient = async (client: Client) => {
-    // TODO: Implémenter la logique d'édition
-    console.log("Édition du client:", client);
+    setEditingClient({ ...client });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateClient = async () => {
+    if (!editingClient?.name?.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Le nom du client est requis.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!editingClient?.id) {
+      toast({
+        title: "Erreur",
+        description: "ID du client manquant.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const success = await updateClient(editingClient.id, editingClient);
+      if (!success) {
+        throw new Error("Impossible de modifier le client");
+      }
+      
+      toast({
+        title: "Succès",
+        description: "Client modifié avec succès.",
+      });
+      
+      setEditingClient(null);
+      setIsEditDialogOpen(false);
+      loadClients();
+    } catch (error) {
+      console.error("Erreur lors de la modification du client:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de modifier le client.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteClient = async (clientId: string, clientName: string) => {
@@ -200,6 +253,14 @@ const Clients = () => {
         newClient={newClient}
         onClientChange={handleClientChange}
         onAddClient={handleAddClient}
+      />
+
+      <EditClientDialog
+        isOpen={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        editingClient={editingClient}
+        onClientChange={handleEditClientChange}
+        onUpdateClient={handleUpdateClient}
       />
     </>
   );
