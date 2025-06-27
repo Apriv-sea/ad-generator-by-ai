@@ -12,6 +12,7 @@ import { autoSaveService } from "@/services/storage/autoSaveService";
 import { dataValidationService } from "@/services/validation/dataValidationService";
 import { toast } from "sonner";
 import ModelSelector from "./ModelSelector";
+import ClientSelector from "./ClientSelector";
 
 interface ContentGeneratorWorkflowProps {
   sheetId: string;
@@ -24,19 +25,25 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
   sheetId,
   sheetData,
   campaigns,
-  clientInfo
+  clientInfo: initialClientInfo
 }) => {
   const [selectedModel, setSelectedModel] = useState<string>("gpt-4");
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generationComplete, setGenerationComplete] = useState(false);
   const [currentCampaign, setCurrentCampaign] = useState<string>("");
+  const [clientInfo, setClientInfo] = useState<Client | null>(initialClientInfo);
   const [generationResults, setGenerationResults] = useState<{
     success: number;
     failed: number;
     total: number;
   }>({ success: 0, failed: 0, total: 0 });
   const [autoSaveStatus, setAutoSaveStatus] = useState<string>("");
+
+  // Mettre à jour les informations client si elles changent
+  useEffect(() => {
+    setClientInfo(initialClientInfo);
+  }, [initialClientInfo]);
 
   // Vérifier l'état de sauvegarde automatique
   useEffect(() => {
@@ -59,20 +66,34 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
   const validatePrerequisites = () => {
     const errors: string[] = [];
 
-    if (!clientInfo?.businessContext) {
-      errors.push("Contexte client manquant");
+    // Vérifier si un client est sélectionné et a un contexte métier
+    if (!clientInfo) {
+      errors.push("Aucun client sélectionné");
+    } else if (!clientInfo.businessContext?.trim()) {
+      errors.push("Le contexte métier du client est requis");
     }
 
     if (!sheetData || sheetData.length <= 1) {
       errors.push("Données de feuille insuffisantes");
     }
 
-    const campaignValidation = dataValidationService.validateCampaigns(campaigns);
-    if (!campaignValidation.isValid) {
-      errors.push(...campaignValidation.errors);
+    if (campaigns.length === 0) {
+      errors.push("Aucune campagne extraite");
+    } else {
+      const campaignValidation = dataValidationService.validateCampaigns(campaigns);
+      if (!campaignValidation.isValid) {
+        errors.push(...campaignValidation.errors);
+      }
     }
 
     return errors;
+  };
+
+  const handleClientSelect = (selectedClient: Client | null) => {
+    setClientInfo(selectedClient);
+    if (selectedClient) {
+      toast.success(`Client "${selectedClient.name}" sélectionné`);
+    }
   };
 
   const generateContent = async () => {
@@ -211,6 +232,8 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
     }
   };
 
+  const validationErrors = validatePrerequisites();
+
   return (
     <div className="space-y-6">
       <Card>
@@ -234,23 +257,31 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Sélection du client si pas encore fait */}
+          {!clientInfo && (
+            <div className="mb-4">
+              <ClientSelector
+                selectedClientId={clientInfo?.id}
+                onClientSelect={handleClientSelect}
+                showCreateOption={true}
+              />
+            </div>
+          )}
+
           {/* Validation des prérequis */}
-          {(() => {
-            const errors = validatePrerequisites();
-            return errors.length > 0 && (
-              <Alert className="border-red-200 bg-red-50">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-red-700">
-                  <strong>Prérequis manquants:</strong>
-                  <ul className="list-disc list-inside mt-1">
-                    {errors.map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            );
-          })()}
+          {validationErrors.length > 0 && (
+            <Alert className="border-red-200 bg-red-50">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-red-700">
+                <strong>Prérequis manquants:</strong>
+                <ul className="list-disc list-inside mt-1">
+                  {validationErrors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Informations sur le client */}
           {clientInfo && (
@@ -292,7 +323,7 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
           {!generationComplete && (
             <Button
               onClick={generateContent}
-              disabled={isGenerating || validatePrerequisites().length > 0}
+              disabled={isGenerating || validationErrors.length > 0}
               className="w-full"
               size="lg"
             >
