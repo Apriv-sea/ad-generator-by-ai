@@ -10,6 +10,7 @@ import { Campaign, Client } from "@/services/types";
 import { enhancedContentGenerationService } from "@/services/content/enhancedContentGenerationService";
 import { autoSaveService } from "@/services/storage/autoSaveService";
 import { dataValidationService } from "@/services/validation/dataValidationService";
+import { googleSheetsService } from "@/services/googlesheets/googleSheetsService";
 import { toast } from "sonner";
 import ModelSelector from "./ModelSelector";
 import ClientSelector from "./ClientSelector";
@@ -27,7 +28,7 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
   campaigns,
   clientInfo: initialClientInfo
 }) => {
-  const [selectedModel, setSelectedModel] = useState<string>("gpt-4");
+  const [selectedModel, setSelectedModel] = useState<string>("claude-sonnet-4-20250514");
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generationComplete, setGenerationComplete] = useState(false);
@@ -123,6 +124,11 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
       let successCount = 0;
       let failedCount = 0;
 
+      console.log(`🚀 === DEBUT GENERATION WORKFLOW ===`);
+      console.log(`📋 Feuille ID: ${sheetId}`);
+      console.log(`🎯 Modèle sélectionné: ${selectedModel}`);
+      console.log(`📊 Campagnes à traiter: ${campaigns.length}`);
+
       for (let i = 0; i < Math.min(campaigns.length, dataRows.length); i++) {
         const campaign = campaigns[i];
         setCurrentCampaign(`${campaign.campaignName} > ${campaign.adGroupName}`);
@@ -130,12 +136,14 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
         const keywords = campaign.keywords.split(',').map(k => k.trim()).filter(k => k);
         
         if (keywords.length === 0) {
+          console.log(`⏭️ Campagne ${i + 1} ignorée - pas de mots-clés`);
           failedCount++;
           setGenerationResults({ success: successCount, failed: failedCount, total: campaigns.length });
           continue;
         }
 
-        console.log(`Génération pour: ${campaign.campaignName} > ${campaign.adGroupName}`);
+        console.log(`🎯 Génération campagne ${i + 1}: ${campaign.campaignName} > ${campaign.adGroupName}`);
+        console.log(`🔑 Mots-clés: ${keywords.join(', ')}`);
 
         try {
           const result = await enhancedContentGenerationService.generateContent(
@@ -157,28 +165,43 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
             }
           );
 
-          if (result.success) {
+          console.log(`📈 Résultat génération campagne ${i + 1}:`, {
+            success: result.success,
+            titlesCount: result.titles?.length || 0,
+            descriptionsCount: result.descriptions?.length || 0,
+            provider: result.provider,
+            model: result.model
+          });
+
+          if (result.success && result.titles && result.descriptions) {
             // Mettre à jour la ligne avec les résultats
             const updatedRow = [...dataRows[i]];
             
             // Ajouter les titres (colonnes 5-7 dans le nouveau format)
             result.titles.forEach((title, index) => {
-              if (index < 3) updatedRow[index + 5] = title;
+              if (index < 3 && title?.trim()) {
+                updatedRow[index + 5] = title.trim();
+                console.log(`✅ Titre ${index + 1} ajouté: "${title.trim()}"`);
+              }
             });
             
             // Ajouter les descriptions (colonnes 8-9)
             result.descriptions.forEach((desc, index) => {
-              if (index < 2) updatedRow[index + 8] = desc;
+              if (index < 2 && desc?.trim()) {
+                updatedRow[index + 8] = desc.trim();
+                console.log(`✅ Description ${index + 1} ajoutée: "${desc.trim()}"`);
+              }
             });
             
             updatedRows[i] = updatedRow;
             successCount++;
           } else {
+            console.warn(`⚠️ Génération échouée campagne ${i + 1}:`, result);
             failedCount++;
           }
 
         } catch (error) {
-          console.error(`Erreur génération ${campaign.campaignName}:`, error);
+          console.error(`❌ Erreur génération campagne ${i + 1}:`, error);
           failedCount++;
         }
 
@@ -186,34 +209,63 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
         setProgress((i + 1) / campaigns.length * 100);
         setGenerationResults({ success: successCount, failed: failedCount, total: campaigns.length });
 
-        // Sauvegarde automatique intermédiaire (toutes les 5 campagnes)
-        if ((i + 1) % 5 === 0) {
+        // Sauvegarde automatique intermédiaire (toutes les 3 campagnes)
+        if ((i + 1) % 3 === 0) {
           const intermediateData = [headers, ...updatedRows];
-          autoSaveService.scheduleAutoSave(sheetId, intermediateData);
-          toast.info(`Sauvegarde intermédiaire (${i + 1}/${campaigns.length})`);
+          console.log(`💾 Sauvegarde intermédiaire ${i + 1}/${campaigns.length}`);
+          
+          try {
+            // Essayer de sauvegarder via le service Google Sheets
+            const saveResult = await googleSheetsService.saveSheetData(sheetId, intermediateData);
+            console.log(`✅ Sauvegarde intermédiaire réussie: ${saveResult}`);
+            toast.info(`Sauvegarde intermédiaire (${i + 1}/${campaigns.length}) - OK`);
+          } catch (saveError) {
+            console.error(`❌ Erreur sauvegarde intermédiaire:`, saveError);
+            toast.warning(`Sauvegarde intermédiaire échouée: ${saveError.message}`);
+          }
         }
       }
 
-      // Sauvegarde finale
+      // Sauvegarde finale CRUCIALE
       const finalData = [headers, ...updatedRows];
-      const saveSuccess = await autoSaveService.forceSave(sheetId, finalData);
+      console.log(`💾 === SAUVEGARDE FINALE ===`);
+      console.log(`📊 Données à sauvegarder:`, {
+        totalRows: finalData.length,
+        headers: finalData[0],
+        sampleRow: finalData[1]?.slice(0, 10)
+      });
+
+      try {
+        // Forcer la sauvegarde finale
+        console.log(`🔄 Tentative sauvegarde Google Sheets pour feuille: ${sheetId}`);
+        const finalSaveResult = await googleSheetsService.saveSheetData(sheetId, finalData);
+        console.log(`✅ Sauvegarde finale Google Sheets: ${finalSaveResult}`);
+        
+        if (finalSaveResult) {
+          toast.success(`🎉 Génération terminée ! ${successCount} réussie(s), ${failedCount} échouée(s). Données sauvegardées dans Google Sheets.`);
+        } else {
+          toast.error(`⚠️ Génération terminée mais sauvegarde Google Sheets échouée ! ${successCount} réussie(s), ${failedCount} échouée(s).`);
+        }
+      } catch (finalSaveError) {
+        console.error(`❌ ERREUR CRITIQUE - Sauvegarde finale échouée:`, finalSaveError);
+        toast.error(`❌ Génération réussie mais IMPOSSIBLE de sauvegarder dans Google Sheets: ${finalSaveError.message}`);
+      }
+
+      // Essayer également la sauvegarde via autoSaveService comme fallback
+      try {
+        console.log(`🔄 Fallback - Tentative autoSaveService`);
+        const autoSaveResult = await autoSaveService.forceSave(sheetId, finalData);
+        console.log(`📝 AutoSave fallback résultat: ${autoSaveResult}`);
+      } catch (autoSaveError) {
+        console.error(`❌ AutoSave fallback échoué:`, autoSaveError);
+      }
       
       setGenerationComplete(true);
       setCurrentCampaign("");
       
-      if (saveSuccess) {
-        toast.success(
-          `Génération terminée ! ${successCount} réussie(s), ${failedCount} échouée(s). Données sauvegardées.`
-        );
-      } else {
-        toast.warning(
-          `Génération terminée ! ${successCount} réussie(s), ${failedCount} échouée(s). Problème de sauvegarde.`
-        );
-      }
-      
     } catch (error) {
-      console.error("Erreur lors de la génération:", error);
-      toast.error("Erreur lors de la génération du contenu");
+      console.error("❌ === ERREUR COMPLETE WORKFLOW ===", error);
+      toast.error(`Erreur lors de la génération du contenu: ${error.message}`);
     } finally {
       setIsGenerating(false);
     }
@@ -222,13 +274,24 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
   const manualSave = async () => {
     if (!sheetData) return;
     
-    toast.info("Sauvegarde manuelle en cours...");
-    const success = await autoSaveService.forceSave(sheetId, sheetData);
+    console.log(`🔄 === SAUVEGARDE MANUELLE ===`);
+    console.log(`📋 Feuille: ${sheetId}`);
+    console.log(`📊 Données:`, sheetData.length, 'lignes');
     
-    if (success) {
-      toast.success("Sauvegarde manuelle réussie !");
-    } else {
-      toast.error("Échec de la sauvegarde manuelle");
+    toast.info("Sauvegarde manuelle en cours...");
+    
+    try {
+      const success = await googleSheetsService.saveSheetData(sheetId, sheetData);
+      console.log(`✅ Sauvegarde manuelle résultat: ${success}`);
+      
+      if (success) {
+        toast.success("✅ Sauvegarde manuelle réussie !");
+      } else {
+        toast.error("❌ Échec de la sauvegarde manuelle");
+      }
+    } catch (error) {
+      console.error(`❌ Erreur sauvegarde manuelle:`, error);
+      toast.error(`Erreur de sauvegarde: ${error.message}`);
     }
   };
 
