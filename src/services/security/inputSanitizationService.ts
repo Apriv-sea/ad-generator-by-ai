@@ -1,4 +1,3 @@
-
 import DOMPurify from 'dompurify';
 
 /**
@@ -130,7 +129,7 @@ class InputSanitizationService {
   }
 
   /**
-   * Sanitize LLM prompts to prevent injection attacks
+   * Sanitize LLM prompts to prevent injection attacks - SANS limitation de longueur
    */
   sanitizePrompt(prompt: string): string {
     if (!prompt || typeof prompt !== 'string') return '';
@@ -139,8 +138,8 @@ class InputSanitizationService {
       .replace(/\b(ignore|forget|disregard)\s+(previous|above|all)\s+(instructions|prompts?|context)/gi, '')
       .replace(/\b(system|admin|root|execute|eval|script)/gi, '')
       .replace(/[<>{}]/g, '')
-      .trim()
-      .substring(0, 2000); // Limit length
+      .trim();
+      // SUPPRESSION de .substring(0, 2000) pour permettre des prompts plus longs
   }
 
   /**

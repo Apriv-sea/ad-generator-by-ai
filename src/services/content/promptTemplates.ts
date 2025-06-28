@@ -1,4 +1,3 @@
-
 export interface PromptVariables {
   adGroupName: string;
   keywords: string;
@@ -7,14 +6,11 @@ export interface PromptVariables {
 }
 
 export class PromptTemplates {
-  // Template optimisé pour les titres (beaucoup plus court)
+  // Template pour les titres - sans limitation de taille
   static buildTitlesPrompt(variables: PromptVariables): string {
-    // Raccourcir le contexte client à 200 caractères max
-    const shortClientContext = variables.clientContext.substring(0, 200);
-    
     return `Rédacteur publicitaire expert. 
 
-Annonceur: ${shortClientContext}
+Annonceur: ${variables.clientContext}
 Campagne: ${variables.campaignContext}
 Groupe: ${variables.adGroupName}
 Mots-clés: ${variables.keywords}
@@ -23,14 +19,11 @@ Génère 3 titres Google Ads (max 30 caractères chacun).
 Format: un titre par ligne, sans numéro ni formatage.`;
   }
 
-  // Template optimisé pour les descriptions (beaucoup plus court)
+  // Template pour les descriptions - sans limitation de taille
   static buildDescriptionsPrompt(variables: PromptVariables): string {
-    // Raccourcir le contexte client à 200 caractères max
-    const shortClientContext = variables.clientContext.substring(0, 200);
-    
     return `Rédacteur publicitaire expert.
 
-Annonceur: ${shortClientContext}
+Annonceur: ${variables.clientContext}
 Campagne: ${variables.campaignContext}
 Groupe: ${variables.adGroupName}
 Mots-clés: ${variables.keywords}

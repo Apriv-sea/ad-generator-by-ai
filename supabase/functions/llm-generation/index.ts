@@ -15,8 +15,8 @@ function sanitizePrompt(prompt: string): string {
     .replace(/\b(ignore|forget|disregard)\s+(previous|above|all)\s+(instructions|prompts?|context)/gi, '')
     .replace(/\b(system|admin|root|execute|eval|script)/gi, '')
     .replace(/[<>{}]/g, '')
-    .trim()
-    .substring(0, 2000); // Limit length
+    .trim();
+    // SUPPRESSION de .substring(0, 2000) pour permettre des prompts plus longs
 }
 
 function validateInputs(requestData: any): { isValid: boolean; error?: string } {
@@ -33,9 +33,10 @@ function validateInputs(requestData: any): { isValid: boolean; error?: string } 
     return { isValid: false, error: 'Model is required' };
   }
   
-  // Validate prompt length
-  if (requestData.prompt.length > 2000) {
-    return { isValid: false, error: 'Prompt too long (max 2000 characters)' };
+  // SUPPRESSION de la validation de longueur restrictive
+  // Garde seulement une limite de sécurité très haute pour éviter les abus
+  if (requestData.prompt.length > 50000) {
+    return { isValid: false, error: 'Prompt too long (max 50000 characters)' };
   }
   
   // Validate provider

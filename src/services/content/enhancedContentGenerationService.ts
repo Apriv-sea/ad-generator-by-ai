@@ -1,4 +1,3 @@
-
 import { contentHistoryService, GenerationHistory, GenerationBackup } from "../history/contentHistoryService";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserId } from "@/services/utils/supabaseUtils";
@@ -46,23 +45,17 @@ class EnhancedContentGenerationService {
         await this.createBackup(sheetId, currentData);
       }
 
-      // Construire les variables pour le template avec limitation de taille
+      // Construire les variables pour le template - SANS limitation de taille
       const promptVariables: PromptVariables = {
         adGroupName: prompt.adGroupContext,
-        keywords: prompt.keywords.slice(0, 3).join(', '), // Limiter à 3 mots-clés
-        clientContext: prompt.clientContext.substring(0, 500), // Limiter le contexte client
+        keywords: prompt.keywords.join(', '), // Tous les mots-clés sans limitation
+        clientContext: prompt.clientContext, // Contexte client complet
         campaignContext: prompt.campaignContext
       };
 
-      // Générer les titres avec le template optimisé
+      // Générer les titres avec le template complet
       const titlesPrompt = PromptTemplates.buildTitlesPrompt(promptVariables);
-      console.log("Prompt titres (longueur:", titlesPrompt.length, "):", titlesPrompt.substring(0, 100) + "...");
-
-      // Vérifier la longueur du prompt
-      if (titlesPrompt.length > 1800) {
-        console.warn("Prompt titres trop long, raccourcissement supplémentaire");
-        promptVariables.clientContext = promptVariables.clientContext.substring(0, 100);
-      }
+      console.log("Prompt titres (longueur:", titlesPrompt.length, "):", titlesPrompt.substring(0, 200) + "...");
 
       const { data: titlesData, error: titlesError } = await supabase.functions.invoke('llm-generation', {
         body: {
@@ -77,9 +70,9 @@ class EnhancedContentGenerationService {
         throw titlesError;
       }
 
-      // Générer les descriptions avec un prompt séparé
+      // Générer les descriptions avec un prompt séparé complet
       const descriptionsPrompt = PromptTemplates.buildDescriptionsPrompt(promptVariables);
-      console.log("Prompt descriptions (longueur:", descriptionsPrompt.length, "):", descriptionsPrompt.substring(0, 100) + "...");
+      console.log("Prompt descriptions (longueur:", descriptionsPrompt.length, "):", descriptionsPrompt.substring(0, 200) + "...");
 
       const { data: descriptionsData, error: descriptionsError } = await supabase.functions.invoke('llm-generation', {
         body: {
