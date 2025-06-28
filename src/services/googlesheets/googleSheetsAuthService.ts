@@ -4,6 +4,7 @@ export interface AuthTokens {
   access_token: string;
   refresh_token?: string;
   expires_in?: number;
+  expires_at?: number; // Timestamp d'expiration calculé
   token_type?: string;
 }
 
@@ -48,6 +49,11 @@ export class GoogleSheetsAuthService {
 
   static storeTokens(tokens: AuthTokens): void {
     try {
+      // Calculer expires_at si on a expires_in
+      if (tokens.expires_in && !tokens.expires_at) {
+        tokens.expires_at = Date.now() + (tokens.expires_in * 1000);
+      }
+      
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(tokens));
       console.log('Tokens stockés avec succès');
     } catch (error) {
