@@ -33,6 +33,26 @@ class EnhancedContentGenerationService {
   private backupStorage: Map<string, GenerationBackup[]> = new Map();
   private compressionEnabled = true;
 
+  // Extraire le provider et le modèle du format "provider:model"
+  private parseModelString(modelString: string): { provider: string; model: string } {
+    if (modelString.includes(':')) {
+      const [provider, model] = modelString.split(':');
+      return { provider, model };
+    }
+    
+    // Fallback pour les anciens formats
+    if (modelString.startsWith('claude')) {
+      return { provider: 'anthropic', model: modelString };
+    } else if (modelString.startsWith('gpt')) {
+      return { provider: 'openai', model: modelString };
+    } else if (modelString.startsWith('gemini')) {
+      return { provider: 'google', model: modelString };
+    }
+    
+    // Défaut
+    return { provider: 'openai', model: modelString };
+  }
+
   async generateContent(
     prompt: GenerationPrompt,
     sheetId: string,
@@ -45,6 +65,11 @@ class EnhancedContentGenerationService {
         await this.createBackup(sheetId, currentData);
       }
 
+      // Parser le modèle pour extraire provider et modèle
+      const { provider, model } = this.parseModelString(prompt.model || 'gpt-4');
+      
+      console.log(`🎯 Génération avec: ${provider} - ${model}`);
+
       // Construire les variables pour le template - SANS limitation de taille
       const promptVariables: PromptVariables = {
         adGroupName: prompt.adGroupContext,
@@ -55,57 +80,61 @@ class EnhancedContentGenerationService {
 
       // Générer les titres avec le template complet
       const titlesPrompt = PromptTemplates.buildTitlesPrompt(promptVariables);
-      console.log("Prompt titres (longueur:", titlesPrompt.length, "):", titlesPrompt.substring(0, 200) + "...");
+      console.log(`📝 Prompt titres (${provider}):`, titlesPrompt.substring(0, 200) + "...");
 
       const { data: titlesData, error: titlesError } = await supabase.functions.invoke('llm-generation', {
         body: {
           prompt: titlesPrompt,
-          model: prompt.model || 'gpt-4',
-          provider: 'openai'
+          model: model,
+          provider: provider // Utiliser le provider extrait
         }
       });
 
       if (titlesError) {
-        console.error("Erreur génération titres:", titlesError);
+        console.error(`❌ Erreur génération titres (${provider}):`, titlesError);
         throw titlesError;
       }
 
+      console.log(`✅ Réponse titres (${provider}):`, titlesData);
+
       // Générer les descriptions avec un prompt séparé complet
       const descriptionsPrompt = PromptTemplates.buildDescriptionsPrompt(promptVariables);
-      console.log("Prompt descriptions (longueur:", descriptionsPrompt.length, "):", descriptionsPrompt.substring(0, 200) + "...");
+      console.log(`📝 Prompt descriptions (${provider}):`, descriptionsPrompt.substring(0, 200) + "...");
 
       const { data: descriptionsData, error: descriptionsError } = await supabase.functions.invoke('llm-generation', {
         body: {
           prompt: descriptionsPrompt,
-          model: prompt.model || 'gpt-4',
-          provider: 'openai'
+          model: model,
+          provider: provider // Utiliser le provider extrait
         }
       });
 
       if (descriptionsError) {
-        console.error("Erreur génération descriptions:", descriptionsError);
+        console.error(`❌ Erreur génération descriptions (${provider}):`, descriptionsError);
         throw descriptionsError;
       }
 
-      // Parser les résultats selon le format attendu
+      console.log(`✅ Réponse descriptions (${provider}):`, descriptionsData);
+
+      // Parser les résultats selon le format attendu du provider
       const parsedTitles = PromptTemplates.parseGeneratedTitles(
-        titlesData.choices?.[0]?.message?.content || titlesData.content || ''
+        this.extractContent(titlesData, provider)
       );
 
       const parsedDescriptions = PromptTemplates.parseGeneratedDescriptions(
-        descriptionsData.choices?.[0]?.message?.content || descriptionsData.content || ''
+        this.extractContent(descriptionsData, provider)
       );
 
-      console.log("Titres générés:", parsedTitles);
-      console.log("Descriptions générées:", parsedDescriptions);
+      console.log(`📊 Titres extraits (${provider}):`, parsedTitles);
+      console.log(`📊 Descriptions extraites (${provider}):`, parsedDescriptions);
 
       const result: GenerationResult = {
         success: true,
         titles: parsedTitles,
         descriptions: parsedDescriptions,
-        provider: 'openai',
-        model: prompt.model || 'gpt-4',
-        tokensUsed: (titlesData.usage?.total_tokens || 0) + (descriptionsData.usage?.total_tokens || 0),
+        provider: provider,
+        model: model,
+        tokensUsed: this.extractTokenUsage(titlesData, descriptionsData, provider),
         validationResults: {
           titlesValidation: parsedTitles.map(title => ({ 
             text: title, 
@@ -140,15 +169,62 @@ class EnhancedContentGenerationService {
 
       return result;
     } catch (error) {
-      console.error('Erreur dans enhancedContentGenerationService:', error);
+      console.error('❌ Erreur dans enhancedContentGenerationService:', error);
       return {
         success: false,
         titles: [],
         descriptions: [],
-        provider: 'openai',
-        model: prompt.model || 'gpt-4'
+        provider: 'unknown',
+        model: prompt.model || 'unknown'
       };
     }
+  }
+
+  // Extraire le contenu selon le format de réponse du provider
+  private extractContent(data: any, provider: string): string {
+    if (!data) return '';
+    
+    switch (provider) {
+      case 'openai':
+        return data.choices?.[0]?.message?.content || data.content || '';
+      
+      case 'anthropic':
+        return data.content?.[0]?.text || data.message || data.content || '';
+      
+      case 'google':
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || data.content || '';
+      
+      default:
+        // Essayer plusieurs formats
+        return data.choices?.[0]?.message?.content || 
+               data.content?.[0]?.text || 
+               data.message || 
+               data.content || 
+               '';
+    }
+  }
+
+  // Extraire l'usage des tokens selon le provider
+  private extractTokenUsage(titlesData: any, descriptionsData: any, provider: string): number {
+    let totalTokens = 0;
+    
+    switch (provider) {
+      case 'openai':
+        totalTokens = (titlesData.usage?.total_tokens || 0) + (descriptionsData.usage?.total_tokens || 0);
+        break;
+      
+      case 'anthropic':
+        totalTokens = (titlesData.usage?.input_tokens || 0) + (titlesData.usage?.output_tokens || 0) +
+                      (descriptionsData.usage?.input_tokens || 0) + (descriptionsData.usage?.output_tokens || 0);
+        break;
+      
+      case 'google':
+        totalTokens = (titlesData.usageMetadata?.totalTokenCount || 0) + 
+                      (descriptionsData.usageMetadata?.totalTokenCount || 0);
+        break;
+    }
+    
+    return totalTokens;
   }
 
   async generateContentWithHistory(
