@@ -1,3 +1,4 @@
+
 import { contentHistoryService, GenerationHistory, GenerationBackup } from "../history/contentHistoryService";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserId } from "@/services/utils/supabaseUtils";
@@ -45,17 +46,23 @@ class EnhancedContentGenerationService {
         await this.createBackup(sheetId, currentData);
       }
 
-      // Construire les variables pour le template
+      // Construire les variables pour le template avec limitation de taille
       const promptVariables: PromptVariables = {
         adGroupName: prompt.adGroupContext,
-        keywords: prompt.keywords.join(', '),
-        clientContext: prompt.clientContext,
+        keywords: prompt.keywords.slice(0, 3).join(', '), // Limiter à 3 mots-clés
+        clientContext: prompt.clientContext.substring(0, 500), // Limiter le contexte client
         campaignContext: prompt.campaignContext
       };
 
-      // Générer les titres avec le template personnalisé
+      // Générer les titres avec le template optimisé
       const titlesPrompt = PromptTemplates.buildTitlesPrompt(promptVariables);
-      console.log("Prompt pour les titres:", titlesPrompt);
+      console.log("Prompt titres (longueur:", titlesPrompt.length, "):", titlesPrompt.substring(0, 100) + "...");
+
+      // Vérifier la longueur du prompt
+      if (titlesPrompt.length > 1800) {
+        console.warn("Prompt titres trop long, raccourcissement supplémentaire");
+        promptVariables.clientContext = promptVariables.clientContext.substring(0, 100);
+      }
 
       const { data: titlesData, error: titlesError } = await supabase.functions.invoke('llm-generation', {
         body: {
@@ -65,11 +72,14 @@ class EnhancedContentGenerationService {
         }
       });
 
-      if (titlesError) throw titlesError;
+      if (titlesError) {
+        console.error("Erreur génération titres:", titlesError);
+        throw titlesError;
+      }
 
       // Générer les descriptions avec un prompt séparé
       const descriptionsPrompt = PromptTemplates.buildDescriptionsPrompt(promptVariables);
-      console.log("Prompt pour les descriptions:", descriptionsPrompt);
+      console.log("Prompt descriptions (longueur:", descriptionsPrompt.length, "):", descriptionsPrompt.substring(0, 100) + "...");
 
       const { data: descriptionsData, error: descriptionsError } = await supabase.functions.invoke('llm-generation', {
         body: {
@@ -79,7 +89,10 @@ class EnhancedContentGenerationService {
         }
       });
 
-      if (descriptionsError) throw descriptionsError;
+      if (descriptionsError) {
+        console.error("Erreur génération descriptions:", descriptionsError);
+        throw descriptionsError;
+      }
 
       // Parser les résultats selon le format attendu
       const parsedTitles = PromptTemplates.parseGeneratedTitles(
@@ -134,7 +147,7 @@ class EnhancedContentGenerationService {
 
       return result;
     } catch (error) {
-      console.error('Error in enhanced content generation:', error);
+      console.error('Erreur dans enhancedContentGenerationService:', error);
       return {
         success: false,
         titles: [],
