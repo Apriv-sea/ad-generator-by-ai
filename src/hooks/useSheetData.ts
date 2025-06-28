@@ -19,6 +19,7 @@ export function useSheetData(sheet: Sheet | null) {
   const loadInitialData = async () => {
     if (!sheet) return;
     
+    console.log("🔍 === DEBUT CHARGEMENT OPTIMISE ===");
     console.log("🔍 HOOK - Tentative de chargement des données pour la feuille:", sheet.id);
     console.log("🔍 HOOK - Type de feuille:", sheet.id.startsWith('sheet_') ? 'LOCAL' : 'GOOGLE_SHEETS');
     setIsLoading(true);
@@ -46,104 +47,119 @@ export function useSheetData(sheet: Sheet | null) {
         return;
       }
 
-      // Pour les feuilles Google Sheets, utiliser le service avec range étendu
+      // Pour les feuilles Google Sheets, utiliser le service amélioré
       console.log("📊 HOOK - Traitement feuille Google Sheets, appel du service...");
       
-      // Essayer d'abord avec une plage plus large pour capturer toutes les données
-      const ranges = ['A:Z', 'A1:Z1000', 'Sheet1!A:Z', 'A1:AZ1000'];
-      let data = null;
-      let successRange = null;
+      // Utiliser une plage plus large pour capturer toutes les données
+      const data = await googleSheetsService.getSheetData(sheet.id, 'A1:AZ1000');
       
-      for (const range of ranges) {
-        try {
-          console.log(`📊 HOOK - Tentative avec la plage: ${range}`);
-          data = await googleSheetsService.getSheetData(sheet.id, range);
-          
-          if (data && data.values && data.values.length > 0) {
-            successRange = range;
-            console.log(`✅ HOOK - Succès avec la plage ${range}, ${data.values.length} lignes trouvées`);
-            break;
-          }
-        } catch (rangeError) {
-          console.log(`⚠️ HOOK - Échec avec la plage ${range}:`, rangeError.message);
-          continue;
-        }
-      }
-      
-      console.log("📊 HOOK - Données reçues du service Google Sheets:", {
+      console.log("📊 HOOK - Données brutes reçues du service:", {
         hasData: !!data,
         hasValues: !!data?.values,
         valuesIsArray: Array.isArray(data?.values),
         valuesLength: data?.values?.length || 0,
         title: data?.title,
-        successRange: successRange,
-        rawDataSample: data?.values?.slice(0, 5),
-        allRows: data?.values,
-        completeData: data
+        range: data?.range,
+        rangeUsed: data?.rangeUsed,
+        firstRow: data?.values?.[0],
+        sampleRows: data?.values?.slice(0, 3)
       });
       
-      if (data && data.values && Array.isArray(data.values) && data.values.length > 0) {
-        console.log(`📊 HOOK - Données valides détectées:`, {
-          totalRows: data.values.length,
-          expectedRows: 7, // Selon votre screenshot
-          firstRow: data.values[0],
-          hasMultipleRows: data.values.length > 1,
-          allRowsDetails: data.values.map((row, index) => ({
-            rowIndex: index,
-            rowLength: row?.length || 0,
-            rowContent: row?.slice(0, 5), // Première 5 colonnes seulement
-            isEmpty: !row || row.every(cell => !cell || cell.toString().trim() === '')
-          })),
-          nonEmptyRows: data.values.filter(row => row && row.some(cell => cell && cell.toString().trim() !== '')).length
+      if (data && data.values && Array.isArray(data.values)) {
+        console.log(`📊 HOOK - Analyse détaillée des ${data.values.length} lignes reçues:`);
+        
+        // Analyser chaque ligne pour diagnostiquer
+        const lineAnalysis = data.values.map((row, index) => {
+          const rowArray = Array.isArray(row) ? row : [];
+          const hasContent = rowArray.some(cell => cell !== null && cell !== undefined && String(cell).trim() !== '');
+          return {
+            index,
+            length: rowArray.length,
+            hasContent,
+            content: rowArray.slice(0, 5), // Première 5 colonnes pour debug
+            fullRow: rowArray
+          };
         });
         
-        // Filtrer les lignes complètement vides
-        const nonEmptyRows = data.values.filter(row => 
-          row && row.some(cell => cell && cell.toString().trim() !== '')
-        );
+        console.log("📋 Analyse ligne par ligne:", lineAnalysis);
         
-        console.log(`📊 HOOK - Après filtrage des lignes vides: ${nonEmptyRows.length} lignes`);
+        // Filtrage plus intelligent des lignes vides
+        const processedRows = data.values.filter((row, index) => {
+          const rowArray = Array.isArray(row) ? row : [];
+          const hasContent = rowArray.some(cell => 
+            cell !== null && 
+            cell !== undefined && 
+            String(cell).trim() !== ''
+          );
+          
+          // Garder la première ligne (headers) même si elle semble vide
+          if (index === 0) {
+            console.log(`📋 Ligne ${index + 1} (headers) conservée:`, rowArray);
+            return true;
+          }
+          
+          if (hasContent) {
+            console.log(`📋 Ligne ${index + 1} conservée (contenu détecté):`, rowArray);
+            return true;
+          } else {
+            console.log(`📋 Ligne ${index + 1} filtrée (vide):`, rowArray);
+            return false;
+          }
+        });
         
-        setSheetData(nonEmptyRows);
+        console.log(`📊 HOOK - Après filtrage intelligent: ${processedRows.length} lignes sur ${data.values.length} originales`);
         
-        if (nonEmptyRows.length === 1) {
+        setSheetData(processedRows);
+        
+        // Messages d'information plus précis
+        if (processedRows.length === 0) {
+          console.log("❌ HOOK - Aucune donnée après filtrage");
+          toast.error("Aucune donnée trouvée dans la feuille. La feuille semble vide.");
+        } else if (processedRows.length === 1) {
           console.log("⚠️ HOOK - Seuls les en-têtes détectés");
-          toast.warning(`Seuls les en-têtes ont été trouvés. Vérifiez que votre feuille contient des données.`);
-        } else if (nonEmptyRows.length < 7) {
-          console.log(`⚠️ HOOK - Moins de lignes que prévu détectées: ${nonEmptyRows.length} au lieu de 7`);
-          toast.warning(`${nonEmptyRows.length} lignes chargées (${nonEmptyRows.length - 1} lignes de données). Attendu: 7 lignes selon votre feuille.`);
+          toast.warning("Seuls les en-têtes ont été trouvés. Ajoutez des données dans votre feuille Google Sheets.");
         } else {
-          console.log(`✅ HOOK - ${nonEmptyRows.length - 1} lignes de données détectées`);
-          toast.success(`Données chargées avec succès (${nonEmptyRows.length} lignes dont ${nonEmptyRows.length - 1} lignes de données)`);
+          const dataRowsCount = processedRows.length - 1;
+          console.log(`✅ HOOK - ${dataRowsCount} lignes de données détectées sur ${data.values.length} lignes totales`);
+          
+          if (data.values.length > processedRows.length) {
+            toast.success(`${dataRowsCount} lignes de données chargées (${data.values.length - processedRows.length} lignes vides filtrées)`);
+          } else {
+            toast.success(`${dataRowsCount} lignes de données chargées avec succès`);
+          }
+          
+          // Log détaillé des données finales
+          console.log("📊 HOOK - Données finales par ligne:");
+          processedRows.forEach((row, i) => {
+            console.log(`  Ligne ${i + 1}:`, row);
+          });
         }
       } else {
         console.log("❌ HOOK - Aucune donnée valide trouvée:", {
           hasData: !!data,
           hasValues: !!data?.values,
           valuesIsArray: Array.isArray(data?.values),
-          valuesLength: data?.values?.length || 0,
           rawData: data
         });
-        toast.error("Aucune donnée trouvée dans la feuille. Vérifiez que votre feuille contient des données et qu'elle est accessible.");
+        toast.error("Impossible de récupérer les données de la feuille. Vérifiez que la feuille est accessible et contient des données.");
         setSheetData([]);
       }
       
     } catch (error) {
-      console.error("❌ HOOK - Erreur lors du chargement des données:", {
+      console.error("❌ HOOK - Erreur lors du chargement:", {
         error: error,
         message: error instanceof Error ? error.message : 'Erreur inconnue',
-        stack: error instanceof Error ? error.stack : undefined,
-        errorType: error.constructor?.name
+        stack: error instanceof Error ? error.stack : undefined
       });
       
-      // Message d'erreur plus détaillé
+      // Messages d'erreur spécifiques
       const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
-      if (errorMessage.includes('401')) {
-        toast.error("Erreur d'authentification Google Sheets. Veuillez vous reconnecter.");
-      } else if (errorMessage.includes('403')) {
-        toast.error("Accès refusé à la feuille Google Sheets. Vérifiez les permissions.");
-      } else if (errorMessage.includes('404')) {
-        toast.error("Feuille Google Sheets introuvable. Vérifiez l'ID de la feuille.");
+      if (errorMessage.includes('401') || errorMessage.includes('Authentification')) {
+        toast.error("Erreur d'authentification Google Sheets. Reconnectez-vous.");
+      } else if (errorMessage.includes('403') || errorMessage.includes('Accès refusé')) {
+        toast.error("Accès refusé à la feuille. Vérifiez que la feuille est partagée ou que vous avez les permissions.");
+      } else if (errorMessage.includes('404') || errorMessage.includes('introuvable')) {
+        toast.error("Feuille introuvable. Vérifiez l'URL de la feuille Google Sheets.");
       } else {
         toast.error(`Impossible de charger les données: ${errorMessage}`);
       }
@@ -151,6 +167,7 @@ export function useSheetData(sheet: Sheet | null) {
       setSheetData([]);
     } finally {
       setIsLoading(false);
+      console.log("🔍 === FIN CHARGEMENT ===");
     }
   };
 

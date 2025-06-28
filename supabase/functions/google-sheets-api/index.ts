@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -30,7 +29,6 @@ serve(async (req) => {
   }
 
   try {
-    // Vérifier les variables d'environnement avec plus de détails
     const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID');
     const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET');
     
@@ -38,33 +36,13 @@ serve(async (req) => {
       hasClientId: !!clientId,
       hasClientSecret: !!clientSecret,
       clientIdPrefix: clientId ? clientId.substring(0, 20) + '...' : 'MANQUANT',
-      clientSecretPrefix: clientSecret ? clientSecret.substring(0, 20) + '...' : 'MANQUANT',
-      envKeys: Object.keys(Deno.env.toObject()).filter(key => key.includes('GOOGLE')),
-      allEnvKeys: Object.keys(Deno.env.toObject())
+      clientSecretPrefix: clientSecret ? clientSecret.substring(0, 20) + '...' : 'MANQUANT'
     });
 
-    if (!clientId) {
-      console.error('❌ GOOGLE_SHEETS_CLIENT_ID manquant');
-      throw new Error('Configuration manquante: GOOGLE_SHEETS_CLIENT_ID non défini dans les secrets Supabase');
+    if (!clientId || !clientSecret) {
+      throw new Error('Configuration manquante: Variables Google Sheets non définies');
     }
 
-    if (!clientSecret) {
-      console.error('❌ GOOGLE_SHEETS_CLIENT_SECRET manquant');
-      throw new Error('Configuration manquante: GOOGLE_SHEETS_CLIENT_SECRET non défini dans les secrets Supabase');
-    }
-
-    // Vérifier que les secrets ont une longueur raisonnable
-    if (clientId.length < 50) {
-      console.error('❌ GOOGLE_SHEETS_CLIENT_ID semble invalide (trop court)');
-      throw new Error('Configuration invalide: GOOGLE_SHEETS_CLIENT_ID semble incorrect');
-    }
-
-    if (clientSecret.length < 20) {
-      console.error('❌ GOOGLE_SHEETS_CLIENT_SECRET semble invalide (trop court)');
-      throw new Error('Configuration invalide: GOOGLE_SHEETS_CLIENT_SECRET semble incorrect');
-    }
-
-    // Parser le body de la requête
     let requestBody;
     try {
       const bodyText = await req.text();
@@ -231,65 +209,130 @@ async function getAccessToken(request: Request): Promise<string> {
 async function handleRead(sheetId: string, range: string, request: Request) {
   const accessToken = await getAccessToken(request);
   
-  console.log(`📖 Lecture de la feuille ${sheetId} avec la plage ${range}`);
+  console.log(`📖 === DEBUT LECTURE AMELIOREE ===`);
+  console.log(`📋 Feuille: ${sheetId}`);
+  console.log(`📊 Range demandé: ${range}`);
   
   // Validation de l'ID de la feuille
   if (!sheetId || sheetId.length < 10 || !/^[a-zA-Z0-9-_]+$/.test(sheetId)) {
     throw new Error('ID de feuille Google Sheets invalide');
   }
   
-  const googleApiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`;
+  // Essayer plusieurs plages pour maximiser la récupération de données
+  const rangeAttempts = [
+    range, // Plage demandée
+    'A1:Z1000', // Plage large par défaut
+    'Sheet1!A1:Z1000', // Avec nom de feuille
+    'A:AZ', // Toutes les lignes, colonnes A à AZ
+    '1:1000' // Toutes les colonnes, 1000 premières lignes
+  ];
   
-  try {
-    const response = await fetch(googleApiUrl, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    console.log(`📡 Réponse Google API Status: ${response.status}`);
-
-    // Vérifier le Content-Type de la réponse
-    const contentType = response.headers.get('content-type');
-    
-    if (!contentType || !contentType.includes('application/json')) {
-      console.error('❌ Réponse non-JSON détectée:', contentType);
+  let lastError = null;
+  
+  for (const currentRange of rangeAttempts) {
+    try {
+      console.log(`📊 Tentative de lecture avec la plage: ${currentRange}`);
       
-      const responseText = await response.text();
-      console.log('❌ Contenu de la réponse:', responseText.substring(0, 200));
+      const googleApiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(currentRange)}`;
       
-      if (response.status === 403) {
-        throw new Error('Accès refusé à la feuille Google Sheets. Vérifiez les permissions.');
-      } else if (response.status === 404) {
-        throw new Error('Feuille Google Sheets introuvable. Vérifiez l\'ID de la feuille.');
-      } else {
+      const response = await fetch(googleApiUrl, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log(`📡 Réponse Google API pour ${currentRange}:`, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
+      // Vérifier le Content-Type de la réponse
+      const contentType = response.headers.get('content-type');
+      
+      if (!response.ok) {
+        const responseText = await response.text();
+        console.error(`❌ Erreur HTTP ${response.status} pour ${currentRange}:`, responseText);
+        
+        if (response.status === 403) {
+          lastError = new Error('Accès refusé à la feuille Google Sheets. Vérifiez les permissions de partage.');
+          continue; // Essayer la plage suivante
+        } else if (response.status === 404) {
+          lastError = new Error('Feuille ou plage introuvable. Vérifiez l\'ID de la feuille.');
+          continue; // Essayer la plage suivante
+        } else if (response.status === 400) {
+          lastError = new Error(`Plage invalide: ${currentRange}`);
+          continue; // Essayer la plage suivante
+        }
+        
         throw new Error(`Erreur API Google Sheets (${response.status}): ${response.statusText}`);
       }
-    }
+      
+      if (!contentType?.includes('application/json')) {
+        console.error(`❌ Réponse non-JSON pour ${currentRange}:`, contentType);
+        lastError = new Error('Réponse non-JSON reçue du serveur');
+        continue;
+      }
 
-    const data = await response.json();
-    
-    if (!response.ok) {
-      console.error('❌ Erreur API Google Sheets:', data);
-      throw new Error(`Erreur lecture: ${data.error?.message || 'Erreur inconnue'}`);
-    }
-
-    console.log('✅ Données récupérées avec succès');
-
-    return new Response(
-      JSON.stringify({
-        values: data.values || [],
+      const data = await response.json();
+      
+      console.log(`✅ Données récupérées avec ${currentRange}:`, {
+        hasValues: !!data.values,
+        valuesType: typeof data.values,
+        valuesIsArray: Array.isArray(data.values),
+        totalRows: data.values?.length || 0,
         range: data.range,
-        majorDimension: data.majorDimension,
-        title: `Feuille Google Sheets - ${(data.values?.length || 1) - 1} lignes de données`
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  } catch (error) {
-    console.error('❌ Erreur lors de la lecture:', error);
-    throw error;
+        majorDimension: data.majorDimension
+      });
+
+      // Vérifier si on a des données valides
+      if (data.values && Array.isArray(data.values) && data.values.length > 0) {
+        console.log(`📋 Succès avec ${currentRange} - ${data.values.length} lignes trouvées`);
+        
+        // Log détaillé des données
+        data.values.forEach((row, index) => {
+          const rowData = Array.isArray(row) ? row : [];
+          console.log(`  Ligne ${index + 1}: [${rowData.length} colonnes]`, rowData.slice(0, 5));
+        });
+
+        // Ne pas filtrer les lignes vides ici - laisser le frontend décider
+        const processedData = data.values.map(row => 
+          Array.isArray(row) ? row : []
+        );
+
+        console.log(`✅ === LECTURE REUSSIE ===`);
+        console.log(`📊 Données finales: ${processedData.length} lignes`);
+
+        return new Response(
+          JSON.stringify({
+            values: processedData,
+            range: data.range || currentRange,
+            majorDimension: data.majorDimension || 'ROWS',
+            title: `Feuille Google Sheets - ${processedData.length} lignes`,
+            rangeUsed: currentRange
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        console.log(`⚠️ Pas de données avec ${currentRange}:`, data);
+        lastError = new Error(`Aucune donnée trouvée avec la plage ${currentRange}`);
+        continue;
+      }
+      
+    } catch (error) {
+      console.error(`❌ Erreur avec la plage ${currentRange}:`, error);
+      lastError = error;
+      continue;
+    }
   }
+  
+  // Si toutes les tentatives ont échoué
+  console.error('❌ === ECHEC COMPLET DE LECTURE ===');
+  console.error('Toutes les plages ont échoué:', rangeAttempts);
+  console.error('Dernière erreur:', lastError);
+  
+  throw lastError || new Error('Impossible de lire les données de la feuille avec toutes les plages tentées');
 }
 
 async function handleWrite(sheetId: string, data: any[][], range: string, request: Request) {
