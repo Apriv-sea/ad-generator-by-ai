@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -47,9 +46,8 @@ const GoogleSheetsWorkflow: React.FC<GoogleSheetsWorkflowProps> = ({ sheet, clie
       authenticated
     }));
 
-    if (authenticated) {
-      setActiveTab("connection");
-    }
+    // Ne pas auto-naviguer vers connection si pas authentifié
+    // Laisser l'utilisateur sur l'onglet auth pour voir le statut
   }, []);
 
   // Restaurer l'état du workflow au chargement
@@ -96,6 +94,21 @@ const GoogleSheetsWorkflow: React.FC<GoogleSheetsWorkflowProps> = ({ sheet, clie
     }));
     setActiveTab("connection");
     toast.success("Authentification réussie ! Vous pouvez maintenant vous connecter à vos feuilles.");
+  };
+
+  // Nouvelle fonction pour forcer la reconnexion
+  const handleForceReauth = () => {
+    setIsAuthenticated(false);
+    setWorkflowState(prev => ({
+      ...prev,
+      authenticated: false,
+      connected: false,
+      dataLoaded: false,
+      campaignsExtracted: false,
+      contentGenerated: false
+    }));
+    setActiveTab("auth");
+    toast.info("Redirection vers l'authentification Google Sheets");
   };
 
   const handleConnectionSuccess = async (sheetId: string) => {
@@ -253,7 +266,6 @@ const GoogleSheetsWorkflow: React.FC<GoogleSheetsWorkflowProps> = ({ sheet, clie
           </TabsTrigger>
           <TabsTrigger 
             value="connection" 
-            disabled={!isAuthenticated}
             className="flex items-center space-x-2"
           >
             {(() => {
@@ -306,6 +318,46 @@ const GoogleSheetsWorkflow: React.FC<GoogleSheetsWorkflowProps> = ({ sheet, clie
         </TabsContent>
         
         <TabsContent value="connection" className="space-y-4">
+          {/* Bouton de reconnexion si problème d'authentification */}
+          {!isAuthenticated && (
+            <Alert className="border-yellow-200 bg-yellow-50">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-700">
+                <div className="flex items-center justify-between">
+                  <span>Vous devez d'abord vous authentifier avec Google Sheets</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveTab("auth")}
+                    className="ml-2"
+                  >
+                    Aller à l'authentification
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {/* Bouton de reconnexion en cas de token expiré */}
+          {connectionError && connectionError.includes('session') && (
+            <Alert className="border-orange-200 bg-orange-50">
+              <AlertCircle className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="text-orange-700">
+                <div className="flex items-center justify-between">
+                  <span>Session Google Sheets expirée. Reconnexion nécessaire.</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleForceReauth}
+                    className="ml-2"
+                  >
+                    Se reconnecter
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <GoogleSheetsEmbed
             sheetUrl={sheetUrl}
             onSheetUrlChange={setSheetUrl}
