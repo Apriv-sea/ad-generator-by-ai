@@ -6,6 +6,7 @@ export interface SheetData {
   range?: string;
   majorDimension?: string;
   title?: string;
+  rangeUsed?: string;
 }
 
 export class GoogleSheetsApiService {
@@ -135,7 +136,8 @@ export class GoogleSheetsApiService {
         values: data.values || [],
         range: data.range,
         majorDimension: data.majorDimension,
-        title: data.title || 'Feuille Google Sheets'
+        title: data.title || 'Feuille Google Sheets',
+        rangeUsed: data.range
       };
 
     } catch (error) {

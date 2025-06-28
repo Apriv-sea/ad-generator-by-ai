@@ -9,6 +9,10 @@ export interface SheetData {
   headers: string[];
   clientInfo?: Client;
   lastModified: string;
+  range?: string;
+  majorDimension?: string;
+  title?: string;
+  rangeUsed?: string;
   
   // Méthode pour extraire les campagnes des données du tableur
   extractCampaigns?: () => Campaign[];
