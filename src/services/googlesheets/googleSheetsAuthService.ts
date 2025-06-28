@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 
 export interface AuthTokens {
@@ -14,7 +13,27 @@ export class GoogleSheetsAuthService {
 
   static isAuthenticated(): boolean {
     const tokens = this.getStoredTokens();
-    return !!(tokens?.access_token);
+    console.log('🔐 Vérification authentification:', {
+      hasAccessToken: !!tokens?.access_token,
+      hasRefreshToken: !!tokens?.refresh_token,
+      tokenExpiry: tokens?.expires_at,
+      currentTime: Date.now(),
+      isExpired: tokens?.expires_at ? Date.now() > tokens.expires_at : true
+    });
+
+    if (!tokens?.access_token) {
+      console.log('❌ Pas de token d\'accès');
+      return false;
+    }
+
+    // Vérifier si le token est expiré
+    if (tokens.expires_at && Date.now() > tokens.expires_at) {
+      console.log('⏰ Token expiré, nettoyage automatique');
+      this.clearTokens();
+      return false;
+    }
+
+    return true;
   }
 
   static getStoredTokens(): AuthTokens | null {
@@ -220,13 +239,26 @@ export class GoogleSheetsAuthService {
 
   static getAuthHeaders(): Record<string, string> {
     const tokens = this.getStoredTokens();
+    console.log('🔐 Récupération headers auth:', {
+      hasTokens: !!tokens,
+      hasAccessToken: !!tokens?.access_token,
+      tokenExpiry: tokens?.expires_at,
+      isExpired: tokens?.expires_at ? Date.now() > tokens.expires_at : true
+    });
+
     if (!tokens?.access_token) {
-      throw new Error('Pas de token d\'authentification');
+      throw new Error('Token d\'authentification manquant. Veuillez vous reconnecter.');
+    }
+
+    // Vérifier l'expiration avant d'utiliser le token
+    if (tokens.expires_at && Date.now() > tokens.expires_at) {
+      console.log('⏰ Token expiré détecté dans getAuthHeaders');
+      this.clearTokens();
+      throw new Error('Token d\'authentification expiré. Veuillez vous reconnecter.');
     }
 
     return {
-      'Authorization': `Bearer ${tokens.access_token}`,
-      'Content-Type': 'application/json'
+      'Authorization': `Bearer ${tokens.access_token}`
     };
   }
 }

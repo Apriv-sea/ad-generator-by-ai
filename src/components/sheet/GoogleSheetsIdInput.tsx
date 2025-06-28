@@ -34,7 +34,17 @@ const GoogleSheetsIdInput: React.FC<GoogleSheetsIdInputProps> = ({ onSheetLoaded
     setDebugInfo(null);
 
     try {
-      // Étape 1: Extraction d'ID avec debugging complet
+      // Étape 1: Vérification de l'authentification AVANT tout
+      const isAuth = GoogleSheetsAuthService.isAuthenticated();
+      console.log("🔐 État authentification:", isAuth);
+      
+      if (!isAuth) {
+        setConnectionError("Votre session Google Sheets a expiré. Veuillez vous reconnecter dans l'onglet 'Authentification'.");
+        toast.error("Session expirée. Reconnectez-vous à Google Sheets.");
+        return;
+      }
+
+      // Étape 2: Extraction d'ID avec debugging complet
       console.log("🆔 Extraction d'ID avec nouveau parser...");
       const extractionResult = GoogleSheetsUrlParser.extractSheetId(url);
       
@@ -51,12 +61,6 @@ const GoogleSheetsIdInput: React.FC<GoogleSheetsIdInputProps> = ({ onSheetLoaded
 
       const sheetId = extractionResult.id;
       console.log("✅ ID extrait avec succès:", sheetId);
-
-      // Étape 2: Vérification authentification
-      if (!GoogleSheetsAuthService.isAuthenticated()) {
-        setConnectionError("Vous devez d'abord vous authentifier avec Google Sheets. Rendez-vous dans l'onglet 'Authentification'.");
-        return;
-      }
 
       // Étape 3: Récupération des données
       console.log("📊 Récupération des données...");
@@ -91,11 +95,13 @@ const GoogleSheetsIdInput: React.FC<GoogleSheetsIdInputProps> = ({ onSheetLoaded
       
       const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
       
-      // Messages d'erreur plus spécifiques
+      // Messages d'erreur plus spécifiques avec focus sur l'authentification
       let userMessage = errorMessage;
       
-      if (errorMessage.includes('401')) {
-        userMessage = "Erreur d'authentification. Reconnectez-vous à Google Sheets.";
+      if (errorMessage.includes('401') || errorMessage.includes('Token') || errorMessage.includes('authentification')) {
+        userMessage = "Votre session Google Sheets a expiré. Veuillez vous reconnecter dans l'onglet 'Authentification'.";
+        // Nettoyer automatiquement les tokens expirés
+        GoogleSheetsAuthService.clearTokens();
       } else if (errorMessage.includes('403')) {
         userMessage = "Accès refusé à la feuille. Vérifiez que la feuille est partagée publiquement ou que vous avez les permissions.";
       } else if (errorMessage.includes('404')) {
