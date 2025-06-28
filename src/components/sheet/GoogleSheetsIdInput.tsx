@@ -7,7 +7,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ExternalLink, AlertCircle, CheckCircle, Loader } from "lucide-react";
 import { GoogleSheetsApiService } from "@/services/googlesheets/googleSheetsApiService";
 import { GoogleSheetsAuthService } from "@/services/googlesheets/googleSheetsAuthService";
-import { googleSheetsValidationService } from "@/services/sheets/googleSheetsValidationService";
 import { toast } from "sonner";
 
 interface GoogleSheetsIdInputProps {
@@ -31,19 +30,24 @@ const GoogleSheetsIdInput: React.FC<GoogleSheetsIdInputProps> = ({ onSheetLoaded
     setConnectionError(null);
 
     try {
-      // Valider l'URL
-      const validation = googleSheetsValidationService.validateGoogleSheetsUrl(url);
-      if (!validation.isValid) {
-        throw new Error(validation.error || "URL invalide");
+      // Validation basique de l'URL - uniquement les critères essentiels
+      if (!url.includes('docs.google.com/spreadsheets') && !url.includes('sheets.google.com')) {
+        throw new Error("L'URL doit être une URL Google Sheets valide (docs.google.com/spreadsheets ou sheets.google.com)");
       }
 
-      // Extraire l'ID de la feuille
+      // Extraction robuste de l'ID directement avec le service API
       const sheetId = GoogleSheetsApiService.extractSheetId(url);
       if (!sheetId) {
-        throw new Error("Impossible d'extraire l'ID de la feuille depuis cette URL");
+        console.error("❌ Impossible d'extraire l'ID depuis l'URL:", url);
+        throw new Error("Impossible d'extraire l'ID de la feuille depuis cette URL. Vérifiez que l'URL contient l'ID de la feuille.");
       }
 
       console.log("🆔 ID de la feuille extrait:", sheetId);
+
+      // Validation de base de l'ID
+      if (!GoogleSheetsApiService.validateSheetId(sheetId)) {
+        throw new Error("L'ID de la feuille extrait n'est pas valide. Vérifiez votre URL Google Sheets.");
+      }
 
       // Vérifier l'authentification
       if (!GoogleSheetsAuthService.isAuthenticated()) {
@@ -51,9 +55,9 @@ const GoogleSheetsIdInput: React.FC<GoogleSheetsIdInputProps> = ({ onSheetLoaded
         return;
       }
 
-      // Récupérer les données
+      // Récupérer les données avec une plage large
       console.log("📊 Récupération des données...");
-      const data = await GoogleSheetsApiService.getSheetData(sheetId);
+      const data = await GoogleSheetsApiService.getSheetData(sheetId, 'A1:ZZ10000');
       
       console.log("✅ Données récupérées:", {
         title: data.title,
@@ -81,7 +85,25 @@ const GoogleSheetsIdInput: React.FC<GoogleSheetsIdInputProps> = ({ onSheetLoaded
 
     } catch (error) {
       console.error("❌ Erreur de connexion:", error);
-      const errorMessage = error instanceof Error ? error.message : "Erreur de connexion inconnue";
+      let errorMessage = "Erreur de connexion inconnue";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message);
+      }
+
+      // Messages d'erreur plus spécifiques
+      if (errorMessage.includes('401') || errorMessage.includes('Authentification')) {
+        errorMessage = "Erreur d'authentification. Reconnectez-vous à Google Sheets.";
+      } else if (errorMessage.includes('403') || errorMessage.includes('Accès refusé')) {
+        errorMessage = "Accès refusé à la feuille. Vérifiez que la feuille est partagée publiquement ou que vous avez les permissions.";
+      } else if (errorMessage.includes('404') || errorMessage.includes('introuvable')) {
+        errorMessage = "Feuille introuvable. Vérifiez l'URL de votre feuille Google Sheets.";
+      }
+
       setConnectionError(errorMessage);
       toast.error(`Échec de connexion: ${errorMessage}`);
     } finally {
@@ -165,6 +187,20 @@ const GoogleSheetsIdInput: React.FC<GoogleSheetsIdInputProps> = ({ onSheetLoaded
               ou que vous êtes authentifié avec Google Sheets. La feuille doit contenir des en-têtes et des données.
             </AlertDescription>
           </Alert>
+
+          {/* Debug info pour diagnostiquer les problèmes */}
+          {process.env.NODE_ENV === 'development' && url && (
+            <Alert className="bg-blue-50 border-blue-200">
+              <AlertCircle className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-700 text-xs">
+                <strong>Debug:</strong> URL saisie: {url}
+                <br />
+                ID extrait: {GoogleSheetsApiService.extractSheetId(url) || "❌ Aucun"}
+                <br />
+                Auth: {GoogleSheetsAuthService.isAuthenticated() ? "✅ OK" : "❌ Requis"}
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
     </div>

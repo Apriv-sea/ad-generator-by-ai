@@ -15,44 +15,83 @@ export class GoogleSheetsApiService {
   static extractSheetId(url: string): string | null {
     console.log('🔍 Extraction d\'ID depuis l\'URL:', url);
     
-    // Nettoyer l'URL en supprimant les paramètres de fragment et query
-    const cleanUrl = url.split('#')[0].split('?')[0];
+    if (!url || typeof url !== 'string') {
+      console.log('❌ URL invalide ou vide');
+      return null;
+    }
+
+    // Nettoyer l'URL de manière plus agressive
+    let cleanUrl = url.trim();
+    
+    // Supprimer les fragments (#) et paramètres de requête (?) mais garder le chemin principal
+    cleanUrl = cleanUrl.split('#')[0].split('?')[0];
+    
+    // Supprimer les espaces et caractères spéciaux en début/fin
+    cleanUrl = cleanUrl.replace(/[\s\u200B-\u200D\uFEFF]/g, '');
+    
     console.log('🔍 URL nettoyée:', cleanUrl);
     
+    // Patterns d'extraction d'ID de feuille Google (du plus spécifique au plus général)
     const patterns = [
-      // Pattern principal pour les URLs Google Sheets
-      /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/,
-      // Pattern pour les IDs directs
-      /^([a-zA-Z0-9-_]{44})$/,
-      // Pattern pour les URLs avec paramètre id
-      /id=([a-zA-Z0-9-_]+)/,
-      // Pattern alternatif pour les URLs complètes
-      /docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/
+      // Pattern principal pour les URLs Google Sheets standard
+      /(?:docs\.google\.com|sheets\.google\.com)\/spreadsheets\/d\/([a-zA-Z0-9-_]{25,})/,
+      // Pattern pour les URLs avec /u/0/ ou /u/1/
+      /\/u\/\d+\/spreadsheets\/d\/([a-zA-Z0-9-_]{25,})/,
+      // Pattern pour les IDs directs (très long, caractéristique de Google)
+      /^([a-zA-Z0-9-_]{25,})$/,
+      // Pattern de fallback plus permissif
+      /\/d\/([a-zA-Z0-9-_]{20,})/,
     ];
 
-    for (const pattern of patterns) {
+    for (let i = 0; i < patterns.length; i++) {
+      const pattern = patterns[i];
       const match = cleanUrl.match(pattern);
-      if (match) {
-        console.log('✅ ID extrait:', match[1]);
-        return match[1];
+      if (match && match[1]) {
+        const extractedId = match[1];
+        console.log(`✅ ID extrait avec pattern ${i + 1}:`, extractedId);
+        
+        // Validation basique de l'ID extrait
+        if (extractedId.length >= 20 && /^[a-zA-Z0-9-_]+$/.test(extractedId)) {
+          return extractedId;
+        } else {
+          console.log(`⚠️ ID extrait invalide (trop court ou caractères invalides):`, extractedId);
+        }
       }
     }
 
-    // Essayer avec l'URL originale si la version nettoyée n'a pas fonctionné
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match) {
-        console.log('✅ ID extrait (URL originale):', match[1]);
-        return match[1];
+    // Essayer avec l'URL originale au cas où le nettoyage aurait supprimé quelque chose d'important
+    if (cleanUrl !== url) {
+      console.log('🔄 Tentative avec URL originale:', url);
+      for (let i = 0; i < patterns.length; i++) {
+        const pattern = patterns[i];
+        const match = url.match(pattern);
+        if (match && match[1]) {
+          const extractedId = match[1];
+          console.log(`✅ ID extrait avec URL originale (pattern ${i + 1}):`, extractedId);
+          
+          if (extractedId.length >= 20 && /^[a-zA-Z0-9-_]+$/.test(extractedId)) {
+            return extractedId;
+          }
+        }
       }
     }
 
     console.log('❌ Impossible d\'extraire l\'ID depuis l\'URL');
+    console.log('❌ URL testée:', cleanUrl);
+    console.log('❌ URL originale:', url);
     return null;
   }
 
   static validateSheetId(sheetId: string): boolean {
-    return /^[a-zA-Z0-9-_]{10,}$/.test(sheetId);
+    if (!sheetId || typeof sheetId !== 'string') {
+      console.log('❌ Validation ID: ID vide ou non-string');
+      return false;
+    }
+    
+    // Un ID Google Sheets valide doit faire au moins 20 caractères et contenir uniquement des caractères alphanumériques, tirets et underscores
+    const isValid = sheetId.length >= 20 && /^[a-zA-Z0-9-_]+$/.test(sheetId);
+    console.log(`🔍 Validation ID "${sheetId}":`, isValid ? '✅ Valide' : '❌ Invalide');
+    return isValid;
   }
 
   static async getSheetData(sheetId: string, range: string = 'A1:AZ1000'): Promise<SheetData> {
