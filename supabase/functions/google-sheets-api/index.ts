@@ -198,16 +198,39 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string,
 }
 
 async function getAccessToken(request: Request): Promise<string> {
+  console.log('🔐 === EXTRACTION TOKEN ===');
+  console.log('Headers de la requête:', Object.fromEntries(request.headers.entries()));
+  
   const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new Error('Token d\'accès manquant dans les headers');
+  console.log('Header Authorization brut:', authHeader);
+  
+  if (!authHeader) {
+    console.error('❌ Aucun header Authorization trouvé');
+    throw new Error('Token d\'accès manquant dans les headers - Header Authorization requis');
   }
   
-  return authHeader.replace('Bearer ', '');
+  if (!authHeader.startsWith('Bearer ')) {
+    console.error('❌ Format d\'Authorization invalide:', authHeader.substring(0, 50) + '...');
+    throw new Error('Token d\'accès invalide - Format Bearer requis');
+  }
+  
+  const token = authHeader.replace('Bearer ', '');
+  console.log('✅ Token extrait:', {
+    tokenPrefix: token.substring(0, 20) + '...',
+    tokenLength: token.length
+  });
+  
+  return token;
 }
 
 async function handleRead(sheetId: string, range: string, request: Request) {
-  const accessToken = await getAccessToken(request);
+  let accessToken;
+  try {
+    accessToken = await getAccessToken(request);
+  } catch (error) {
+    console.error('❌ Erreur extraction token:', error.message);
+    throw error;
+  }
   
   console.log(`📖 === DEBUT LECTURE AMELIOREE ===`);
   console.log(`📋 Feuille: ${sheetId}`);
@@ -234,6 +257,7 @@ async function handleRead(sheetId: string, range: string, request: Request) {
       console.log(`📊 Tentative de lecture avec la plage: ${currentRange}`);
       
       const googleApiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(currentRange)}`;
+      console.log(`🌐 URL Google API: ${googleApiUrl}`);
       
       const response = await fetch(googleApiUrl, {
         headers: {
@@ -264,6 +288,10 @@ async function handleRead(sheetId: string, range: string, request: Request) {
         } else if (response.status === 400) {
           lastError = new Error(`Plage invalide: ${currentRange}`);
           continue; // Essayer la plage suivante
+        } else if (response.status === 401) {
+          console.error('🔐 Erreur 401 - Token invalide ou expiré');
+          lastError = new Error('Token d\'authentification invalide ou expiré. Reconnectez-vous.');
+          continue;
         }
         
         throw new Error(`Erreur API Google Sheets (${response.status}): ${response.statusText}`);

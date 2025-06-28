@@ -31,7 +31,7 @@ export class GoogleSheetsApiService {
     return /^[a-zA-Z0-9-_]{10,}$/.test(sheetId);
   }
 
-  static async getSheetData(sheetId: string, range: string = 'A:Z'): Promise<SheetData> {
+  static async getSheetData(sheetId: string, range: string = 'A1:AZ1000'): Promise<SheetData> {
     if (!this.validateSheetId(sheetId)) {
       throw new Error('ID de feuille Google Sheets invalide');
     }
@@ -45,10 +45,18 @@ export class GoogleSheetsApiService {
       console.log(`📋 Feuille: ${sheetId}`);
       console.log(`📊 Range demandé: ${range}`);
       
+      // Récupérer le token d'authentification
+      const authHeaders = GoogleSheetsAuthService.getAuthHeaders();
+      console.log('🔐 Headers d\'authentification:', {
+        hasAuthorization: !!authHeaders['Authorization'],
+        authType: authHeaders['Authorization']?.split(' ')[0] || 'N/A',
+        tokenPrefix: authHeaders['Authorization']?.substring(0, 30) + '...' || 'N/A'
+      });
+      
       const response = await fetch(this.API_BASE_URL, {
         method: 'POST',
         headers: {
-          ...GoogleSheetsAuthService.getAuthHeaders(),
+          ...authHeaders,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -75,7 +83,10 @@ export class GoogleSheetsApiService {
         } else if (response.status === 404) {
           console.error('📋 Erreur 404 - Feuille introuvable. Vérifiez l\'ID.');
         } else if (response.status === 401) {
-          console.error('🔐 Erreur 401 - Authentification requise.');
+          console.error('🔐 Erreur 401 - Token d\'authentification invalide ou expiré.');
+          // Nettoyer les tokens invalides
+          GoogleSheetsAuthService.clearTokens();
+          throw new Error('Token d\'authentification expiré. Veuillez vous reconnecter.');
         }
         
         // Tenter de parser en JSON, sinon traiter comme erreur HTML
@@ -106,7 +117,8 @@ export class GoogleSheetsApiService {
         totalRows: data.values?.length || 0,
         range: data.range,
         majorDimension: data.majorDimension,
-        title: data.title
+        title: data.title,
+        rangeUsed: data.rangeUsed
       });
 
       if (data.values && Array.isArray(data.values)) {
@@ -137,7 +149,7 @@ export class GoogleSheetsApiService {
         range: data.range,
         majorDimension: data.majorDimension,
         title: data.title || 'Feuille Google Sheets',
-        rangeUsed: data.range
+        rangeUsed: data.rangeUsed || range
       };
 
     } catch (error) {
