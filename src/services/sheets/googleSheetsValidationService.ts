@@ -1,4 +1,3 @@
-
 import { inputSanitizationService } from "../security/inputSanitizationService";
 
 export interface GoogleSheetsValidationResult {
@@ -35,43 +34,45 @@ class GoogleSheetsValidationService {
     if (!url || typeof url !== 'string') {
       return {
         isValid: false,
-        error: 'URL is required and must be a string'
+        error: 'URL requise et doit être une chaîne de caractères'
       };
     }
 
     // Vérifier les patterns suspects
     for (const pattern of this.SUSPICIOUS_PATTERNS) {
       if (pattern.test(url)) {
-        warnings.push('Suspicious pattern detected in URL');
+        warnings.push('Pattern suspect détecté dans l\'URL');
         return {
           isValid: false,
-          error: 'URL contains potentially dangerous content',
+          error: 'L\'URL contient du contenu potentiellement dangereux',
           securityWarnings: warnings
         };
       }
     }
 
-    // Nettoyer l'URL
+    // Nettoyer l'URL en supprimant les caractères dangereux
     const sanitizedUrl = url.replace(/[<>'"]/g, '').trim();
     
     // Validation de longueur
     if (sanitizedUrl.length > 2000) {
       return {
         isValid: false,
-        error: 'URL is too long (max 2000 characters)',
+        error: 'URL trop longue (max 2000 caractères)',
         securityWarnings: warnings
       };
     }
 
     try {
-      const urlObj = new URL(sanitizedUrl);
+      // Nettoyer l'URL des paramètres de fragment avant validation
+      const cleanUrl = sanitizedUrl.split('#')[0];
+      const urlObj = new URL(cleanUrl);
       
       // Validation du protocole
       if (urlObj.protocol !== 'https:') {
-        warnings.push('Non-HTTPS URL detected');
+        warnings.push('URL non-HTTPS détectée');
         return {
           isValid: false,
-          error: 'Only HTTPS URLs are allowed',
+          error: 'Seules les URLs HTTPS sont autorisées',
           securityWarnings: warnings
         };
       }
@@ -82,10 +83,10 @@ class GoogleSheetsValidationService {
       );
       
       if (!isValidDomain) {
-        warnings.push('Non-whitelisted domain');
+        warnings.push('Domaine non autorisé');
         return {
           isValid: false,
-          error: 'URL must be from Google Sheets',
+          error: 'L\'URL doit provenir de Google Sheets',
           securityWarnings: warnings
         };
       }
@@ -94,17 +95,27 @@ class GoogleSheetsValidationService {
       if (!urlObj.pathname.includes('/spreadsheets/')) {
         return {
           isValid: false,
-          error: 'URL must be a Google Sheets document',
+          error: 'L\'URL doit être un document Google Sheets valide',
           securityWarnings: warnings
         };
       }
 
       // Vérifications de sécurité supplémentaires
       if (urlObj.pathname.includes('..')) {
-        warnings.push('Path traversal attempt detected');
+        warnings.push('Tentative de path traversal détectée');
         return {
           isValid: false,
-          error: 'Invalid path in URL',
+          error: 'Chemin invalide dans l\'URL',
+          securityWarnings: warnings
+        };
+      }
+
+      // Validation spécifique pour Google Sheets - vérifier la présence de l'ID
+      const hasSpreadsheetId = /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/.test(urlObj.pathname);
+      if (!hasSpreadsheetId) {
+        return {
+          isValid: false,
+          error: 'URL Google Sheets invalide - ID de feuille manquant',
           securityWarnings: warnings
         };
       }
@@ -118,7 +129,7 @@ class GoogleSheetsValidationService {
     } catch (error) {
       return {
         isValid: false,
-        error: 'Invalid URL format',
+        error: 'Format d\'URL invalide',
         securityWarnings: warnings
       };
     }
@@ -135,19 +146,21 @@ class GoogleSheetsValidationService {
     }
 
     try {
-      const urlObj = new URL(validation.sanitizedUrl!);
+      // Nettoyer l'URL des paramètres avant extraction
+      const cleanUrl = validation.sanitizedUrl!.split('#')[0].split('?')[0];
+      const urlObj = new URL(cleanUrl);
       const pathParts = urlObj.pathname.split('/');
       const dIndex = pathParts.indexOf('d');
       
       if (dIndex === -1 || dIndex >= pathParts.length - 1) {
-        return { id: null, error: 'Could not extract sheet ID from URL' };
+        return { id: null, error: 'Impossible d\'extraire l\'ID de la feuille depuis l\'URL' };
       }
 
       const sheetId = pathParts[dIndex + 1];
       
       // Valider le format de l'ID (validation basique)
       if (!sheetId || sheetId.length < 10) {
-        return { id: null, error: 'Invalid sheet ID format' };
+        return { id: null, error: 'Format d\'ID de feuille invalide' };
       }
 
       // Nettoyer l'ID
@@ -155,7 +168,7 @@ class GoogleSheetsValidationService {
       
       return { id: sanitizedId };
     } catch (error) {
-      return { id: null, error: 'Failed to extract sheet ID' };
+      return { id: null, error: 'Échec de l\'extraction de l\'ID de la feuille' };
     }
   }
 

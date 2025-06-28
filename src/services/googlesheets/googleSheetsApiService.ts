@@ -13,17 +13,41 @@ export class GoogleSheetsApiService {
   private static readonly API_BASE_URL = 'https://lbmfkppvzimklebisefm.supabase.co/functions/v1/google-sheets-api';
 
   static extractSheetId(url: string): string | null {
+    console.log('🔍 Extraction d\'ID depuis l\'URL:', url);
+    
+    // Nettoyer l'URL en supprimant les paramètres de fragment et query
+    const cleanUrl = url.split('#')[0].split('?')[0];
+    console.log('🔍 URL nettoyée:', cleanUrl);
+    
     const patterns = [
+      // Pattern principal pour les URLs Google Sheets
       /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/,
+      // Pattern pour les IDs directs
       /^([a-zA-Z0-9-_]{44})$/,
-      /id=([a-zA-Z0-9-_]+)/
+      // Pattern pour les URLs avec paramètre id
+      /id=([a-zA-Z0-9-_]+)/,
+      // Pattern alternatif pour les URLs complètes
+      /docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/
     ];
 
     for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match) return match[1];
+      const match = cleanUrl.match(pattern);
+      if (match) {
+        console.log('✅ ID extrait:', match[1]);
+        return match[1];
+      }
     }
 
+    // Essayer avec l'URL originale si la version nettoyée n'a pas fonctionné
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) {
+        console.log('✅ ID extrait (URL originale):', match[1]);
+        return match[1];
+      }
+    }
+
+    console.log('❌ Impossible d\'extraire l\'ID depuis l\'URL');
     return null;
   }
 
