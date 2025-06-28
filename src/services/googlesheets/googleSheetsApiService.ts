@@ -1,5 +1,6 @@
 import { GoogleSheetsAuthService } from './googleSheetsAuthService';
 import { GoogleSheetsErrorHandler } from './googleSheetsErrorHandler';
+import { GoogleSheetsUrlParser } from './googleSheetsUrlParser';
 
 export interface SheetData {
   values: string[][];
@@ -12,74 +13,13 @@ export interface SheetData {
 export class GoogleSheetsApiService {
   private static readonly API_BASE_URL = 'https://lbmfkppvzimklebisefm.supabase.co/functions/v1/google-sheets-api';
 
+  /**
+   * Extraction d'ID simplifiée - délègue au parser dédié
+   */
   static extractSheetId(url: string): string | null {
-    console.log('🔍 Extraction d\'ID depuis l\'URL:', url);
-    
-    if (!url || typeof url !== 'string') {
-      console.log('❌ URL invalide ou vide');
-      return null;
-    }
-
-    // Nettoyer l'URL de manière plus agressive
-    let cleanUrl = url.trim();
-    
-    // Supprimer les fragments (#) et paramètres de requête (?) mais garder le chemin principal
-    cleanUrl = cleanUrl.split('#')[0].split('?')[0];
-    
-    // Supprimer les espaces et caractères spéciaux en début/fin
-    cleanUrl = cleanUrl.replace(/[\s\u200B-\u200D\uFEFF]/g, '');
-    
-    console.log('🔍 URL nettoyée:', cleanUrl);
-    
-    // Patterns d'extraction d'ID de feuille Google (du plus spécifique au plus général)
-    const patterns = [
-      // Pattern principal pour les URLs Google Sheets standard
-      /(?:docs\.google\.com|sheets\.google\.com)\/spreadsheets\/d\/([a-zA-Z0-9-_]{25,})/,
-      // Pattern pour les URLs avec /u/0/ ou /u/1/
-      /\/u\/\d+\/spreadsheets\/d\/([a-zA-Z0-9-_]{25,})/,
-      // Pattern pour les IDs directs (très long, caractéristique de Google)
-      /^([a-zA-Z0-9-_]{25,})$/,
-      // Pattern de fallback plus permissif
-      /\/d\/([a-zA-Z0-9-_]{20,})/,
-    ];
-
-    for (let i = 0; i < patterns.length; i++) {
-      const pattern = patterns[i];
-      const match = cleanUrl.match(pattern);
-      if (match && match[1]) {
-        const extractedId = match[1];
-        console.log(`✅ ID extrait avec pattern ${i + 1}:`, extractedId);
-        
-        // Validation basique de l'ID extrait
-        if (extractedId.length >= 20 && /^[a-zA-Z0-9-_]+$/.test(extractedId)) {
-          return extractedId;
-        } else {
-          console.log(`⚠️ ID extrait invalide (trop court ou caractères invalides):`, extractedId);
-        }
-      }
-    }
-
-    // Essayer avec l'URL originale au cas où le nettoyage aurait supprimé quelque chose d'important
-    if (cleanUrl !== url) {
-      console.log('🔄 Tentative avec URL originale:', url);
-      for (let i = 0; i < patterns.length; i++) {
-        const pattern = patterns[i];
-        const match = url.match(pattern);
-        if (match && match[1]) {
-          const extractedId = match[1];
-          console.log(`✅ ID extrait avec URL originale (pattern ${i + 1}):`, extractedId);
-          
-          if (extractedId.length >= 20 && /^[a-zA-Z0-9-_]+$/.test(extractedId)) {
-            return extractedId;
-          }
-        }
-      }
-    }
-
-    console.log('❌ Impossible d\'extraire l\'ID depuis l\'URL');
-    console.log('❌ URL testée:', cleanUrl);
-    console.log('❌ URL originale:', url);
-    return null;
+    console.log('🔍 GoogleSheetsApiService.extractSheetId - délégation au GoogleSheetsUrlParser');
+    const result = GoogleSheetsUrlParser.extractSheetId(url);
+    return result.id;
   }
 
   static validateSheetId(sheetId: string): boolean {
