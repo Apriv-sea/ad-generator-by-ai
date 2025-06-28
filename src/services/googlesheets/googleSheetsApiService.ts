@@ -1,4 +1,3 @@
-
 import { GoogleSheetsAuthService } from './googleSheetsAuthService';
 import { GoogleSheetsErrorHandler } from './googleSheetsErrorHandler';
 
@@ -41,7 +40,9 @@ export class GoogleSheetsApiService {
     }
 
     try {
-      console.log(`📖 Récupération des données: ${sheetId} (${range})`);
+      console.log(`📖 === DEBUT LECTURE GOOGLE SHEETS ===`);
+      console.log(`📋 Feuille: ${sheetId}`);
+      console.log(`📊 Range demandé: ${range}`);
       
       const response = await fetch(this.API_BASE_URL, {
         method: 'POST',
@@ -56,16 +57,32 @@ export class GoogleSheetsApiService {
         })
       });
 
+      console.log(`📡 Réponse API lecture:`, {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Erreur API (${response.status}):`, errorText);
+        console.error(`❌ Erreur API lecture (${response.status}):`, errorText);
+        
+        // Analyser les erreurs spécifiques
+        if (response.status === 403) {
+          console.error('🚫 Erreur 403 - Accès refusé. Vérifiez les permissions de la feuille.');
+        } else if (response.status === 404) {
+          console.error('📋 Erreur 404 - Feuille introuvable. Vérifiez l\'ID.');
+        } else if (response.status === 401) {
+          console.error('🔐 Erreur 401 - Authentification requise.');
+        }
         
         // Tenter de parser en JSON, sinon traiter comme erreur HTML
         let errorData;
         try {
           errorData = JSON.parse(errorText);
         } catch {
-          throw { status: response.status, message: 'Réponse HTML reçue au lieu de JSON' };
+          throw { status: response.status, message: `Erreur HTTP ${response.status}: ${response.statusText}` };
         }
         
         throw { status: response.status, ...errorData };
@@ -73,14 +90,46 @@ export class GoogleSheetsApiService {
 
       const contentType = response.headers.get('content-type');
       if (!contentType?.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('❌ Réponse non-JSON reçue:', responseText.substring(0, 200));
         throw new Error('Réponse non-JSON reçue du serveur');
       }
 
       const data = await response.json();
-      console.log('✅ Données récupérées:', {
-        rowCount: data.values?.length || 0,
-        hasData: !!(data.values && data.values.length > 0)
+      
+      console.log('✅ === DONNEES REÇUES GOOGLE SHEETS ===');
+      console.log('📊 Données brutes:', {
+        hasValues: !!data.values,
+        valuesType: typeof data.values,
+        valuesIsArray: Array.isArray(data.values),
+        totalRows: data.values?.length || 0,
+        range: data.range,
+        majorDimension: data.majorDimension,
+        title: data.title
       });
+
+      if (data.values && Array.isArray(data.values)) {
+        console.log('📋 Détail des lignes reçues:');
+        data.values.forEach((row, index) => {
+          console.log(`  Ligne ${index + 1}:`, {
+            length: row?.length || 0,
+            content: row?.slice(0, 5), // Première 5 colonnes
+            isEmpty: !row || row.every(cell => !cell || cell.toString().trim() === ''),
+            fullRow: row
+          });
+        });
+
+        // Vérifier s'il y a des lignes vides qui pourraient être ignorées
+        const nonEmptyRows = data.values.filter(row => 
+          row && row.some(cell => cell && cell.toString().trim() !== '')
+        );
+        
+        console.log(`📊 Analyse des lignes:`, {
+          totalRowsReceived: data.values.length,
+          nonEmptyRows: nonEmptyRows.length,
+          emptyRowsFiltered: data.values.length - nonEmptyRows.length
+        });
+      }
 
       return {
         values: data.values || [],
@@ -91,7 +140,9 @@ export class GoogleSheetsApiService {
 
     } catch (error) {
       const handledError = GoogleSheetsErrorHandler.handleApiError(error);
-      console.error('❌ Erreur récupération données:', handledError);
+      console.error('❌ === ERREUR COMPLETE LECTURE ===');
+      console.error('Message:', handledError.message);
+      console.error('Erreur originale:', error);
       throw new Error(handledError.message);
     }
   }

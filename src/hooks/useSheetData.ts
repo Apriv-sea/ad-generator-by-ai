@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Sheet, Client } from "@/services/types";
 import { getClientInfo } from "@/services/clientService";
@@ -47,10 +46,29 @@ export function useSheetData(sheet: Sheet | null) {
         return;
       }
 
-      // Pour les feuilles Google Sheets, utiliser le service
+      // Pour les feuilles Google Sheets, utiliser le service avec range étendu
       console.log("📊 HOOK - Traitement feuille Google Sheets, appel du service...");
       
-      const data = await googleSheetsService.getSheetData(sheet.id);
+      // Essayer d'abord avec une plage plus large pour capturer toutes les données
+      const ranges = ['A:Z', 'A1:Z1000', 'Sheet1!A:Z', 'A1:AZ1000'];
+      let data = null;
+      let successRange = null;
+      
+      for (const range of ranges) {
+        try {
+          console.log(`📊 HOOK - Tentative avec la plage: ${range}`);
+          data = await googleSheetsService.getSheetData(sheet.id, range);
+          
+          if (data && data.values && data.values.length > 0) {
+            successRange = range;
+            console.log(`✅ HOOK - Succès avec la plage ${range}, ${data.values.length} lignes trouvées`);
+            break;
+          }
+        } catch (rangeError) {
+          console.log(`⚠️ HOOK - Échec avec la plage ${range}:`, rangeError.message);
+          continue;
+        }
+      }
       
       console.log("📊 HOOK - Données reçues du service Google Sheets:", {
         hasData: !!data,
@@ -58,8 +76,8 @@ export function useSheetData(sheet: Sheet | null) {
         valuesIsArray: Array.isArray(data?.values),
         valuesLength: data?.values?.length || 0,
         title: data?.title,
-        firstRow: data?.values?.[0],
-        secondRow: data?.values?.[1],
+        successRange: successRange,
+        rawDataSample: data?.values?.slice(0, 5),
         allRows: data?.values,
         completeData: data
       });
@@ -67,20 +85,36 @@ export function useSheetData(sheet: Sheet | null) {
       if (data && data.values && Array.isArray(data.values) && data.values.length > 0) {
         console.log(`📊 HOOK - Données valides détectées:`, {
           totalRows: data.values.length,
+          expectedRows: 7, // Selon votre screenshot
           firstRow: data.values[0],
           hasMultipleRows: data.values.length > 1,
-          secondRow: data.values.length > 1 ? data.values[1] : null,
-          allData: data.values
+          allRowsDetails: data.values.map((row, index) => ({
+            rowIndex: index,
+            rowLength: row?.length || 0,
+            rowContent: row?.slice(0, 5), // Première 5 colonnes seulement
+            isEmpty: !row || row.every(cell => !cell || cell.toString().trim() === '')
+          })),
+          nonEmptyRows: data.values.filter(row => row && row.some(cell => cell && cell.toString().trim() !== '')).length
         });
         
-        setSheetData(data.values);
+        // Filtrer les lignes complètement vides
+        const nonEmptyRows = data.values.filter(row => 
+          row && row.some(cell => cell && cell.toString().trim() !== '')
+        );
         
-        if (data.values.length === 1) {
+        console.log(`📊 HOOK - Après filtrage des lignes vides: ${nonEmptyRows.length} lignes`);
+        
+        setSheetData(nonEmptyRows);
+        
+        if (nonEmptyRows.length === 1) {
           console.log("⚠️ HOOK - Seuls les en-têtes détectés");
           toast.warning(`Seuls les en-têtes ont été trouvés. Vérifiez que votre feuille contient des données.`);
+        } else if (nonEmptyRows.length < 7) {
+          console.log(`⚠️ HOOK - Moins de lignes que prévu détectées: ${nonEmptyRows.length} au lieu de 7`);
+          toast.warning(`${nonEmptyRows.length} lignes chargées (${nonEmptyRows.length - 1} lignes de données). Attendu: 7 lignes selon votre feuille.`);
         } else {
-          console.log(`✅ HOOK - ${data.values.length - 1} lignes de données détectées`);
-          toast.success(`Données chargées avec succès (${data.values.length} lignes dont ${data.values.length - 1} lignes de données)`);
+          console.log(`✅ HOOK - ${nonEmptyRows.length - 1} lignes de données détectées`);
+          toast.success(`Données chargées avec succès (${nonEmptyRows.length} lignes dont ${nonEmptyRows.length - 1} lignes de données)`);
         }
       } else {
         console.log("❌ HOOK - Aucune donnée valide trouvée:", {
@@ -90,7 +124,7 @@ export function useSheetData(sheet: Sheet | null) {
           valuesLength: data?.values?.length || 0,
           rawData: data
         });
-        toast.error("Aucune donnée trouvée dans la feuille. Vérifiez que votre feuille contient des données.");
+        toast.error("Aucune donnée trouvée dans la feuille. Vérifiez que votre feuille contient des données et qu'elle est accessible.");
         setSheetData([]);
       }
       
@@ -98,9 +132,22 @@ export function useSheetData(sheet: Sheet | null) {
       console.error("❌ HOOK - Erreur lors du chargement des données:", {
         error: error,
         message: error instanceof Error ? error.message : 'Erreur inconnue',
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
+        errorType: error.constructor?.name
       });
-      toast.error("Impossible de charger les données de la feuille.");
+      
+      // Message d'erreur plus détaillé
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      if (errorMessage.includes('401')) {
+        toast.error("Erreur d'authentification Google Sheets. Veuillez vous reconnecter.");
+      } else if (errorMessage.includes('403')) {
+        toast.error("Accès refusé à la feuille Google Sheets. Vérifiez les permissions.");
+      } else if (errorMessage.includes('404')) {
+        toast.error("Feuille Google Sheets introuvable. Vérifiez l'ID de la feuille.");
+      } else {
+        toast.error(`Impossible de charger les données: ${errorMessage}`);
+      }
+      
       setSheetData([]);
     } finally {
       setIsLoading(false);
