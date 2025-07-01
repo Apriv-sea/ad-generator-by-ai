@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -111,12 +112,16 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string,
     clientSecretLength: clientSecret.length
   });
 
-  // Déterminer l'URI de redirection - utiliser celle fournie ou la valeur par défaut
-  const finalRedirectUri = redirectUri || 'https://ad-generator-by-ai.lovable.app/auth/callback/google';
-  console.log('🌐 URI de redirection utilisée:', finalRedirectUri);
+  // CORRECTION CRITIQUE : Utiliser l'URI fournie par le client ou détecter automatiquement
+  if (!redirectUri) {
+    console.error('❌ URI de redirection manquante dans la requête');
+    throw new Error('URI de redirection requise. Veuillez fournir redirectUri dans la requête.');
+  }
+
+  console.log('🌐 URI de redirection utilisée:', redirectUri);
 
   if (!code) {
-    console.log('🌐 Génération de l\'URL d\'authentification avec URI:', finalRedirectUri);
+    console.log('🌐 Génération de l\'URL d\'authentification avec URI:', redirectUri);
     
     // Générer un paramètre state pour la sécurité
     const state = crypto.randomUUID();
@@ -124,7 +129,7 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string,
     
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${encodeURIComponent(clientId)}&` +
-      `redirect_uri=${encodeURIComponent(finalRedirectUri)}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `response_type=code&` +
       `scope=${encodeURIComponent('https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file')}&` +
       `access_type=offline&` +
@@ -142,7 +147,7 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string,
   // Échange du code d'autorisation
   console.log('🔄 Échange du code d\'autorisation...', {
     codeLength: code.length,
-    redirectUri: finalRedirectUri
+    redirectUri: redirectUri
   });
   
   try {
@@ -157,7 +162,7 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string,
         client_secret: clientSecret,
         code: code,
         grant_type: 'authorization_code',
-        redirect_uri: finalRedirectUri
+        redirect_uri: redirectUri
       })
     });
 
