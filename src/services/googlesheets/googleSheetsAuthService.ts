@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 
 export interface AuthTokens {
@@ -11,6 +12,23 @@ export interface AuthTokens {
 export class GoogleSheetsAuthService {
   private static readonly STORAGE_KEY = 'google_sheets_auth';
   private static readonly API_BASE_URL = 'https://lbmfkppvzimklebisefm.supabase.co/functions/v1/google-sheets-api';
+
+  // Fonction pour obtenir l'URI de redirection correcte
+  private static getRedirectUri(): string {
+    // Utiliser l'origine actuelle + le chemin exact
+    const origin = window.location.origin;
+    const redirectPath = '/auth/callback/google';
+    const fullRedirectUri = `${origin}${redirectPath}`;
+    
+    console.log('🔗 Construction URI de redirection:', {
+      origin,
+      redirectPath,
+      fullRedirectUri,
+      expectedForProduction: 'https://ad-generator-by-ai.lovable.app/auth/callback/google'
+    });
+    
+    return fullRedirectUri;
+  }
 
   static isAuthenticated(): boolean {
     const tokens = this.getStoredTokens();
@@ -70,17 +88,17 @@ export class GoogleSheetsAuthService {
   static async initiateAuth(): Promise<string> {
     try {
       console.log('🔑 === DEBUT AUTHENTIFICATION GOOGLE SHEETS ===');
+      
+      const redirectUri = this.getRedirectUri();
+      
       console.log('🌐 Environnement détecté:', {
         origin: window.location.origin,
         hostname: window.location.hostname,
         protocol: window.location.protocol,
         isLocalhost: window.location.hostname === 'localhost',
-        isLovable: window.location.hostname.includes('lovable.app')
+        isLovable: window.location.hostname.includes('lovable.app'),
+        calculatedRedirectUri: redirectUri
       });
-      
-      // URI de redirection dynamique
-      const redirectUri = `${window.location.origin}/auth/callback/google`;
-      console.log('🔗 URI de redirection calculée:', redirectUri);
       
       // Construire la payload de la requête
       const requestPayload = { 
@@ -186,7 +204,7 @@ export class GoogleSheetsAuthService {
       console.log('🔑 === COMPLETION AUTHENTIFICATION ===');
       console.log('Code reçu:', code.substring(0, 20) + '...');
       
-      const redirectUri = `${window.location.origin}/auth/callback/google`;
+      const redirectUri = this.getRedirectUri();
       console.log('🔗 URI de redirection pour completion:', redirectUri);
       
       const requestPayload = { 
