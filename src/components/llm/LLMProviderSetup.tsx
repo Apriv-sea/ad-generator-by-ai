@@ -148,9 +148,16 @@ const LLMProviderSetup: React.FC<LLMProviderSetupProps> = ({
   };
 
   const saveApiKey = async () => {
+    console.log(`💾 Sauvegarde de la clé API pour ${currentProvider}...`);
+    
     try {
       const userId = await getCurrentUserId();
-      if (!userId) return;
+      if (!userId) {
+        console.error('❌ Aucun utilisateur connecté');
+        return;
+      }
+
+      console.log(`📝 Tentative d'upsert pour utilisateur ${userId}, service ${currentProvider}`);
 
       const { error } = await supabase
         .from('api_keys')
@@ -158,37 +165,51 @@ const LLMProviderSetup: React.FC<LLMProviderSetupProps> = ({
           service: currentProvider,
           api_key: apiKey,
           user_id: userId
+        }, {
+          onConflict: 'user_id,service'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur lors de l\'upsert:', error);
+        throw error;
+      }
 
+      console.log(`✅ Clé API sauvegardée avec succès pour ${currentProvider}`);
       setSavedKeys(prev => ({ ...prev, [currentProvider]: true }));
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde de la clé API:', error);
+      console.error('❌ Erreur lors de la sauvegarde de la clé API:', error);
       throw error;
     }
   };
 
   const discoverModels = async (provider: 'openai' | 'anthropic' | 'google') => {
+    console.log(`🔍 Lancement de la découverte des modèles pour ${provider}...`);
     setIsLoadingModels(true);
+    
     try {
       const result = await modelDiscoveryService.discoverAvailableModels(provider);
+      console.log(`📊 Résultat de la découverte pour ${provider}:`, result);
       
       if (result.error) {
+        console.error(`❌ Erreur dans le résultat pour ${provider}:`, result.error);
         toast.error(`Erreur: ${result.error}`);
         setAvailableModels([]);
       } else {
+        console.log(`✅ ${result.models.length} modèles trouvés pour ${provider}`);
         setAvailableModels(result.models);
+        
         if (result.models.length > 0 && !currentModel) {
           // Sélectionner automatiquement le premier modèle recommandé
           const defaultModel = result.models[0];
+          console.log(`🎯 Sélection automatique du modèle: ${defaultModel.id}`);
           setCurrentModel(defaultModel.id);
           onModelSelected(provider, defaultModel.id);
         }
       }
     } catch (error) {
-      console.error('Erreur lors de la découverte des modèles:', error);
+      console.error(`❌ Exception lors de la découverte des modèles pour ${provider}:`, error);
       toast.error('Erreur lors de la découverte des modèles');
+      setAvailableModels([]);
     } finally {
       setIsLoadingModels(false);
     }

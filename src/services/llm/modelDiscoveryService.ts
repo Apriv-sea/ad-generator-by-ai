@@ -22,21 +22,38 @@ export interface ProviderModels {
 
 class ModelDiscoveryService {
   async discoverAvailableModels(provider: 'openai' | 'anthropic' | 'google'): Promise<ProviderModels> {
+    console.log(`🔍 Découverte des modèles pour ${provider}...`);
+    
     try {
       const { data, error } = await supabase.functions.invoke('discover-models', {
         body: { provider }
       });
 
+      console.log(`📊 Réponse de discover-models pour ${provider}:`, { data, error });
+
       if (error) {
+        console.error(`❌ Erreur Edge Function pour ${provider}:`, error);
         throw new Error(error.message);
       }
 
+      if (data?.error) {
+        console.error(`❌ Erreur API pour ${provider}:`, data.error);
+        return {
+          provider,
+          models: [],
+          error: data.error
+        };
+      }
+
+      console.log(`✅ Modèles trouvés pour ${provider}:`, data.models);
+      
       return {
         provider,
-        models: data.models,
+        models: data.models || [],
         error: data.error
       };
     } catch (error) {
+      console.error(`❌ Exception lors de la découverte des modèles ${provider}:`, error);
       return {
         provider,
         models: [],
