@@ -102,77 +102,37 @@ serve(async (req) => {
 })
 
 async function discoverAnthropicModels(apiKey: string) {
-  // Anthropic n'expose plus l'endpoint /v1/models
-  // On retourne une liste statique des modèles disponibles
-  console.log('🔍 Utilisation de la liste statique des modèles Anthropic (API ne supporte plus /v1/models)')
+  console.log('🔍 Récupération des modèles Anthropic via API officielle')
   
-  // Valider la clé API avec un simple appel pour s'assurer qu'elle fonctionne
-  try {
-    const testResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'claude-3.5-haiku',
-        max_tokens: 1,
-        messages: [{ role: 'user', content: 'test' }]
-      })
-    })
-
-    if (!testResponse.ok && testResponse.status !== 400) {
-      // Status 400 est normal pour ce test (paramètres invalides), mais l'auth fonctionne
-      // Autres erreurs indiquent un problème d'authentification
-      throw new Error(`Anthropic API Error: ${testResponse.statusText}`)
+  const response = await fetch('https://api.anthropic.com/v1/models', {
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
     }
-  } catch (error) {
-    console.error('Erreur validation clé Anthropic:', error)
-    throw new Error(`Invalid Anthropic API key: ${error.message}`)
+  })
+
+  if (!response.ok) {
+    throw new Error(`Anthropic API Error: ${response.statusText}`)
   }
 
-  // Retourner la liste statique des modèles Anthropic disponibles
-  const staticModels = [
-    {
-      id: 'claude-4-opus-20250514',
-      name: 'Claude 4 Opus',
-      description: 'Le modèle le plus puissant de Claude 4 avec capacités de raisonnement supérieures',
-      contextWindow: 200000,
-      supportsVision: true
-    },
-    {
-      id: 'claude-4-sonnet-20250514',
-      name: 'Claude 4 Sonnet',
-      description: 'Modèle haute performance avec raisonnement exceptionnel et efficacité',
-      contextWindow: 200000,
-      supportsVision: true
-    },
-    {
-      id: 'claude-3.5-haiku-20241022',
-      name: 'Claude 3.5 Haiku',
-      description: 'Le modèle le plus rapide pour les réponses instantanées',
-      contextWindow: 200000,
-      supportsVision: true
-    },
-    {
-      id: 'claude-3.5-sonnet-20241022',
-      name: 'Claude 3.5 Sonnet',
-      description: 'Modèle intelligent précédent (remplacé par Sonnet 4)',
-      contextWindow: 200000,
-      supportsVision: true
-    },
-    {
-      id: 'claude-3-opus-20240229',
-      name: 'Claude 3 Opus',
-      description: 'Modèle puissant mais plus ancien que Claude 4',
-      contextWindow: 200000,
-      supportsVision: true
-    }
-  ]
+  const data = await response.json()
+  
+  // Mapper les modèles depuis l'API réelle
+  const models = data.data.map((model: any) => ({
+    id: model.id,
+    name: model.display_name || getAnthropicModelDisplayName(model.id),
+    description: getAnthropicModelDescription(model.id),
+    contextWindow: 200000, // Standard Anthropic context window
+    supportsVision: true, // Tous les modèles Claude récents supportent la vision
+    createdAt: model.created_at
+  }))
 
-  return staticModels.sort((a, b) => {
-    // Prioriser les modèles Claude 4, puis 3.5, puis 3
+  // Trier par date de création (plus récent en premier)
+  return models.sort((a: any, b: any) => {
+    if (a.createdAt && b.createdAt) {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    }
+    // Fallback sur priorité par nom
     if (a.id.includes('claude-4') && !b.id.includes('claude-4')) return -1
     if (!a.id.includes('claude-4') && b.id.includes('claude-4')) return 1
     if (a.id.includes('3.5') && !b.id.includes('3.5')) return -1
@@ -275,9 +235,46 @@ function getOpenAIContextWindow(id: string): number {
   return 4096
 }
 
+function getAnthropicModelDisplayName(id: string): string {
+  const names: { [key: string]: string } = {
+    'claude-opus-4': 'Claude 4 Opus',
+    'claude-sonnet-4': 'Claude 4 Sonnet', 
+    'claude-3-7-sonnet': 'Claude 3.7 Sonnet',
+    'claude-3.5-sonnet': 'Claude 3.5 Sonnet',
+    'claude-3.5-haiku': 'Claude 3.5 Haiku',
+    'claude-3-opus': 'Claude 3 Opus',
+    'claude-3-sonnet': 'Claude 3 Sonnet',
+    'claude-3-haiku': 'Claude 3 Haiku'
+  }
+  
+  for (const [key, name] of Object.entries(names)) {
+    if (id.includes(key)) return name
+  }
+  
+  return id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+}
+
+function getAnthropicModelDescription(id: string): string {
+  if (id.includes('claude-opus-4')) return 'Le modèle le plus puissant de Claude 4 avec capacités de raisonnement supérieures'
+  if (id.includes('claude-sonnet-4')) return 'Modèle haute performance avec raisonnement exceptionnel et efficacité'
+  if (id.includes('claude-3-7-sonnet')) return 'Modèle Claude 3.7 avec capacités de raisonnement étendues'
+  if (id.includes('claude-3.5-sonnet')) return 'Modèle intelligent de génération 3.5'
+  if (id.includes('claude-3.5-haiku')) return 'Le modèle le plus rapide pour les réponses instantanées'
+  if (id.includes('claude-3-opus')) return 'Modèle puissant de génération 3'
+  if (id.includes('claude-3-sonnet')) return 'Modèle équilibré de génération 3'
+  if (id.includes('claude-3-haiku')) return 'Modèle rapide et économique de génération 3'
+  return 'Modèle Anthropic Claude'
+}
+
 function getGoogleModelDisplayName(name: string): string {
-  if (name.includes('gemini-pro')) return 'Gemini Pro'
-  if (name.includes('gemini-pro-vision')) return 'Gemini Pro Vision'
-  if (name.includes('gemini-ultra')) return 'Gemini Ultra'
-  return name.split('/').pop()?.replace('gemini-', 'Gemini ') || name
+  const modelId = name.split('/').pop() || name
+  
+  if (modelId.includes('gemini-2.0')) return 'Gemini 2.0 Flash'
+  if (modelId.includes('gemini-1.5-pro')) return 'Gemini 1.5 Pro'
+  if (modelId.includes('gemini-1.5-flash')) return 'Gemini 1.5 Flash'
+  if (modelId.includes('gemini-pro')) return 'Gemini Pro'
+  if (modelId.includes('gemini-pro-vision')) return 'Gemini Pro Vision'
+  if (modelId.includes('gemini-ultra')) return 'Gemini Ultra'
+  
+  return modelId.replace('gemini-', 'Gemini ').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
