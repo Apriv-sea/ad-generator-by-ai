@@ -102,37 +102,83 @@ serve(async (req) => {
 })
 
 async function discoverAnthropicModels(apiKey: string) {
-  const response = await fetch('https://api.anthropic.com/v1/models', {
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'Content-Type': 'application/json'
-    },
-  })
+  // Anthropic n'expose plus l'endpoint /v1/models
+  // On retourne une liste statique des modèles disponibles
+  console.log('🔍 Utilisation de la liste statique des modèles Anthropic (API ne supporte plus /v1/models)')
+  
+  // Valider la clé API avec un simple appel pour s'assurer qu'elle fonctionne
+  try {
+    const testResponse = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'claude-3.5-haiku',
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'test' }]
+      })
+    })
 
-  if (!response.ok) {
-    throw new Error(`Anthropic API Error: ${response.statusText}`)
+    if (!testResponse.ok && testResponse.status !== 400) {
+      // Status 400 est normal pour ce test (paramètres invalides), mais l'auth fonctionne
+      // Autres erreurs indiquent un problème d'authentification
+      throw new Error(`Anthropic API Error: ${testResponse.statusText}`)
+    }
+  } catch (error) {
+    console.error('Erreur validation clé Anthropic:', error)
+    throw new Error(`Invalid Anthropic API key: ${error.message}`)
   }
 
-  const data = await response.json()
-  
-  return data.data
-    .filter((model: any) => model.type === 'model')
-    .map((model: any) => ({
-      id: model.id,
-      name: getAnthropicModelDisplayName(model.id),
-      description: getAnthropicModelDescription(model.id),
-      contextWindow: getAnthropicContextWindow(model.id),
-      supportsVision: model.id.includes('claude-3') || model.id.includes('claude-4')
-    }))
-    .sort((a: any, b: any) => {
-      // Prioriser les modèles les plus récents
-      if (a.id.includes('claude-4') && !b.id.includes('claude-4')) return -1
-      if (!a.id.includes('claude-4') && b.id.includes('claude-4')) return 1
-      if (a.id.includes('3-5') && !b.id.includes('3-5')) return -1
-      if (!a.id.includes('3-5') && b.id.includes('3-5')) return 1
-      return a.name.localeCompare(b.name)
-    })
+  // Retourner la liste statique des modèles Anthropic disponibles
+  const staticModels = [
+    {
+      id: 'claude-4-opus-20250514',
+      name: 'Claude 4 Opus',
+      description: 'Le modèle le plus puissant de Claude 4 avec capacités de raisonnement supérieures',
+      contextWindow: 200000,
+      supportsVision: true
+    },
+    {
+      id: 'claude-4-sonnet-20250514',
+      name: 'Claude 4 Sonnet',
+      description: 'Modèle haute performance avec raisonnement exceptionnel et efficacité',
+      contextWindow: 200000,
+      supportsVision: true
+    },
+    {
+      id: 'claude-3.5-haiku-20241022',
+      name: 'Claude 3.5 Haiku',
+      description: 'Le modèle le plus rapide pour les réponses instantanées',
+      contextWindow: 200000,
+      supportsVision: true
+    },
+    {
+      id: 'claude-3.5-sonnet-20241022',
+      name: 'Claude 3.5 Sonnet',
+      description: 'Modèle intelligent précédent (remplacé par Sonnet 4)',
+      contextWindow: 200000,
+      supportsVision: true
+    },
+    {
+      id: 'claude-3-opus-20240229',
+      name: 'Claude 3 Opus',
+      description: 'Modèle puissant mais plus ancien que Claude 4',
+      contextWindow: 200000,
+      supportsVision: true
+    }
+  ]
+
+  return staticModels.sort((a, b) => {
+    // Prioriser les modèles Claude 4, puis 3.5, puis 3
+    if (a.id.includes('claude-4') && !b.id.includes('claude-4')) return -1
+    if (!a.id.includes('claude-4') && b.id.includes('claude-4')) return 1
+    if (a.id.includes('3.5') && !b.id.includes('3.5')) return -1
+    if (!a.id.includes('3.5') && b.id.includes('3.5')) return 1
+    return a.name.localeCompare(b.name)
+  })
 }
 
 async function discoverOpenAIModels(apiKey: string) {
@@ -195,32 +241,6 @@ async function discoverGoogleModels(apiKey: string) {
       contextWindow: model.inputTokenLimit || 30720,
       supportsVision: model.name.includes('vision') || model.name.includes('pro')
     }))
-}
-
-function getAnthropicModelDisplayName(id: string): string {
-  if (id.includes('claude-4')) return id.replace('claude-', 'Claude ').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-  if (id.includes('claude-3-5-sonnet')) return 'Claude 3.5 Sonnet'
-  if (id.includes('claude-3-5-haiku')) return 'Claude 3.5 Haiku'
-  if (id.includes('claude-3-opus')) return 'Claude 3 Opus'
-  if (id.includes('claude-3-sonnet')) return 'Claude 3 Sonnet'
-  if (id.includes('claude-3-haiku')) return 'Claude 3 Haiku'
-  return id.replace('claude-', 'Claude ').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-}
-
-function getAnthropicModelDescription(id: string): string {
-  if (id.includes('claude-4')) return 'Modèle Claude 4 de dernière génération'
-  if (id.includes('3-5-sonnet')) return 'Le modèle le plus récent et performant de Claude'
-  if (id.includes('3-5-haiku')) return 'Le plus rapide pour les réponses instantanées'
-  if (id.includes('3-opus')) return 'Le modèle le plus puissant pour les tâches complexes'
-  if (id.includes('3-sonnet')) return 'Équilibre performance et rapidité'
-  if (id.includes('3-haiku')) return 'Rapide et économique'
-  return 'Modèle Claude'
-}
-
-function getAnthropicContextWindow(id: string): number {
-  if (id.includes('claude-4')) return 200000
-  if (id.includes('claude-3')) return 200000
-  return 100000
 }
 
 function getOpenAIModelDisplayName(id: string): string {
