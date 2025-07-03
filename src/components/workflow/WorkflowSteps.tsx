@@ -164,6 +164,7 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ onWorkflowComplete }) => 
 
   const handleConnectionSuccess = (sheetId: string) => {
     console.log('Connexion feuille réussie:', sheetId);
+    // Récupérer les données de la feuille après connexion
     completeStep('connect', { connectedSheetId: sheetId });
     toast.success('Feuille Google Sheets connectée');
   };
@@ -249,7 +250,7 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ onWorkflowComplete }) => 
             {workflowState.data.connectedSheetId && (
               <CampaignExtractorWorkflow
                 sheetId={workflowState.data.connectedSheetId}
-                sheetData={workflowState.data.sheetData}
+                sheetData={null} // Les données seront chargées dans le composant
                 clientInfo={workflowState.data.selectedClient}
                 onCampaignsExtracted={handleCampaignsExtracted}
                 onClientInfoUpdated={() => {}}
@@ -271,7 +272,7 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ onWorkflowComplete }) => 
             {workflowState.data.connectedSheetId && workflowState.data.extractedCampaigns.length > 0 && (
               <ContentGeneratorWorkflow
                 sheetId={workflowState.data.connectedSheetId}
-                sheetData={workflowState.data.sheetData}
+                sheetData={null} // Les données seront rechargées
                 campaigns={workflowState.data.extractedCampaigns}
                 clientInfo={workflowState.data.selectedClient}
               />
