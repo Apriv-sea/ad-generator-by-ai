@@ -4,7 +4,7 @@ import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
-import CampaignWorkflow from "@/components/campaign/CampaignWorkflow";
+import WorkflowSteps from "@/components/workflow/WorkflowSteps";
 
 const Campaigns = () => {
   return (
@@ -28,7 +28,7 @@ const Campaigns = () => {
           </Alert>
         </div>
         
-        <CampaignWorkflow />
+        <WorkflowSteps />
         
         <div className="mt-8">
           <Card>
