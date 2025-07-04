@@ -112,10 +112,16 @@ async function handleAuth(clientId: string, clientSecret: string, code?: string,
     clientSecretLength: clientSecret.length
   });
 
-  // CORRECTION CRITIQUE : Utiliser l'URI fournie par le client ou détecter automatiquement
+  // CORRECTION CRITIQUE : Vérifier et corriger l'URI de redirection
   if (!redirectUri) {
     console.error('❌ URI de redirection manquante dans la requête');
     throw new Error('URI de redirection requise. Veuillez fournir redirectUri dans la requête.');
+  }
+  
+  // Corriger l'URI si elle utilise l'ancien format callback/google
+  if (redirectUri.includes('/auth/callback/google')) {
+    redirectUri = redirectUri.replace('/auth/callback/google', '/auth/google');
+    console.log('🔧 URI de redirection corrigée:', redirectUri);
   }
 
   console.log('🌐 URI de redirection utilisée:', redirectUri);

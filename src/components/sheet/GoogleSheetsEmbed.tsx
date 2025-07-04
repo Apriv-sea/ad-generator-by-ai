@@ -13,7 +13,7 @@ interface GoogleSheetsEmbedProps {
   sheetUrl?: string;
   onSheetUrlChange: (url: string) => void;
   sheet?: Sheet;
-  onConnectionSuccess?: (sheetId: string) => void;
+  onConnectionSuccess?: (sheetId: string, sheetData?: any) => void;
 }
 
 const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
@@ -39,16 +39,16 @@ const GoogleSheetsEmbed: React.FC<GoogleSheetsEmbedProps> = ({
   }, [sheetData]);
 
   const handleSheetLoaded = (sheetId: string, data: any) => {
-    console.log("Feuille chargée dans GoogleSheetsEmbed:", sheetId);
+    console.log("Feuille chargée dans GoogleSheetsEmbed:", sheetId, data);
     setSheetData(data);
     setCurrentSheetId(sheetId);
     setShowRecentSessions(false);
     onSheetUrlChange(`https://docs.google.com/spreadsheets/d/${sheetId}/edit`);
     toast.success("Feuille Google Sheets connectée avec succès");
     
-    // Appeler le callback de connexion réussie avec le sheetId
+    // Appeler le callback de connexion réussie avec le sheetId ET les données
     if (onConnectionSuccess) {
-      onConnectionSuccess(sheetId);
+      onConnectionSuccess(sheetId, data);
     }
   };
 

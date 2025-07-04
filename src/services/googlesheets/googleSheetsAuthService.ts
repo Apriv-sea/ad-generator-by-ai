@@ -15,16 +15,16 @@ export class GoogleSheetsAuthService {
 
   // Fonction pour obtenir l'URI de redirection correcte
   private static getRedirectUri(): string {
-    // Utiliser l'origine actuelle + le chemin exact
+    // CORRECTION: Utiliser GoogleAuthCallback au lieu de callback/google
     const origin = window.location.origin;
-    const redirectPath = '/auth/callback/google';
+    const redirectPath = '/auth/google';
     const fullRedirectUri = `${origin}${redirectPath}`;
     
-    console.log('🔗 Construction URI de redirection:', {
+    console.log('🔗 Construction URI de redirection CORRIGEE:', {
       origin,
       redirectPath,
       fullRedirectUri,
-      expectedForProduction: 'https://ad-generator-by-ai.lovable.app/auth/callback/google'
+      note: 'Utilise /auth/google comme dans GoogleAuthCallback.tsx'
     });
     
     return fullRedirectUri;

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, ArrowRight, User, Database, Brain, FileSpreadsheet } from "lucide-react";
+import { CheckCircle, ArrowRight, User, Database, Brain, FileSpreadsheet, AlertCircle } from "lucide-react";
 import { Client } from "@/services/types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -162,10 +162,13 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ onWorkflowComplete }) => 
     toast.success('Authentification Google Sheets réussie');
   };
 
-  const handleConnectionSuccess = (sheetId: string) => {
-    console.log('Connexion feuille réussie:', sheetId);
+  const handleConnectionSuccess = (sheetId: string, sheetData?: any) => {
+    console.log('Connexion feuille réussie:', sheetId, sheetData);
     // Récupérer les données de la feuille après connexion
-    completeStep('connect', { connectedSheetId: sheetId });
+    completeStep('connect', { 
+      connectedSheetId: sheetId,
+      sheetData: sheetData || null 
+    });
     toast.success('Feuille Google Sheets connectée');
   };
 
@@ -231,7 +234,7 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ onWorkflowComplete }) => 
             </div>
             
             <GoogleSheetsEmbed
-              onConnectionSuccess={handleConnectionSuccess}
+              onConnectionSuccess={(sheetId) => handleConnectionSuccess(sheetId)}
               onSheetUrlChange={() => {}}
             />
           </div>
@@ -247,14 +250,21 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ onWorkflowComplete }) => 
               </p>
             </div>
             
-            {workflowState.data.connectedSheetId && (
+            {workflowState.data.connectedSheetId ? (
               <CampaignExtractorWorkflow
                 sheetId={workflowState.data.connectedSheetId}
-                sheetData={null} // Les données seront chargées dans le composant
+                sheetData={workflowState.data.sheetData}
                 clientInfo={workflowState.data.selectedClient}
                 onCampaignsExtracted={handleCampaignsExtracted}
                 onClientInfoUpdated={() => {}}
               />
+            ) : (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Aucune feuille connectée. Retournez à l'étape précédente pour connecter une feuille Google Sheets.
+                </AlertDescription>
+              </Alert>
             )}
           </div>
         );

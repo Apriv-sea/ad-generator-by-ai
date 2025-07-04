@@ -89,7 +89,7 @@ const GoogleSheetsAuth: React.FC<GoogleSheetsAuthProps> = ({ onAuthSuccess }) =>
           <p><strong>🔧 Configuration requise:</strong></p>
           <ul className="list-disc list-inside mt-1 space-y-1">
             <li>URL actuelle: <code>{window.location.origin}</code></li>
-            <li>Callback: <code>{window.location.origin}/auth/callback/google</code></li>
+            <li>Callback: <code>{window.location.origin}/auth/google</code></li>
             <li>Ces URLs doivent être configurées dans Google Cloud Console</li>
           </ul>
         </div>
