@@ -57,7 +57,7 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: "/auth/callback/google",
+    path: "/auth/google",
     element: (
       <ProtectedRoute requireAuth={false}>
         <GoogleAuthCallback />
