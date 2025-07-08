@@ -384,7 +384,6 @@ const GoogleSheetsWorkflow: React.FC<GoogleSheetsWorkflowProps> = ({ sheet, clie
           {connectedSheetId && extractedCampaigns.length > 0 ? (
             <ContentGeneratorWorkflow
               sheetId={connectedSheetId}
-              sheetData={sheetData}
               campaigns={extractedCampaigns}
               clientInfo={workflowClientInfo}
             />

@@ -21,8 +21,22 @@ const CampaignWorkflow: React.FC = () => {
   const loadSheets = async () => {
     setIsLoading(true);
     try {
-      const loadedSheets = await sheetService.listSheets();
-      setSheets(loadedSheets);
+      // Charger les feuilles depuis localStorage
+      const sheets: Sheet[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith('sheet_data_')) {
+          const sheetId = key.replace('sheet_data_', '');
+          sheets.push({
+            id: sheetId,
+            name: `Feuille ${sheetId}`,
+            clientId: null,
+            clientContext: null,
+            lastModified: new Date().toISOString()
+          } as Sheet);
+        }
+      }
+      setSheets(sheets);
     } catch (error) {
       console.error("Erreur lors du chargement des feuilles:", error);
       toast.error("Impossible de charger les feuilles");
@@ -37,7 +51,8 @@ const CampaignWorkflow: React.FC = () => {
 
   const handleDeleteSheet = async (sheetId: string) => {
     try {
-      await sheetService.deleteSheet(sheetId);
+      // Supprimer la feuille locale
+      localStorage.removeItem(`sheet_data_${sheetId}`);
       setSheets(sheets.filter(s => s.id !== sheetId));
       if (selectedSheet?.id === sheetId) {
         setSelectedSheet(null);

@@ -147,7 +147,7 @@ export const useContentGeneration = ({
       if (sheet.id.startsWith('sheet_')) {
         // Feuille locale - sauvegarder dans localStorage
         console.log('💾 Sauvegarde locale...');
-        await sheetService.writeSheetData(sheet.id, newSheetData);
+        localStorage.setItem(`sheet_data_${sheet.id}`, JSON.stringify({ values: newSheetData }));
         console.log('✅ Sauvegarde locale terminée');
       } else {
         // Feuille Google Sheets - sauvegarder via l'API

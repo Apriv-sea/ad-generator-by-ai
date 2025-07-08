@@ -1,61 +1,64 @@
+/**
+ * Service Google Sheets unifié - Utilise le nouveau service core
+ */
 
-import { GoogleSheetsAuthService } from './googleSheetsAuthService';
-import { GoogleSheetsApiService, SheetData } from './googleSheetsApiService';
+import { googleSheetsCoreService, GoogleSheetsData } from '@/services/core/googleSheetsCore';
 
 export class GoogleSheetsService {
   // Méthodes d'authentification
   static isAuthenticated(): boolean {
-    return GoogleSheetsAuthService.isAuthenticated();
+    return googleSheetsCoreService.isAuthenticated();
   }
 
   static async initiateAuth(): Promise<string> {
-    return GoogleSheetsAuthService.initiateAuth();
+    return googleSheetsCoreService.initiateAuth();
   }
 
   static async completeAuth(code: string): Promise<void> {
-    return GoogleSheetsAuthService.completeAuth(code);
+    return googleSheetsCoreService.completeAuth(code);
   }
 
   static logout(): void {
-    GoogleSheetsAuthService.clearTokens();
+    googleSheetsCoreService.logout();
   }
 
   // Méthodes de manipulation des feuilles
   static extractSheetId(url: string): string | null {
-    return GoogleSheetsApiService.extractSheetId(url);
+    return googleSheetsCoreService.extractSheetId(url);
   }
 
-  static async getSheetData(sheetId: string, range?: string): Promise<SheetData> {
-    return GoogleSheetsApiService.getSheetData(sheetId, range);
+  static async getSheetData(sheetId: string, range?: string): Promise<GoogleSheetsData> {
+    return googleSheetsCoreService.getSheetData(sheetId, range);
   }
 
   static async saveSheetData(sheetId: string, data: string[][], range?: string): Promise<boolean> {
-    return GoogleSheetsApiService.saveSheetData(sheetId, data, range);
+    return googleSheetsCoreService.saveSheetData(sheetId, data, range);
   }
 
   static createNewSheetUrl(): string {
-    return GoogleSheetsApiService.createNewSheetUrl();
+    return googleSheetsCoreService.createNewSheetUrl();
   }
 
   // Méthode utilitaire pour les en-têtes standard
   static getStandardHeaders(): string[] {
     return [
-      'Campagne',
-      'Groupe d\'annonces', 
-      'Mots-clés',
-      'État',
-      'CPC max',
-      'Titre 1',
-      'Titre 2', 
-      'Titre 3',
-      'Description 1',
-      'Description 2',
+      'Nom de la campagne',
+      'Nom du groupe d\'annonces',
+      'État du groupe d\'annonces',
+      'Type de correspondance par défaut',
+      'Top 3 mots-clés (séparés par des virgules)',
+      'Titre 1', 'Titre 2', 'Titre 3',
+      'Description 1', 'Description 2',
       'URL finale',
-      'Chemin d\'affichage 1',
-      'Chemin d\'affichage 2'
+      'Chemin d\'affichage 1', 'Chemin d\'affichage 2',
+      'Mots-clés ciblés', 'Mots-clés négatifs',
+      'Audience ciblée', 'Extensions d\'annonces'
     ];
   }
 }
 
 // Maintenir la compatibilité avec l'export par défaut
 export const googleSheetsService = GoogleSheetsService;
+
+// Type alias pour la compatibilité
+export type SheetData = GoogleSheetsData;

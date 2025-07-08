@@ -87,7 +87,19 @@ const CreateSheetDialog: React.FC<CreateSheetDialogProps> = ({ onSheetCreated })
     setIsCreating(true);
     try {
       // Créer une feuille locale (plus besoin d'API Google)
-      const newSheet = await sheetService.createSheet(sheetName, selectedClientData);
+      // Créer une nouvelle feuille locale
+      const sheetId = `sheet_${Date.now()}`;
+      const headers = ['Campagne', 'Groupe d\'annonces', 'Mots-clés', 'Titre 1', 'Titre 2', 'Titre 3', 'Description 1', 'Description 2'];
+      const sheetData = [headers];
+      localStorage.setItem(`sheet_data_${sheetId}`, JSON.stringify({ values: sheetData }));
+      
+      const newSheet = {
+        id: sheetId,
+        name: sheetName,
+        clientId: selectedClientData?.id || null,
+        clientContext: selectedClientData?.businessContext || null,
+        lastModified: new Date().toISOString()
+      };
       if (newSheet) {
         toast.success(`Projet "${sheetName}" créé avec succès!`);
         setIsOpen(false);

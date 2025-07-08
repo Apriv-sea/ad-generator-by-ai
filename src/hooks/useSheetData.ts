@@ -59,8 +59,7 @@ export function useSheetData(sheet: Sheet | null) {
         valuesIsArray: Array.isArray(data?.values),
         valuesLength: data?.values?.length || 0,
         title: data?.title,
-        range: data?.range,
-        rangeUsed: data?.rangeUsed,
+        info: data?.info,
         firstRow: data?.values?.[0],
         sampleRows: data?.values?.slice(0, 3)
       });

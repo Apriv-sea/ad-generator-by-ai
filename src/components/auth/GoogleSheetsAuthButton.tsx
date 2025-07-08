@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Loader, AlertTriangle } from "lucide-react";
-import { GoogleSheetsAuthService } from '@/services/googlesheets/googleSheetsAuthService';
+import { googleSheetsCoreService } from '@/services/core/googleSheetsCore';
 import { toast } from 'sonner';
 
 interface GoogleSheetsAuthButtonProps {
@@ -33,7 +33,7 @@ const GoogleSheetsAuthButton: React.FC<GoogleSheetsAuthButtonProps> = ({
       onAuthStart?.();
       
       console.log('📞 Appel de GoogleSheetsAuthService.initiateAuth()...');
-      const authUrl = await GoogleSheetsAuthService.initiateAuth();
+      const authUrl = await googleSheetsCoreService.initiateAuth();
       console.log('✅ URL d\'authentification reçue:', authUrl);
       
       // Validation de l'URL
@@ -100,7 +100,7 @@ const GoogleSheetsAuthButton: React.FC<GoogleSheetsAuthButtonProps> = ({
           <span className="font-medium">Debug Info:</span>
         </div>
         <div>Origin: <code className="text-xs">{window.location.origin}</code></div>
-        <div>Callback: <code className="text-xs">{window.location.origin}/auth/callback/google</code></div>
+        <div>Callback: <code className="text-xs">{window.location.origin}/auth/google</code></div>
       </div>
     </div>
   );

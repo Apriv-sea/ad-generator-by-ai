@@ -143,9 +143,9 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ onWorkflowComplete }) => 
           <CardContent>
             <ClientSelector 
               clients={clients} 
-              isLoading={isLoadingClients} 
-              onClientSelected={handleClientSelected}
-              selectedClient={workflowState.data.selectedClient}
+              selectedClient={workflowState.data.selectedClient?.id || null}
+              onClientSelect={(clientId, client) => handleClientSelected(client!)}
+              isLoading={isLoadingClients}
             />
           </CardContent>
         </Card>
@@ -199,10 +199,9 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ onWorkflowComplete }) => 
           </CardHeader>
           <CardContent>
             <ContentGeneratorWorkflow
-              campaigns={workflowState.data.extractedCampaigns}
+              campaigns={workflowState.data.extractedCampaigns as any[]}
               clientInfo={workflowState.data.selectedClient}
               sheetId={workflowState.data.connectedSheetId || ''}
-              onContentGenerated={handleContentGenerated}
             />
           </CardContent>
         </Card>

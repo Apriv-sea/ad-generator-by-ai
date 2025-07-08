@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, AlertCircle, Loader } from "lucide-react";
 import { useGoogleSheets } from '@/contexts/GoogleSheetsContext';
-import { unifiedGoogleSheetsService } from '@/services/googlesheets/unifiedGoogleSheetsService';
+import { googleSheetsCoreService } from '@/services/core/googleSheetsCore';
 
 interface GoogleSheetsConnectionProps {
   onConnectionSuccess?: (sheetId: string) => void;
@@ -24,7 +24,7 @@ const GoogleSheetsConnection: React.FC<GoogleSheetsConnectionProps> = ({ onConne
     clearError();
     
     try {
-      const sheetId = unifiedGoogleSheetsService.extractSheetId(url);
+      const sheetId = googleSheetsCoreService.extractSheetId(url);
       if (!sheetId) {
         throw new Error("URL Google Sheets invalide");
       }
