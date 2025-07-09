@@ -208,7 +208,11 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire.`;
     sheetId: string
   ): Promise<void> {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       await supabase.from('content_generations').insert({
+        user_id: user.id,
         sheet_id: sheetId,
         campaign_name: options.campaignContext,
         ad_group_name: options.adGroupContext,

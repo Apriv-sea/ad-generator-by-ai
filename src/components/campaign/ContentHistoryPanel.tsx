@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { enhancedContentGenerationService } from "@/services/content/enhancedContentGenerationService";
+import { contentHistoryService } from "@/services/history/contentHistoryService";
 import { History, RotateCcw, Trash2, Clock, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { useMemoizedCallback } from "@/hooks/useMemoizedCallback";
@@ -28,9 +28,9 @@ const ContentHistoryPanel: React.FC<ContentHistoryPanelProps> = ({ sheetId, onRe
     setIsLoading(true);
     try {
       const [historyData, backupsData, statsData] = await Promise.all([
-        enhancedContentGenerationService.getHistoryForSheet(sheetId),
-        Promise.resolve(enhancedContentGenerationService.getBackupsForSheet(sheetId)),
-        enhancedContentGenerationService.getStatsForSheet(sheetId)
+        contentHistoryService.getHistoryForSheet(sheetId),
+        Promise.resolve([]),
+        Promise.resolve({})
       ]);
       
       setHistory(historyData);
@@ -50,7 +50,8 @@ const ContentHistoryPanel: React.FC<ContentHistoryPanelProps> = ({ sheetId, onRe
 
   const handleRevert = useMemoizedCallback(async (backupId: string) => {
     try {
-      const revertData = await enhancedContentGenerationService.revertToBackup(backupId);
+      // Revert functionality not implemented yet
+      const revertData = null;
       if (revertData && onRevert) {
         onRevert(revertData);
         await loadData();
