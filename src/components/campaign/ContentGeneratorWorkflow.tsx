@@ -1,17 +1,14 @@
-/**
- * Workflow pour la génération de contenu IA
- */
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Wand2, CheckCircle, AlertCircle, Save, RefreshCw } from "lucide-react";
+import { Wand2, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 import { Campaign, Client } from "@/services/types";
 import { enhancedContentGenerationService } from "@/services/content/enhancedContentGenerationService";
-import { googleSheetsService } from "@/services/googlesheets/googleSheetsService";
+import { googleSheetsCoreService } from "@/services/core/googleSheetsCore";
 import { toast } from "sonner";
 import ModelSelector from "./ModelSelector";
 
@@ -35,9 +32,9 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
     success: number;
     failed: number;
     total: number;
-  }>({ success: 0, failed: 0, total: 0 });
+    details: { campaign: string; status: 'success' | 'failed'; error?: string }[];
+  }>({ success: 0, failed: 0, total: 0, details: [] });
 
-  // Validation des prérequis
   const validatePrerequisites = () => {
     const errors: string[] = [];
 
@@ -64,39 +61,60 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
     setIsGenerating(true);
     setProgress(0);
     setGenerationComplete(false);
-    setGenerationResults({ success: 0, failed: 0, total: campaigns.length });
+    setGenerationResults({ success: 0, failed: 0, total: campaigns.length, details: [] });
 
     try {
       const clientContext = clientInfo!.businessContext + 
         (clientInfo!.specifics ? ` ${clientInfo!.specifics}` : '') + 
         (clientInfo!.editorialGuidelines ? ` Style: ${clientInfo!.editorialGuidelines}` : '');
 
-      let successCount = 0;
-      let failedCount = 0;
-
-      console.log(`🚀 === DEBUT GENERATION WORKFLOW ===`);
+      console.log(`🚀 === DEBUT GENERATION WORKFLOW COMPLET ===`);
       console.log(`📋 Feuille ID: ${sheetId}`);
       console.log(`🎯 Modèle sélectionné: ${selectedModel}`);
       console.log(`📊 Campagnes à traiter: ${campaigns.length}`);
 
+      // Récupérer les données actuelles de la feuille
+      const currentSheetData = await googleSheetsCoreService.getSheetData(sheetId);
+      
+      if (!currentSheetData?.values || !Array.isArray(currentSheetData.values)) {
+        throw new Error('Impossible de récupérer les données de la feuille');
+      }
+
+      console.log('📊 Données feuille récupérées:', {
+        rows: currentSheetData.values.length,
+        headers: currentSheetData.values[0]
+      });
+
+      let successCount = 0;
+      let failedCount = 0;
+      const details: { campaign: string; status: 'success' | 'failed'; error?: string }[] = [];
+      let workingSheetData = [...currentSheetData.values];
+
       for (let i = 0; i < campaigns.length; i++) {
         const campaign = campaigns[i];
-        setCurrentCampaign(`${campaign.campaignName} > ${campaign.adGroupName}`);
+        const campaignLabel = `${campaign.campaignName} > ${campaign.adGroupName}`;
+        setCurrentCampaign(campaignLabel);
         
         const keywords = campaign.keywords.split(',').map(k => k.trim()).filter(k => k);
         
         if (keywords.length === 0) {
           console.log(`⏭️ Campagne ${i + 1} ignorée - pas de mots-clés`);
           failedCount++;
-          setGenerationResults({ success: successCount, failed: failedCount, total: campaigns.length });
+          details.push({
+            campaign: campaignLabel,
+            status: 'failed',
+            error: 'Aucun mot-clé'
+          });
+          setGenerationResults({ success: successCount, failed: failedCount, total: campaigns.length, details });
           continue;
         }
 
-        console.log(`🎯 Génération campagne ${i + 1}: ${campaign.campaignName} > ${campaign.adGroupName}`);
+        console.log(`🎯 Génération campagne ${i + 1}: ${campaignLabel}`);
         console.log(`🔑 Mots-clés: ${keywords.join(', ')}`);
 
         try {
-          const result = await enhancedContentGenerationService.generateContent(
+          // Utiliser la nouvelle méthode qui génère ET sauvegarde
+          const result = await enhancedContentGenerationService.generateAndSaveContent(
             {
               clientContext,
               campaignContext: campaign.campaignName,
@@ -105,38 +123,54 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
               model: selectedModel
             },
             sheetId,
-            [],
-            {
-              validateContent: true,
-              saveToHistory: true,
-              createBackup: i === 0,
-              autoCleanContent: true,
-              maxRegenerateAttempts: 1
-            }
+            i + 1, // +1 pour ignorer les en-têtes
+            workingSheetData
           );
 
-          if (result.success && result.titles && result.descriptions) {
+          if (result.success && result.updatedSheetData) {
+            workingSheetData = result.updatedSheetData;
             successCount++;
-            console.log(`✅ Génération réussie campagne ${i + 1}`);
+            details.push({
+              campaign: campaignLabel,
+              status: 'success'
+            });
+            console.log(`✅ Génération et sauvegarde réussies campagne ${i + 1}`);
           } else {
-            console.warn(`⚠️ Génération échouée campagne ${i + 1}:`, result);
+            console.warn(`⚠️ Génération échouée campagne ${i + 1}:`, result.error);
             failedCount++;
+            details.push({
+              campaign: campaignLabel,
+              status: 'failed',
+              error: result.error
+            });
           }
 
         } catch (error) {
           console.error(`❌ Erreur génération campagne ${i + 1}:`, error);
           failedCount++;
+          details.push({
+            campaign: campaignLabel,
+            status: 'failed',
+            error: error instanceof Error ? error.message : 'Erreur inconnue'
+          });
         }
 
         // Mettre à jour le progrès et les résultats
         setProgress((i + 1) / campaigns.length * 100);
-        setGenerationResults({ success: successCount, failed: failedCount, total: campaigns.length });
+        setGenerationResults({ success: successCount, failed: failedCount, total: campaigns.length, details });
+
+        // Petite pause pour éviter de surcharger l'API
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
       setGenerationComplete(true);
       setCurrentCampaign("");
       
-      toast.success(`🎉 Génération terminée ! ${successCount} réussie(s), ${failedCount} échouée(s)`);
+      if (successCount > 0) {
+        toast.success(`🎉 Génération terminée ! ${successCount} réussie(s), ${failedCount} échouée(s). Consultez votre feuille Google Sheets pour voir les résultats.`);
+      } else {
+        toast.error(`❌ Aucune génération réussie. ${failedCount} échec(s).`);
+      }
       
     } catch (error) {
       console.error("❌ === ERREUR COMPLETE WORKFLOW ===", error);
@@ -243,17 +277,34 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
             </div>
           )}
 
+          {/* Résultats détaillés */}
+          {generationResults.details.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="font-medium">Détails des résultats :</h4>
+              <div className="max-h-40 overflow-y-auto space-y-1">
+                {generationResults.details.map((detail, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm">
+                    <span className="truncate">{detail.campaign}</span>
+                    <Badge variant={detail.status === 'success' ? 'default' : 'destructive'}>
+                      {detail.status === 'success' ? '✅' : '❌'}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Succès */}
           {generationComplete && (
             <Alert>
               <CheckCircle className="h-4 w-4" />
               <AlertDescription>
-                ✅ Génération terminée avec succès ! 
+                ✅ Génération terminée ! 
                 <br/>
                 <strong>Résultats:</strong> {generationResults.success} réussie(s), {generationResults.failed} échouée(s)
                 <br/>
                 <span className="text-sm text-gray-600">
-                  Vous pouvez maintenant consulter votre feuille pour voir les titres et descriptions générés.
+                  Consultez votre feuille Google Sheets pour voir les titres et descriptions générés.
                 </span>
               </AlertDescription>
             </Alert>

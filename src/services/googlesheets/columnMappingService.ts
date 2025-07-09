@@ -1,3 +1,4 @@
+
 import { GoogleSheetsService } from "../googlesheets/googleSheetsService";
 
 /**
@@ -33,10 +34,10 @@ export class ColumnMappingService {
           'campagne', 'campaign', 'nom de la campagne', 'campaign name', 'campagnes'
         ]),
         adGroupColumn: this.findColumnIndex(headers, [
-          'groupe d\'annonces', 'ad group', 'groupe annonces', 'adgroup', 'groupe'
+          'groupe d\'annonces', 'ad group', 'groupe annonces', 'adgroup', 'groupe', 'nom du groupe d\'annonces'
         ]),
         keywordsColumn: this.findColumnIndex(headers, [
-          'mots-clés', 'keywords', 'mots clés', 'top 3 mots-clés', 'keyword'
+          'mots-clés', 'keywords', 'mots clés', 'top 3 mots-clés', 'keyword', 'mots clés (séparés par des virgules)', 'top 3 mots-clés (séparés par des virgules)'
         ]),
         title1Column: this.findColumnIndex(headers, [
           'titre 1', 'title 1', 'headline 1', 'h1', 'premier titre'
@@ -120,33 +121,51 @@ export class ColumnMappingService {
   ): string[] {
     const updatedRow = [...originalRow];
     
+    console.log('📝 Application résultats génération:', {
+      originalRow: originalRow.slice(0, 10),
+      titles,
+      descriptions,
+      mappings
+    });
+    
     // Assurer que le tableau a assez d'éléments
     const maxColumnIndex = Math.max(
+      mappings.title1Column,
+      mappings.title2Column,
       mappings.title3Column,
+      mappings.description1Column,
       mappings.description2Column
     );
+    
     while (updatedRow.length <= maxColumnIndex) {
       updatedRow.push('');
     }
     
     // Appliquer les titres
-    if (titles[0] && mappings.title1Column !== -1) {
+    if (titles.length > 0 && mappings.title1Column !== -1) {
       updatedRow[mappings.title1Column] = titles[0];
+      console.log(`✅ Titre 1 ajouté en colonne ${mappings.title1Column}: "${titles[0]}"`);
     }
-    if (titles[1] && mappings.title2Column !== -1) {
+    if (titles.length > 1 && mappings.title2Column !== -1) {
       updatedRow[mappings.title2Column] = titles[1];
+      console.log(`✅ Titre 2 ajouté en colonne ${mappings.title2Column}: "${titles[1]}"`);
     }
-    if (titles[2] && mappings.title3Column !== -1) {
+    if (titles.length > 2 && mappings.title3Column !== -1) {
       updatedRow[mappings.title3Column] = titles[2];
+      console.log(`✅ Titre 3 ajouté en colonne ${mappings.title3Column}: "${titles[2]}"`);
     }
     
     // Appliquer les descriptions
-    if (descriptions[0] && mappings.description1Column !== -1) {
+    if (descriptions.length > 0 && mappings.description1Column !== -1) {
       updatedRow[mappings.description1Column] = descriptions[0];
+      console.log(`✅ Description 1 ajoutée en colonne ${mappings.description1Column}: "${descriptions[0]}"`);
     }
-    if (descriptions[1] && mappings.description2Column !== -1) {
+    if (descriptions.length > 1 && mappings.description2Column !== -1) {
       updatedRow[mappings.description2Column] = descriptions[1];
+      console.log(`✅ Description 2 ajoutée en colonne ${mappings.description2Column}: "${descriptions[1]}"`);
     }
+    
+    console.log('📝 Ligne finale après application:', updatedRow.slice(0, 15));
     
     return updatedRow;
   }
@@ -176,16 +195,23 @@ export class ColumnMappingService {
    */
   static getStandardHeaders(): string[] {
     return [
-      'Campagne',
-      'Groupe d\'annonces',
-      'Mots-clés',
-      'État',
-      'CPC max',
+      'Nom de la campagne',
+      'Nom du groupe d\'annonces',
+      'Top 3 mots-clés (séparés par des virgules)',
+      'État du groupe d\'annonces',
+      'Type de correspondance par défaut',
       'Titre 1',
       'Titre 2',
       'Titre 3',
       'Description 1',
-      'Description 2'
+      'Description 2',
+      'URL finale',
+      'Chemin d\'affichage 1',
+      'Chemin d\'affichage 2',
+      'Mots-clés ciblés',
+      'Mots-clés négatifs',
+      'Audience ciblée',
+      'Extensions d\'annonces'
     ];
   }
 }
