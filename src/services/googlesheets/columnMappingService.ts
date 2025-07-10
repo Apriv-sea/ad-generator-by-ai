@@ -10,16 +10,7 @@ export class ColumnMappingService {
    */
   static async analyzeSheetStructure(sheetId: string): Promise<{
     headers: string[];
-    mappings: {
-      campaignColumn: number;
-      adGroupColumn: number;
-      keywordsColumn: number;
-      title1Column: number;
-      title2Column: number;
-      title3Column: number;
-      description1Column: number;
-      description2Column: number;
-    };
+    mappings: any;
     isValid: boolean;
     errors: string[];
   }> {
@@ -39,21 +30,25 @@ export class ColumnMappingService {
         keywordsColumn: this.findColumnIndex(headers, [
           'mots-clés', 'keywords', 'mots clés', 'top 3 mots-clés', 'keyword', 'mots clés (séparés par des virgules)', 'top 3 mots-clés (séparés par des virgules)'
         ]),
-        title1Column: this.findColumnIndex(headers, [
-          'titre 1', 'title 1', 'headline 1', 'h1', 'premier titre'
-        ]),
-        title2Column: this.findColumnIndex(headers, [
-          'titre 2', 'title 2', 'headline 2', 'h2', 'deuxième titre'
-        ]),
-        title3Column: this.findColumnIndex(headers, [
-          'titre 3', 'title 3', 'headline 3', 'h3', 'troisième titre'
-        ]),
-        description1Column: this.findColumnIndex(headers, [
-          'description 1', 'desc 1', 'description', 'première description', 'headline 4'
-        ]),
-        description2Column: this.findColumnIndex(headers, [
-          'description 2', 'desc 2', 'deuxième description', 'headline 5'
-        ])
+        // Titres 1-15
+        title1Column: this.findColumnIndex(headers, ['titre 1', 'title 1', 'headline 1', 'h1']),
+        title2Column: this.findColumnIndex(headers, ['titre 2', 'title 2', 'headline 2', 'h2']),
+        title3Column: this.findColumnIndex(headers, ['titre 3', 'title 3', 'headline 3', 'h3']),
+        title4Column: this.findColumnIndex(headers, ['titre 4', 'title 4', 'headline 4', 'h4']),
+        title5Column: this.findColumnIndex(headers, ['titre 5', 'title 5', 'headline 5', 'h5']),
+        title6Column: this.findColumnIndex(headers, ['titre 6', 'title 6', 'headline 6', 'h6']),
+        title7Column: this.findColumnIndex(headers, ['titre 7', 'title 7', 'headline 7', 'h7']),
+        title8Column: this.findColumnIndex(headers, ['titre 8', 'title 8', 'headline 8', 'h8']),
+        title9Column: this.findColumnIndex(headers, ['titre 9', 'title 9', 'headline 9', 'h9']),
+        title10Column: this.findColumnIndex(headers, ['titre 10', 'title 10', 'headline 10', 'h10']),
+        title11Column: this.findColumnIndex(headers, ['titre 11', 'title 11', 'headline 11', 'h11']),
+        title12Column: this.findColumnIndex(headers, ['titre 12', 'title 12', 'headline 12', 'h12']),
+        title13Column: this.findColumnIndex(headers, ['titre 13', 'title 13', 'headline 13', 'h13']),
+        title14Column: this.findColumnIndex(headers, ['titre 14', 'title 14', 'headline 14', 'h14']),
+        title15Column: this.findColumnIndex(headers, ['titre 15', 'title 15', 'headline 15', 'h15']),
+        // Descriptions
+        description1Column: this.findColumnIndex(headers, ['description 1', 'desc 1', 'description']),
+        description2Column: this.findColumnIndex(headers, ['description 2', 'desc 2'])
       };
       
       const errors: string[] = [];
@@ -128,31 +123,21 @@ export class ColumnMappingService {
       mappings
     });
     
-    // Assurer que le tableau a assez d'éléments
-    const maxColumnIndex = Math.max(
-      mappings.title1Column,
-      mappings.title2Column,
-      mappings.title3Column,
-      mappings.description1Column,
-      mappings.description2Column
-    );
+    // Assurer que le tableau a assez d'éléments - chercher le max de tous les indices
+    const allColumnIndices = Object.values(mappings).filter(index => typeof index === 'number' && index !== -1) as number[];
+    const maxColumnIndex = allColumnIndices.length > 0 ? Math.max(...allColumnIndices) : 0;
     
     while (updatedRow.length <= maxColumnIndex) {
       updatedRow.push('');
     }
     
-    // Appliquer les titres
-    if (titles.length > 0 && mappings.title1Column !== -1) {
-      updatedRow[mappings.title1Column] = titles[0];
-      console.log(`✅ Titre 1 ajouté en colonne ${mappings.title1Column}: "${titles[0]}"`);
-    }
-    if (titles.length > 1 && mappings.title2Column !== -1) {
-      updatedRow[mappings.title2Column] = titles[1];
-      console.log(`✅ Titre 2 ajouté en colonne ${mappings.title2Column}: "${titles[1]}"`);
-    }
-    if (titles.length > 2 && mappings.title3Column !== -1) {
-      updatedRow[mappings.title3Column] = titles[2];
-      console.log(`✅ Titre 3 ajouté en colonne ${mappings.title3Column}: "${titles[2]}"`);
+    // Appliquer les titres (jusqu'à 15)
+    for (let i = 0; i < Math.min(titles.length, 15); i++) {
+      const titleColumnKey = `title${i + 1}Column`;
+      if (mappings[titleColumnKey] !== -1) {
+        updatedRow[mappings[titleColumnKey]] = titles[i];
+        console.log(`✅ Titre ${i + 1} ajouté en colonne ${mappings[titleColumnKey]}: "${titles[i]}"`);
+      }
     }
     
     // Appliquer les descriptions
