@@ -242,6 +242,12 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire.`;
   }> {
     try {
       console.log(`🎯 === GENERATION ET SAUVEGARDE LIGNE ${rowIndex + 1} ===`);
+      console.log('📊 Données feuille actuelles:', {
+        totalRows: currentSheetData.length,
+        headers: currentSheetData[0],
+        targetRowIndex: rowIndex,
+        targetRowData: currentSheetData[rowIndex]
+      });
       
       // Analyser la structure de la feuille
       const structureAnalysis = await ColumnMappingService.analyzeSheetStructure(sheetId);
@@ -276,6 +282,12 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire.`;
       const updatedSheetData = [...currentSheetData];
       const originalRow = updatedSheetData[rowIndex] || [];
       
+      console.log('📝 Avant application des résultats:', {
+        rowIndex,
+        originalRow: originalRow.slice(0, 10),
+        rowLength: originalRow.length
+      });
+      
       const updatedRow = ColumnMappingService.applyGenerationResults(
         originalRow,
         result.titles,
@@ -285,12 +297,21 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire.`;
 
       updatedSheetData[rowIndex] = updatedRow;
 
-      console.log('📝 Ligne mise à jour:', {
-        original: originalRow,
-        updated: updatedRow
+      console.log('📝 Après application des résultats:', {
+        originalRow: originalRow.slice(0, 10),
+        updatedRow: updatedRow.slice(0, 10),
+        fullUpdatedRow: updatedRow
       });
 
       // Sauvegarder dans Google Sheets
+      console.log('💾 Tentative sauvegarde Google Sheets...');
+      console.log('📊 Données à sauvegarder:', {
+        sheetId,
+        dataSize: updatedSheetData.length + 'x' + (updatedSheetData[0]?.length || 0),
+        firstRow: updatedSheetData[0],
+        updatedTargetRow: updatedSheetData[rowIndex]
+      });
+      
       const saveSuccess = await googleSheetsCoreService.saveSheetData(sheetId, updatedSheetData);
       
       if (!saveSuccess) {
