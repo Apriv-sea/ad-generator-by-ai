@@ -40,7 +40,7 @@ export class ColumnMappingService {
           'mots-clés', 'keywords', 'mots clés', 'top 3 mots-clés', 'keyword', 'mots clés (séparés par des virgules)', 'top 3 mots-clés (séparés par des virgules)'
         ]),
         title1Column: this.findColumnIndex(headers, [
-          'titre 1', 'title 1', 'headline 1', 'h1', 'premier titre', 'headline'
+          'titre 1', 'title 1', 'headline 1', 'h1', 'premier titre'
         ]),
         title2Column: this.findColumnIndex(headers, [
           'titre 2', 'title 2', 'headline 2', 'h2', 'deuxième titre'
