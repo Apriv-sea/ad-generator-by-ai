@@ -50,8 +50,7 @@ export class ColumnMappingService {
         description1Column: this.findColumnIndex(headers, ['description 1', 'desc 1', 'description']),
         description2Column: this.findColumnIndex(headers, ['description 2', 'desc 2']),
         description3Column: this.findColumnIndex(headers, ['description 3', 'desc 3']),
-        description4Column: this.findColumnIndex(headers, ['description 4', 'desc 4']),
-        description5Column: this.findColumnIndex(headers, ['description 5', 'desc 5'])
+        description4Column: this.findColumnIndex(headers, ['description 4', 'desc 4'])
       };
       
       const errors: string[] = [];
@@ -149,8 +148,8 @@ export class ColumnMappingService {
       }
     }
     
-    // Appliquer les descriptions (jusqu'à 5) - SEULEMENT si ce ne sont pas des formules
-    for (let i = 0; i < Math.min(descriptions.length, 5); i++) {
+    // Appliquer les descriptions (jusqu'à 4) - SEULEMENT si ce ne sont pas des formules
+    for (let i = 0; i < Math.min(descriptions.length, 4); i++) {
       const descriptionColumnKey = `description${i + 1}Column`;
       if (mappings[descriptionColumnKey] !== -1) {
         // Vérifier si la cellule contient une formule (commence par =)

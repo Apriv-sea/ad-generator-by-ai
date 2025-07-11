@@ -125,9 +125,9 @@ Groupe d'annonces: ${options.adGroupContext}
 Mots-clés principaux: ${options.keywords.join(', ')}
 
 TÂCHE:
-Génère des titres et descriptions pour Google Ads en respectant ces contraintes:
-- Titres: 15 titres maximum 30 caractères chacun
-- Descriptions: 5 descriptions maximum 90 caractères chacune
+Génère EXACTEMENT 15 titres et 4 descriptions pour Google Ads en respectant ces contraintes:
+- Titres: EXACTEMENT 15 titres, maximum 30 caractères chacun
+- Descriptions: EXACTEMENT 4 descriptions, maximum 90 caractères chacune
 - Inclure les mots-clés naturellement
 - Ton persuasif et accrocheur
 - Appel à l'action clair
@@ -135,7 +135,7 @@ Génère des titres et descriptions pour Google Ads en respectant ces contrainte
 FORMAT DE RÉPONSE (JSON uniquement):
 {
   "titles": ["Titre 1", "Titre 2", "Titre 3", "Titre 4", "Titre 5", "Titre 6", "Titre 7", "Titre 8", "Titre 9", "Titre 10", "Titre 11", "Titre 12", "Titre 13", "Titre 14", "Titre 15"],
-  "descriptions": ["Description 1", "Description 2", "Description 3", "Description 4", "Description 5"]
+  "descriptions": ["Description 1", "Description 2", "Description 3", "Description 4"]
 }
 
 IMPORTANT: Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire.`;
@@ -190,7 +190,7 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire.`;
       return {
         success: true,
         titles: validTitles.slice(0, 15),
-        descriptions: validDescriptions.slice(0, 5)
+        descriptions: validDescriptions.slice(0, 4)
       };
 
     } catch (error) {
