@@ -20,7 +20,7 @@ GROUPE D'ANNONCES: ${variables.adGroupName}
 MOTS-CLÉS CIBLES: ${variables.keywords}
 
 MISSION:
-Rédige 3 titres Google Ads percutants et optimisés pour le CTR.
+Rédige 15 titres Google Ads percutants et optimisés pour le CTR.
 
 CONTRAINTES TECHNIQUES:
 - Maximum 30 caractères par titre
@@ -52,7 +52,7 @@ GROUPE D'ANNONCES: ${variables.adGroupName}
 MOTS-CLÉS CIBLES: ${variables.keywords}
 
 MISSION:
-Rédige 2 descriptions Google Ads convaincantes qui incitent à l'action.
+Rédige 4 descriptions Google Ads convaincantes qui incitent à l'action.
 
 CONTRAINTES TECHNIQUES:
 - Maximum 90 caractères par description
