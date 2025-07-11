@@ -98,8 +98,22 @@ export class ColumnMappingService {
           title1Column: -1,
           title2Column: -1,
           title3Column: -1,
+          title4Column: -1,
+          title5Column: -1,
+          title6Column: -1,
+          title7Column: -1,
+          title8Column: -1,
+          title9Column: -1,
+          title10Column: -1,
+          title11Column: -1,
+          title12Column: -1,
+          title13Column: -1,
+          title14Column: -1,
+          title15Column: -1,
           description1Column: -1,
-          description2Column: -1
+          description2Column: -1,
+          description3Column: -1,
+          description4Column: -1
         },
         isValid: false,
         errors: [`Erreur d'analyse: ${error.message}`]
