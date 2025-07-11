@@ -48,7 +48,10 @@ export class ColumnMappingService {
         title15Column: this.findColumnIndex(headers, ['titre 15', 'title 15', 'headline 15', 'h15']),
         // Descriptions
         description1Column: this.findColumnIndex(headers, ['description 1', 'desc 1', 'description']),
-        description2Column: this.findColumnIndex(headers, ['description 2', 'desc 2'])
+        description2Column: this.findColumnIndex(headers, ['description 2', 'desc 2']),
+        description3Column: this.findColumnIndex(headers, ['description 3', 'desc 3']),
+        description4Column: this.findColumnIndex(headers, ['description 4', 'desc 4']),
+        description5Column: this.findColumnIndex(headers, ['description 5', 'desc 5'])
       };
       
       const errors: string[] = [];
@@ -131,23 +134,34 @@ export class ColumnMappingService {
       updatedRow.push('');
     }
     
-    // Appliquer les titres (jusqu'à 15)
+    // Appliquer les titres (jusqu'à 15) - SEULEMENT si ce ne sont pas des formules
     for (let i = 0; i < Math.min(titles.length, 15); i++) {
       const titleColumnKey = `title${i + 1}Column`;
       if (mappings[titleColumnKey] !== -1) {
-        updatedRow[mappings[titleColumnKey]] = titles[i];
-        console.log(`✅ Titre ${i + 1} ajouté en colonne ${mappings[titleColumnKey]}: "${titles[i]}"`);
+        // Vérifier si la cellule contient une formule (commence par =)
+        const existingValue = updatedRow[mappings[titleColumnKey]];
+        if (!existingValue || !existingValue.toString().startsWith('=')) {
+          updatedRow[mappings[titleColumnKey]] = titles[i];
+          console.log(`✅ Titre ${i + 1} ajouté en colonne ${mappings[titleColumnKey]}: "${titles[i]}"`);
+        } else {
+          console.log(`⚠️ Titre ${i + 1} ignoré - formule existante en colonne ${mappings[titleColumnKey]}: "${existingValue}"`);
+        }
       }
     }
     
-    // Appliquer les descriptions
-    if (descriptions.length > 0 && mappings.description1Column !== -1) {
-      updatedRow[mappings.description1Column] = descriptions[0];
-      console.log(`✅ Description 1 ajoutée en colonne ${mappings.description1Column}: "${descriptions[0]}"`);
-    }
-    if (descriptions.length > 1 && mappings.description2Column !== -1) {
-      updatedRow[mappings.description2Column] = descriptions[1];
-      console.log(`✅ Description 2 ajoutée en colonne ${mappings.description2Column}: "${descriptions[1]}"`);
+    // Appliquer les descriptions (jusqu'à 5) - SEULEMENT si ce ne sont pas des formules
+    for (let i = 0; i < Math.min(descriptions.length, 5); i++) {
+      const descriptionColumnKey = `description${i + 1}Column`;
+      if (mappings[descriptionColumnKey] !== -1) {
+        // Vérifier si la cellule contient une formule (commence par =)
+        const existingValue = updatedRow[mappings[descriptionColumnKey]];
+        if (!existingValue || !existingValue.toString().startsWith('=')) {
+          updatedRow[mappings[descriptionColumnKey]] = descriptions[i];
+          console.log(`✅ Description ${i + 1} ajoutée en colonne ${mappings[descriptionColumnKey]}: "${descriptions[i]}"`);
+        } else {
+          console.log(`⚠️ Description ${i + 1} ignorée - formule existante en colonne ${mappings[descriptionColumnKey]}: "${existingValue}"`);
+        }
+      }
     }
     
     console.log('📝 Ligne finale après application:', updatedRow.slice(0, 15));
