@@ -22,35 +22,35 @@ export class ColumnMappingService {
       
       const mappings = {
         campaignColumn: this.findColumnIndex(headers, [
-          'campagne', 'campaign', 'nom de la campagne', 'campaign name', 'campagnes'
+          'campagnes', 'campagne', 'campaign', 'nom de la campagne', 'campaign name'
         ]),
         adGroupColumn: this.findColumnIndex(headers, [
-          'groupe d\'annonces', 'ad group', 'groupe annonces', 'adgroup', 'groupe', 'nom du groupe d\'annonces'
+          'groupes d\'annonces', 'groupe d\'annonces', 'ad group', 'groupe annonces', 'adgroup', 'groupe', 'nom du groupe d\'annonces'
         ]),
         keywordsColumn: this.findColumnIndex(headers, [
-          'mots-clés', 'keywords', 'mots clés', 'top 3 mots-clés', 'keyword', 'mots clés (séparés par des virgules)', 'top 3 mots-clés (séparés par des virgules)'
+          'top mots clés', 'mots-clés', 'keywords', 'mots clés', 'top 3 mots-clés', 'keyword', 'mots clés (séparés par des virgules)', 'top 3 mots-clés (séparés par des virgules)'
         ]),
         // Titres 1-15
-        title1Column: this.findColumnIndex(headers, ['titre 1', 'title 1', 'headline 1', 'h1']),
-        title2Column: this.findColumnIndex(headers, ['titre 2', 'title 2', 'headline 2', 'h2']),
-        title3Column: this.findColumnIndex(headers, ['titre 3', 'title 3', 'headline 3', 'h3']),
-        title4Column: this.findColumnIndex(headers, ['titre 4', 'title 4', 'headline 4', 'h4']),
-        title5Column: this.findColumnIndex(headers, ['titre 5', 'title 5', 'headline 5', 'h5']),
-        title6Column: this.findColumnIndex(headers, ['titre 6', 'title 6', 'headline 6', 'h6']),
-        title7Column: this.findColumnIndex(headers, ['titre 7', 'title 7', 'headline 7', 'h7']),
-        title8Column: this.findColumnIndex(headers, ['titre 8', 'title 8', 'headline 8', 'h8']),
-        title9Column: this.findColumnIndex(headers, ['titre 9', 'title 9', 'headline 9', 'h9']),
-        title10Column: this.findColumnIndex(headers, ['titre 10', 'title 10', 'headline 10', 'h10']),
-        title11Column: this.findColumnIndex(headers, ['titre 11', 'title 11', 'headline 11', 'h11']),
-        title12Column: this.findColumnIndex(headers, ['titre 12', 'title 12', 'headline 12', 'h12']),
-        title13Column: this.findColumnIndex(headers, ['titre 13', 'title 13', 'headline 13', 'h13']),
-        title14Column: this.findColumnIndex(headers, ['titre 14', 'title 14', 'headline 14', 'h14']),
-        title15Column: this.findColumnIndex(headers, ['titre 15', 'title 15', 'headline 15', 'h15']),
+        title1Column: this.findColumnIndex(headers, ['headline 1', 'titre 1', 'title 1', 'h1']),
+        title2Column: this.findColumnIndex(headers, ['headline 2', 'titre 2', 'title 2', 'h2']),
+        title3Column: this.findColumnIndex(headers, ['headline 3', 'titre 3', 'title 3', 'h3']),
+        title4Column: this.findColumnIndex(headers, ['headline 4', 'titre 4', 'title 4', 'h4']),
+        title5Column: this.findColumnIndex(headers, ['headline 5', 'titre 5', 'title 5', 'h5']),
+        title6Column: this.findColumnIndex(headers, ['headline 6', 'titre 6', 'title 6', 'h6']),
+        title7Column: this.findColumnIndex(headers, ['headline 7', 'titre 7', 'title 7', 'h7']),
+        title8Column: this.findColumnIndex(headers, ['headline 8', 'titre 8', 'title 8', 'h8']),
+        title9Column: this.findColumnIndex(headers, ['headline 9', 'titre 9', 'title 9', 'h9']),
+        title10Column: this.findColumnIndex(headers, ['headline 10', 'titre 10', 'title 10', 'h10']),
+        title11Column: this.findColumnIndex(headers, ['headline 11', 'titre 11', 'title 11', 'h11']),
+        title12Column: this.findColumnIndex(headers, ['headline 12', 'titre 12', 'title 12', 'h12']),
+        title13Column: this.findColumnIndex(headers, ['headline 13', 'titre 13', 'title 13', 'h13']),
+        title14Column: this.findColumnIndex(headers, ['headline 14', 'titre 14', 'title 14', 'h14']),
+        title15Column: this.findColumnIndex(headers, ['headline 15', 'titre 15', 'title 15', 'h15']),
         // Descriptions
-        description1Column: this.findColumnIndex(headers, ['description 1', 'desc 1', 'description', 'description 1', 'description1', 'desc1']),
-        description2Column: this.findColumnIndex(headers, ['description 2', 'desc 2', 'description2', 'desc2']),
-        description3Column: this.findColumnIndex(headers, ['description 3', 'desc 3', 'description3', 'desc3']),
-        description4Column: this.findColumnIndex(headers, ['description 4', 'desc 4', 'description4', 'desc4'])
+        description1Column: this.findColumnIndex(headers, ['description 1', 'desc 1', 'description']),
+        description2Column: this.findColumnIndex(headers, ['description 2', 'desc 2']),
+        description3Column: this.findColumnIndex(headers, ['description 3', 'desc 3']),
+        description4Column: this.findColumnIndex(headers, ['description 4', 'desc 4'])
       };
       
       const errors: string[] = [];
