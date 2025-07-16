@@ -48,8 +48,15 @@ export class EnhancedContentGenerationService {
       console.log('📝 Prompt construit:', prompt.substring(0, 200) + '...');
 
       // Déterminer le provider et le modèle depuis la sélection
-      const { provider, model } = this.parseModelSelection(options.model);
-      console.log('🎯 Provider/Modèle détectés:', { provider, model });
+      let { provider, model } = this.parseModelSelection(options.model);
+      
+      // FALLBACK: Si c'est un vieux modèle Claude, forcer vers Claude 4 Sonnet
+      if (provider === 'anthropic' && (model.includes('claude-3-sonnet-20240229') || model.includes('claude-3') || model === 'claude-3')) {
+        console.log(`⚠️ Modèle obsolète détecté (${model}), passage forcé vers Claude 4 Sonnet`);
+        model = 'claude-sonnet-4-20250514';
+      }
+      
+      console.log('🎯 Provider/Modèle finaux:', { provider, model });
 
       // Appeler l'API de génération avec le bon provider
       const response = await supabase.functions.invoke('llm-generation', {

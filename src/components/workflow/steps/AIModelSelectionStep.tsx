@@ -18,29 +18,29 @@ const AIModelSelectionStep: React.FC<AIModelSelectionStepProps> = ({
   onComplete,
   previousData
 }) => {
-  const [selectedModel, setSelectedModel] = useState(data?.selectedModel || 'gpt-3.5-turbo');
+  const [selectedModel, setSelectedModel] = useState(data?.selectedModel || 'claude-sonnet-4-20250514');
   const [customPrompt, setCustomPrompt] = useState(data?.customPrompt || '');
 
   const models = [
     {
-      id: 'gpt-3.5-turbo',
-      name: 'GPT-3.5 Turbo',
-      description: 'Rapide et économique, idéal pour la génération de contenu standard',
-      icon: Zap,
+      id: 'claude-sonnet-4-20250514',
+      name: 'Claude 4 Sonnet',
+      description: 'Modèle le plus récent et performant de Claude 4, recommandé',
+      icon: Brain,
       recommended: true
     },
     {
-      id: 'gpt-4',
+      id: 'openai:gpt-4',
       name: 'GPT-4',
       description: 'Plus précis et créatif, recommandé pour du contenu complexe',
       icon: Brain,
       premium: true
     },
     {
-      id: 'claude-3',
-      name: 'Claude 3',
-      description: 'Excellent pour l\'analyse et la génération de contenu publicitaire',
-      icon: Bot
+      id: 'claude-3-5-haiku-20241022',
+      name: 'Claude 3.5 Haiku',
+      description: 'Modèle rapide et efficace pour la génération de contenu publicitaire',
+      icon: Zap
     }
   ];
 

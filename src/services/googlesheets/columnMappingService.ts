@@ -43,14 +43,14 @@ export class ColumnMappingService {
         title10Column: this.findColumnIndex(headers, ['headline 10', 'titre 10', 'title 10', 'h10']),
         title11Column: this.findColumnIndex(headers, ['headline 11', 'titre 11', 'title 11', 'h11']),
         title12Column: this.findColumnIndex(headers, ['headline 12', 'titre 12', 'title 12', 'h12']),
-        title13Column: this.findColumnIndex(headers, ['headline 13', 'titre 13', 'title 13', 'h13']),
-        title14Column: this.findColumnIndex(headers, ['headline 14', 'titre 14', 'title 14', 'h14']),
-        title15Column: this.findColumnIndex(headers, ['headline 15', 'titre 15', 'title 15', 'h15']),
+        title13Column: this.findColumnIndex(headers, ['headline 13', 'titre 13', 'title 13', 'h13', 'Titre 13']),
+        title14Column: this.findColumnIndex(headers, ['headline 14', 'titre 14', 'title 14', 'h14', 'Titre 14']),
+        title15Column: this.findColumnIndex(headers, ['headline 15', 'titre 15', 'title 15', 'h15', 'Titre 15']),
         // Descriptions
-        description1Column: this.findColumnIndex(headers, ['description 1', 'desc 1', 'description']),
-        description2Column: this.findColumnIndex(headers, ['description 2', 'desc 2']),
-        description3Column: this.findColumnIndex(headers, ['description 3', 'desc 3']),
-        description4Column: this.findColumnIndex(headers, ['description 4', 'desc 4'])
+        description1Column: this.findColumnIndex(headers, ['description 1', 'desc 1', 'description', 'Description 1']),
+        description2Column: this.findColumnIndex(headers, ['description 2', 'desc 2', 'Description 2']),
+        description3Column: this.findColumnIndex(headers, ['description 3', 'desc 3', 'Description 3']),
+        description4Column: this.findColumnIndex(headers, ['description 4', 'desc 4', 'Description 4'])
       };
       
       const errors: string[] = [];
