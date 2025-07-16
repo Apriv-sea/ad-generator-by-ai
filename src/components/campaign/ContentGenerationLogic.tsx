@@ -81,8 +81,8 @@ export const useContentGeneration = ({
         console.log(`🎯 Génération pour ligne ${i + 1}: ${campaign} > ${adGroup}`);
         console.log(`🔑 Mots-clés:`, keywords.slice(0, 3));
 
-        // Utiliser le service amélioré pour générer du contenu
-        const result = await enhancedContentGenerationService.generateContent(
+        // Utiliser le service amélioré pour générer et sauvegarder
+        const result = await enhancedContentGenerationService.generateAndSaveContent(
           {
             model: selectedModel,
             clientContext,
@@ -91,44 +91,18 @@ export const useContentGeneration = ({
             keywords: keywords.slice(0, 3)
           },
           sheet.id,
-          backupData
+          i + 1, // Index de la ligne (les données commencent à l'index 1, pas 0)
+          [headers, ...updatedRows] // Données complètes incluant les en-têtes
         );
 
-        if (result.success && result.titles && result.descriptions) {
-          console.log(`✅ Contenu généré pour ligne ${i + 1}:`, {
-            titlesCount: result.titles.length,
-            descriptionsCount: result.descriptions.length,
-            titles: result.titles,
-            descriptions: result.descriptions
-          });
-
-          // Mettre à jour la ligne avec le contenu généré
-          const updatedRow = [...row];
+        if (result.success && result.updatedSheetData) {
+          console.log(`✅ Contenu généré et sauvé pour ligne ${i + 1}`);
           
-          // Colonnes pour les titres (index 3, 4, 5)
-          if (result.titles && result.titles.length > 0) {
-            result.titles.slice(0, 3).forEach((title, idx) => {
-              if (title && title.trim()) {
-                updatedRow[3 + idx] = title.trim();
-                console.log(`📝 Titre ${idx + 1} ajouté: "${title.trim()}"`);
-              }
-            });
-          }
-
-          // Colonnes pour les descriptions (index 6, 7)  
-          if (result.descriptions && result.descriptions.length > 0) {
-            result.descriptions.slice(0, 2).forEach((desc, idx) => {
-              if (desc && desc.trim()) {
-                updatedRow[6 + idx] = desc.trim();
-                console.log(`📝 Description ${idx + 1} ajoutée: "${desc.trim()}"`);
-              }
-            });
-          }
-
-          updatedRows[i] = updatedRow;
+          // Mettre à jour les données de la feuille (sans les en-têtes)
+          updatedRows = result.updatedSheetData.slice(1);
           contentGeneratedCount++;
         } else {
-          console.warn(`⚠️ Échec génération pour ligne ${i + 1}:`, result);
+          console.warn(`⚠️ Échec génération pour ligne ${i + 1}:`, result.error);
         }
       }
 
@@ -143,30 +117,7 @@ export const useContentGeneration = ({
 
       setSheetData(newSheetData);
       
-      // Sauvegarder selon le type de feuille
-      if (sheet.id.startsWith('sheet_')) {
-        // Feuille locale - sauvegarder dans localStorage
-        console.log('💾 Sauvegarde locale...');
-        localStorage.setItem(`sheet_data_${sheet.id}`, JSON.stringify({ values: newSheetData }));
-        console.log('✅ Sauvegarde locale terminée');
-      } else {
-        // Feuille Google Sheets - sauvegarder via l'API
-        console.log('📊 Sauvegarde Google Sheets...');
-        try {
-          const saveSuccess = await googleSheetsService.saveSheetData(sheet.id, newSheetData);
-          if (saveSuccess) {
-            console.log('✅ Sauvegarde Google Sheets réussie');
-          } else {
-            console.warn('⚠️ Sauvegarde Google Sheets incertaine');
-          }
-        } catch (saveError) {
-          console.error('❌ Erreur sauvegarde Google Sheets:', saveError);
-          toast.error(`Contenu généré mais erreur de sauvegarde: ${saveError.message}`);
-          // On continue quand même car le contenu a été généré
-        }
-      }
-      
-      toast.success(`Contenu généré pour ${contentGeneratedCount} ligne(s) et sauvegardé avec succès !`);
+      toast.success(`Contenu généré pour ${contentGeneratedCount} ligne(s) avec tous les 15 titres et 4 descriptions !`);
       onUpdateComplete();
       
     } catch (error) {
