@@ -47,12 +47,16 @@ export class EnhancedContentGenerationService {
       const prompt = this.buildOptimizedPrompt(options);
       console.log('📝 Prompt construit:', prompt.substring(0, 200) + '...');
 
-      // Appeler l'API de génération
+      // Déterminer le provider et le modèle depuis la sélection
+      const { provider, model } = this.parseModelSelection(options.model);
+      console.log('🎯 Provider/Modèle détectés:', { provider, model });
+
+      // Appeler l'API de génération avec le bon provider
       const response = await supabase.functions.invoke('llm-generation', {
         body: {
           prompt,
-          provider: 'anthropic',
-          model: options.model || 'claude-sonnet-4-20250514'
+          provider,
+          model
         }
       });
 
@@ -212,12 +216,15 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire.`;
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Déterminer le provider basé sur le modèle
+      const { provider } = this.parseModelSelection(options.model);
+
       await supabase.from('content_generations').insert({
         user_id: user.id,
         sheet_id: sheetId,
         campaign_name: options.campaignContext,
         ad_group_name: options.adGroupContext,
-        provider: 'anthropic',
+        provider,
         model: options.model,
         prompt_data: {
           clientContext: options.clientContext,
@@ -337,6 +344,37 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire.`;
         error: error instanceof Error ? error.message : 'Erreur inconnue'
       };
     }
+  }
+
+  private static parseModelSelection(modelSelection: string): { provider: string; model: string } {
+    // Si le modèle contient ":", c'est le format "provider:model"
+    if (modelSelection && modelSelection.includes(':')) {
+      const [provider, model] = modelSelection.split(':');
+      return { provider, model };
+    }
+
+    // Sinon, détecter le provider basé sur le nom du modèle
+    if (!modelSelection) {
+      return { provider: 'anthropic', model: 'claude-sonnet-4-20250514' };
+    }
+
+    // Modèles OpenAI
+    if (modelSelection.includes('gpt') || modelSelection.includes('o1')) {
+      return { provider: 'openai', model: modelSelection };
+    }
+
+    // Modèles Anthropic
+    if (modelSelection.includes('claude')) {
+      return { provider: 'anthropic', model: modelSelection };
+    }
+
+    // Modèles Google
+    if (modelSelection.includes('gemini')) {
+      return { provider: 'google', model: modelSelection };
+    }
+
+    // Par défaut, utiliser Claude 4 Sonnet
+    return { provider: 'anthropic', model: 'claude-sonnet-4-20250514' };
   }
 }
 
