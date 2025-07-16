@@ -77,7 +77,7 @@ export class EnhancedContentGenerationService {
         };
       }
 
-      // Extraire le contenu de la réponse
+      // Extraire le contenu de la réponse (response.data contient déjà la réponse de l'API)
       const generatedContent = response.data?.content?.[0]?.text || response.data?.choices?.[0]?.message?.content;
       
       if (!generatedContent) {
@@ -112,7 +112,7 @@ export class EnhancedContentGenerationService {
         success: true,
         titles: parsedContent.titles,
         descriptions: parsedContent.descriptions,
-        tokensUsed: response.data?.usage?.total_tokens || 0
+        tokensUsed: response.data?.usage?.total_tokens || response.data?.usage?.input_tokens + response.data?.usage?.output_tokens || 0
       };
 
     } catch (error) {
