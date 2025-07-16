@@ -47,10 +47,10 @@ export class ColumnMappingService {
         title14Column: this.findColumnIndex(headers, ['titre 14', 'title 14', 'headline 14', 'h14']),
         title15Column: this.findColumnIndex(headers, ['titre 15', 'title 15', 'headline 15', 'h15']),
         // Descriptions
-        description1Column: this.findColumnIndex(headers, ['description 1', 'desc 1', 'description']),
-        description2Column: this.findColumnIndex(headers, ['description 2', 'desc 2']),
-        description3Column: this.findColumnIndex(headers, ['description 3', 'desc 3']),
-        description4Column: this.findColumnIndex(headers, ['description 4', 'desc 4'])
+        description1Column: this.findColumnIndex(headers, ['description 1', 'desc 1', 'description', 'description 1', 'description1', 'desc1']),
+        description2Column: this.findColumnIndex(headers, ['description 2', 'desc 2', 'description2', 'desc2']),
+        description3Column: this.findColumnIndex(headers, ['description 3', 'desc 3', 'description3', 'desc3']),
+        description4Column: this.findColumnIndex(headers, ['description 4', 'desc 4', 'description4', 'desc4'])
       };
       
       const errors: string[] = [];
