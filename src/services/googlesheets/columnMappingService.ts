@@ -150,6 +150,7 @@ export class ColumnMappingService {
     // Appliquer les titres (jusqu'à 15) - SEULEMENT si ce ne sont pas des formules
     for (let i = 0; i < Math.min(titles.length, 15); i++) {
       const titleColumnKey = `title${i + 1}Column`;
+      console.log(`🔍 Recherche ${titleColumnKey}, valeur mapping: ${mappings[titleColumnKey]}`);
       if (mappings[titleColumnKey] !== -1) {
         // Vérifier si la cellule contient une formule (commence par =)
         const existingValue = updatedRow[mappings[titleColumnKey]];
@@ -159,12 +160,15 @@ export class ColumnMappingService {
         } else {
           console.log(`⚠️ Titre ${i + 1} ignoré - formule existante en colonne ${mappings[titleColumnKey]}: "${existingValue}"`);
         }
+      } else {
+        console.log(`❌ Titre ${i + 1} - Colonne non trouvée (${titleColumnKey})`);
       }
     }
     
     // Appliquer les descriptions (jusqu'à 4) - SEULEMENT si ce ne sont pas des formules
     for (let i = 0; i < Math.min(descriptions.length, 4); i++) {
       const descriptionColumnKey = `description${i + 1}Column`;
+      console.log(`🔍 Recherche ${descriptionColumnKey}, valeur mapping: ${mappings[descriptionColumnKey]}`);
       if (mappings[descriptionColumnKey] !== -1) {
         // Vérifier si la cellule contient une formule (commence par =)
         const existingValue = updatedRow[mappings[descriptionColumnKey]];
@@ -174,6 +178,8 @@ export class ColumnMappingService {
         } else {
           console.log(`⚠️ Description ${i + 1} ignorée - formule existante en colonne ${mappings[descriptionColumnKey]}: "${existingValue}"`);
         }
+      } else {
+        console.log(`❌ Description ${i + 1} - Colonne non trouvée (${descriptionColumnKey})`);
       }
     }
     
