@@ -21,7 +21,7 @@ export const useContentGeneration = ({
   onUpdateComplete
 }: UseContentGenerationProps) => {
   const [isSaving, setIsSaving] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<string>("gpt-4");
+  const [selectedModel, setSelectedModel] = useState<string>("claude-sonnet-4-20250514");
 
   const generateContent = async () => {
     if (!sheet) {
