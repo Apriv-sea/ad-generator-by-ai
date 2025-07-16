@@ -83,7 +83,7 @@ Une description par ligne, sans numérotation, sans formatage markdown.`;
       .split('\n')
       .map(line => line.trim())
       .filter(line => line && line.length <= 30 && !line.match(/^\d+[\.\)]/))
-      .slice(0, 3);
+      .slice(0, 15);
   }
 
   // Parser optimisé pour les descriptions
@@ -94,6 +94,6 @@ Une description par ligne, sans numérotation, sans formatage markdown.`;
       .split('\n')
       .map(line => line.trim())
       .filter(line => line && line.length <= 90 && !line.match(/^\d+[\.\)]/))
-      .slice(0, 2);
+      .slice(0, 4);
   }
 }
