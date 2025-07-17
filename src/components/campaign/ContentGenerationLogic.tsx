@@ -84,6 +84,9 @@ export const useContentGeneration = ({
         // CORRECTION CRITIQUE: i correspond à l'index dans dataRows, donc i+1 correspond à l'index dans sheetData incluant les headers
         console.log(`📍 Index correction: i=${i}, rowIndex dans sheetData=${i + 1}`);
         
+        // AVANT APPEL SERVICE DEBUG
+        console.log('🚨 AVANT APPEL DebugContentGeneration.generateAndSaveContent');
+        
         // Utiliser le service debug pour générer et sauvegarder
         const result = await DebugContentGeneration.generateAndSaveContent(
           {
@@ -98,6 +101,8 @@ export const useContentGeneration = ({
           [headers, ...updatedRows] // Données complètes incluant les en-têtes
         );
 
+        console.log('🚨 RETOUR DebugContentGeneration:', result);
+        
         if (result.success && result.updatedSheetData) {
           console.log(`✅ Contenu généré et sauvé pour ligne ${i + 1}`);
           

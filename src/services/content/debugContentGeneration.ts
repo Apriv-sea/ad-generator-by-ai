@@ -22,6 +22,7 @@ export class DebugContentGeneration {
     error?: string;
   }> {
     try {
+      console.log('🚨🚨🚨 === DEBUG GENERATION SERVICE APPELÉ ===');
       console.log(`🎯 DEBUG: GENERATION LIGNE ${rowIndex + 1}`);
       console.log('📊 Options:', options);
       console.log('📊 Données feuille:', {
