@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Sheet, Client, sheetService } from "@/services/sheetService";
-import { enhancedContentGenerationService } from "@/services/content/enhancedContentGenerationService";
+import { DebugContentGeneration } from "@/services/content/debugContentGeneration";
 import { googleSheetsService } from "@/services/googlesheets/googleSheetsService";
 
 interface UseContentGenerationProps {
@@ -84,8 +84,8 @@ export const useContentGeneration = ({
         // CORRECTION CRITIQUE: i correspond à l'index dans dataRows, donc i+1 correspond à l'index dans sheetData incluant les headers
         console.log(`📍 Index correction: i=${i}, rowIndex dans sheetData=${i + 1}`);
         
-        // Utiliser le service amélioré pour générer et sauvegarder
-        const result = await enhancedContentGenerationService.generateAndSaveContent(
+        // Utiliser le service debug pour générer et sauvegarder
+        const result = await DebugContentGeneration.generateAndSaveContent(
           {
             model: selectedModel,
             clientContext,
