@@ -77,14 +77,36 @@ export class EnhancedContentGenerationService {
         };
       }
 
-      // Extraire le contenu de la réponse (response.data contient déjà la réponse de l'API)
-      const generatedContent = response.data?.content?.[0]?.text || response.data?.choices?.[0]?.message?.content;
+      // CORRECTION CRITIQUE: Extraire le contenu selon le provider
+      console.log('🔍 Structure complète de response.data:', JSON.stringify(response.data, null, 2));
+      
+      let generatedContent;
+      
+      // Pour Anthropic
+      if (provider === 'anthropic') {
+        generatedContent = response.data?.content?.[0]?.text;
+        console.log('🔍 Extraction Anthropic - contenu:', generatedContent);
+      }
+      // Pour OpenAI  
+      else if (provider === 'openai') {
+        generatedContent = response.data?.choices?.[0]?.message?.content;
+        console.log('🔍 Extraction OpenAI - contenu:', generatedContent);
+      }
+      // Pour Google
+      else if (provider === 'google') {
+        generatedContent = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        console.log('🔍 Extraction Google - contenu:', generatedContent);
+      }
       
       if (!generatedContent) {
-        console.error('❌ Pas de contenu généré:', response.data);
+        console.error('❌ Pas de contenu généré:', {
+          provider,
+          responseData: response.data,
+          responseKeys: Object.keys(response.data || {})
+        });
         return {
           success: false,
-          error: 'Aucun contenu généré par l\'IA'
+          error: `Aucun contenu généré par l'IA (provider: ${provider})`
         };
       }
 
