@@ -81,6 +81,9 @@ export const useContentGeneration = ({
         console.log(`🎯 Génération pour ligne ${i + 1}: ${campaign} > ${adGroup}`);
         console.log(`🔑 Mots-clés:`, keywords.slice(0, 3));
 
+        // CORRECTION CRITIQUE: i correspond à l'index dans dataRows, donc i+1 correspond à l'index dans sheetData incluant les headers
+        console.log(`📍 Index correction: i=${i}, rowIndex dans sheetData=${i + 1}`);
+        
         // Utiliser le service amélioré pour générer et sauvegarder
         const result = await enhancedContentGenerationService.generateAndSaveContent(
           {
@@ -91,7 +94,7 @@ export const useContentGeneration = ({
             keywords: keywords.slice(0, 3)
           },
           sheet.id,
-          i + 1, // Index de la ligne (les données commencent à l'index 1, pas 0)
+          i + 1, // Index dans le tableau complet (headers + données)
           [headers, ...updatedRows] // Données complètes incluant les en-têtes
         );
 
