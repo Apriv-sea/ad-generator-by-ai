@@ -100,33 +100,42 @@ export class DebugContentGeneration {
       const originalRow = updatedSheetData[rowIndex] || [];
       const updatedRow = [...originalRow];
       
-      // Assurer assez de colonnes (mais pas plus que ce qui existe dans la feuille)
-      // La feuille actuelle n'a que 25 colonnes selon les logs
-      while (updatedRow.length < Math.min(25, originalRow.length)) {
+      // Assurer que la ligne a toutes les colonnes nécessaires (structure standard)
+      const standardHeaders = GoogleSheetsService.getStandardHeaders();
+      const requiredColumns = standardHeaders.length;
+      
+      console.log(`📏 Structure: ligne actuelle ${updatedRow.length} colonnes, structure standard ${requiredColumns} colonnes`);
+      
+      // Étendre la ligne si nécessaire pour accueillir tous les champs
+      while (updatedRow.length < requiredColumns) {
         updatedRow.push('');
       }
       
-      console.log(`📏 Longueur de ligne: ${updatedRow.length} colonnes disponibles`);
+      console.log(`📏 Ligne étendue à ${updatedRow.length} colonnes`);
       
-      // Remplir SEULEMENT les titres dans les colonnes existantes (3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23)
-      // Attention : la feuille n'a que les colonnes jusqu'à ~23 (Headline 12)
+      // Remplir les titres (colonnes 5 à 19 dans la structure standard)
       if (parsedContent.titles) {
-        const titleColumns = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23]; // 11 positions pour titres
-        const maxTitles = Math.min(parsedContent.titles.length, titleColumns.length);
+        const titleStartCol = 5; // "Titre 1" est à l'index 5 dans getStandardHeaders()
+        const maxTitles = Math.min(parsedContent.titles.length, 15); // Max 15 titres
         
         for (let i = 0; i < maxTitles; i++) {
-          const columnIndex = titleColumns[i];
-          if (columnIndex < updatedRow.length) {
-            updatedRow[columnIndex] = parsedContent.titles[i];
-            console.log(`✅ Titre ${i + 1} -> Colonne ${columnIndex}: "${parsedContent.titles[i]}"`);
-          } else {
-            console.warn(`⚠️ Colonne ${columnIndex} hors limites (max: ${updatedRow.length - 1})`);
-          }
+          const columnIndex = titleStartCol + i;
+          updatedRow[columnIndex] = parsedContent.titles[i];
+          console.log(`✅ Titre ${i + 1} -> Colonne ${columnIndex}: "${parsedContent.titles[i]}"`);
         }
       }
       
-      // IGNORER les descriptions pour l'instant - elles ne sont pas dans la structure actuelle
-      console.log('🚫 Descriptions ignorées - colonnes non présentes dans la feuille actuelle');
+      // Remplir les descriptions (colonnes 20 à 23 dans la structure standard)
+      if (parsedContent.descriptions) {
+        const descStartCol = 20; // "Description 1" est à l'index 20 dans getStandardHeaders()
+        const maxDescriptions = Math.min(parsedContent.descriptions.length, 4); // Max 4 descriptions
+        
+        for (let i = 0; i < maxDescriptions; i++) {
+          const columnIndex = descStartCol + i;
+          updatedRow[columnIndex] = parsedContent.descriptions[i];
+          console.log(`✅ Description ${i + 1} -> Colonne ${columnIndex}: "${parsedContent.descriptions[i]}"`);
+        }
+      }
       
       updatedSheetData[rowIndex] = updatedRow;
       
