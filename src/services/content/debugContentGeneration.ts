@@ -38,19 +38,26 @@ export class DebugContentGeneration {
       const titleColumns: number[] = [];
       const descriptionColumns: number[] = [];
       
+      console.log('🔍 ANALYSE DES HEADERS - Détail par colonne:');
       headers.forEach((header, index) => {
         const headerLower = String(header).toLowerCase();
+        console.log(`  Colonne ${index}: "${header}" (${headerLower})`);
+        
         if (headerLower.includes('titre') || headerLower.includes('headline')) {
           titleColumns.push(index);
+          console.log(`    ✅ TITRE détecté -> Index ${index}`);
         } else if (headerLower.includes('description')) {
           descriptionColumns.push(index);
+          console.log(`    ✅ DESCRIPTION détectée -> Index ${index}`);
         }
       });
       
-      console.log('📊 Structure de colonnes détectée:', {
+      console.log('📊 Structure de colonnes détectée FINALE:', {
         totalColumns: headers.length,
         titleColumns: titleColumns.map(i => `${i}:${headers[i]}`),
-        descriptionColumns: descriptionColumns.map(i => `${i}:${headers[i]}`)
+        descriptionColumns: descriptionColumns.map(i => `${i}:${headers[i]}`),
+        totalTitleColumns: titleColumns.length,
+        totalDescriptionColumns: descriptionColumns.length
       });
       
       // Générer le contenu avec un prompt optimisé
@@ -156,16 +163,39 @@ export class DebugContentGeneration {
       console.log(`📏 Ligne adaptée à ${updatedRow.length} colonnes (total: ${totalColumns})`);
       
       // Remplir UNIQUEMENT les colonnes de titres détectées
+      console.log('🎯 DÉBUT MAPPING TITRES');
+      console.log('📊 Données pour mapping:', {
+        titresDisponibles: parsedContent.titles?.length || 0,
+        colonnesTitresDetectees: titleColumns.length,
+        titres: parsedContent.titles,
+        colonnesTitres: titleColumns
+      });
+      
       if (parsedContent.titles && titleColumns.length > 0) {
         const maxTitles = Math.min(parsedContent.titles.length, titleColumns.length);
+        console.log(`🔢 Mapping ${maxTitles} titres (min entre ${parsedContent.titles.length} titres et ${titleColumns.length} colonnes)`);
         
         for (let i = 0; i < maxTitles; i++) {
           const columnIndex = titleColumns[i];
+          console.log(`🎯 Tentative mapping titre ${i + 1}:`);
+          console.log(`  - Titre: "${parsedContent.titles[i]}"`);
+          console.log(`  - Index colonne: ${columnIndex}`);
+          console.log(`  - Nom colonne: "${currentSheetData[0][columnIndex]}"`);
+          console.log(`  - Taille ligne: ${updatedRow.length}`);
+          
           if (columnIndex < updatedRow.length) {
             updatedRow[columnIndex] = parsedContent.titles[i];
-            console.log(`✅ Titre ${i + 1} -> Colonne ${columnIndex} (${currentSheetData[0][columnIndex]}): "${parsedContent.titles[i]}"`);
+            console.log(`  ✅ SUCCÈS: Titre ${i + 1} -> Colonne ${columnIndex} (${currentSheetData[0][columnIndex]}): "${parsedContent.titles[i]}"`);
+          } else {
+            console.log(`  ❌ ÉCHEC: columnIndex ${columnIndex} >= updatedRow.length ${updatedRow.length}`);
           }
         }
+      } else {
+        console.log('❌ Pas de titres à mapper:', {
+          hasTitles: !!parsedContent.titles,
+          titlesLength: parsedContent.titles?.length || 0,
+          titleColumnsLength: titleColumns.length
+        });
       }
       
       // Remplir les colonnes de descriptions (nouvellement créées ou existantes)
