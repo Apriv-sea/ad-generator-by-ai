@@ -122,13 +122,38 @@ export class DebugContentGeneration {
       const originalRow = updatedSheetData[rowIndex] || [];
       const updatedRow = [...originalRow];
       
-      // RESPECTER la structure existante - ne pas étendre les colonnes
-      const maxColumns = Math.max(originalRow.length, headers.length);
-      while (updatedRow.length < maxColumns) {
+      // ANALYSER et ÉTENDRE la feuille si nécessaire pour les descriptions
+      let needsDescriptionColumns = descriptionColumns.length === 0;
+      
+      if (needsDescriptionColumns) {
+        console.log('⚠️ Aucune colonne de description trouvée - ajout automatique');
+        
+        // Ajouter les colonnes de descriptions manquantes après les colonnes existantes
+        const descriptionHeaders = ['Description 1', 'Description 2', 'Description 3', 'Description 4'];
+        const currentHeaders = [...headers];
+        
+        // Ajouter les en-têtes de descriptions
+        descriptionHeaders.forEach((header, index) => {
+          currentHeaders.push(header);
+          descriptionColumns.push(currentHeaders.length - 1);
+        });
+        
+        // Mettre à jour la ligne d'en-têtes dans les données
+        currentSheetData[0] = currentHeaders;
+        
+        console.log('✅ Colonnes de descriptions ajoutées:', {
+          nouveauxHeaders: descriptionHeaders,
+          positionsDescriptions: descriptionColumns
+        });
+      }
+      
+      // RESPECTER la structure (existante + nouvelles colonnes si ajoutées)
+      const totalColumns = Math.max(originalRow.length, currentSheetData[0].length);
+      while (updatedRow.length < totalColumns) {
         updatedRow.push('');
       }
       
-      console.log(`📏 Ligne adaptée à ${updatedRow.length} colonnes (max existant: ${maxColumns})`);
+      console.log(`📏 Ligne adaptée à ${updatedRow.length} colonnes (total: ${totalColumns})`);
       
       // Remplir UNIQUEMENT les colonnes de titres détectées
       if (parsedContent.titles && titleColumns.length > 0) {
@@ -138,12 +163,12 @@ export class DebugContentGeneration {
           const columnIndex = titleColumns[i];
           if (columnIndex < updatedRow.length) {
             updatedRow[columnIndex] = parsedContent.titles[i];
-            console.log(`✅ Titre ${i + 1} -> Colonne ${columnIndex} (${headers[columnIndex]}): "${parsedContent.titles[i]}"`);
+            console.log(`✅ Titre ${i + 1} -> Colonne ${columnIndex} (${currentSheetData[0][columnIndex]}): "${parsedContent.titles[i]}"`);
           }
         }
       }
       
-      // Remplir UNIQUEMENT les colonnes de descriptions détectées
+      // Remplir les colonnes de descriptions (nouvellement créées ou existantes)
       if (parsedContent.descriptions && descriptionColumns.length > 0) {
         const maxDescriptions = Math.min(parsedContent.descriptions.length, descriptionColumns.length);
         
@@ -151,11 +176,9 @@ export class DebugContentGeneration {
           const columnIndex = descriptionColumns[i];
           if (columnIndex < updatedRow.length) {
             updatedRow[columnIndex] = parsedContent.descriptions[i];
-            console.log(`✅ Description ${i + 1} -> Colonne ${columnIndex} (${headers[columnIndex]}): "${parsedContent.descriptions[i]}"`);
+            console.log(`✅ Description ${i + 1} -> Colonne ${columnIndex} (${currentSheetData[0][columnIndex]}): "${parsedContent.descriptions[i]}"`);
           }
         }
-      } else {
-        console.log('⚠️ Aucune colonne de description détectée dans la feuille');
       }
       
       updatedSheetData[rowIndex] = updatedRow;
