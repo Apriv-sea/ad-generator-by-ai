@@ -130,7 +130,7 @@ class GoogleSheetsCoreService {
     return /^[a-zA-Z0-9-_]+$/.test(sheetId) && sheetId.length > 10;
   }
 
-  async getSheetData(sheetId: string, range: string = 'A:Z'): Promise<GoogleSheetsData> {
+  async getSheetData(sheetId: string, range: string = 'A:AZ'): Promise<GoogleSheetsData> {
     if (!this.validateSheetId(sheetId)) {
       throw new Error('ID de feuille Google Sheets invalide');
     }
