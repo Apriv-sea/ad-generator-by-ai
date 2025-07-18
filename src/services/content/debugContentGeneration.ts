@@ -100,29 +100,33 @@ export class DebugContentGeneration {
       const originalRow = updatedSheetData[rowIndex] || [];
       const updatedRow = [...originalRow];
       
-      // Assurer assez de colonnes (au moins 35)
-      while (updatedRow.length < 35) {
+      // Assurer assez de colonnes (mais pas plus que ce qui existe dans la feuille)
+      // La feuille actuelle n'a que 25 colonnes selon les logs
+      while (updatedRow.length < Math.min(25, originalRow.length)) {
         updatedRow.push('');
       }
       
-      // Remplir les titres (colonnes 3, 5, 7, 9, ... pour éviter les colonnes "nbcar")
+      console.log(`📏 Longueur de ligne: ${updatedRow.length} colonnes disponibles`);
+      
+      // Remplir SEULEMENT les titres dans les colonnes existantes (3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23)
+      // Attention : la feuille n'a que les colonnes jusqu'à ~23 (Headline 12)
       if (parsedContent.titles) {
-        for (let i = 0; i < Math.min(parsedContent.titles.length, 15); i++) {
-          const columnIndex = 3 + (i * 2); // 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31
-          updatedRow[columnIndex] = parsedContent.titles[i];
-          console.log(`✅ Titre ${i + 1} -> Colonne ${columnIndex}: "${parsedContent.titles[i]}"`);
+        const titleColumns = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23]; // 11 positions pour titres
+        const maxTitles = Math.min(parsedContent.titles.length, titleColumns.length);
+        
+        for (let i = 0; i < maxTitles; i++) {
+          const columnIndex = titleColumns[i];
+          if (columnIndex < updatedRow.length) {
+            updatedRow[columnIndex] = parsedContent.titles[i];
+            console.log(`✅ Titre ${i + 1} -> Colonne ${columnIndex}: "${parsedContent.titles[i]}"`);
+          } else {
+            console.warn(`⚠️ Colonne ${columnIndex} hors limites (max: ${updatedRow.length - 1})`);
+          }
         }
       }
       
-      // Remplir les descriptions (après les titres)
-      if (parsedContent.descriptions) {
-        const descStartCol = 33; // Après les 15 titres et leurs colonnes nbcar
-        for (let i = 0; i < Math.min(parsedContent.descriptions.length, 4); i++) {
-          const columnIndex = descStartCol + (i * 2); // 33, 35, 37, 39
-          updatedRow[columnIndex] = parsedContent.descriptions[i];
-          console.log(`✅ Description ${i + 1} -> Colonne ${columnIndex}: "${parsedContent.descriptions[i]}"`);
-        }
-      }
+      // IGNORER les descriptions pour l'instant - elles ne sont pas dans la structure actuelle
+      console.log('🚫 Descriptions ignorées - colonnes non présentes dans la feuille actuelle');
       
       updatedSheetData[rowIndex] = updatedRow;
       
