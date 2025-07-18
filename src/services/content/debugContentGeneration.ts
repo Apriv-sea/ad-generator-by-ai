@@ -124,38 +124,70 @@ export class DebugContentGeneration {
         descriptions: parsedContent.descriptions
       });
       
+      // ======= ANALYSE ET EXTENSION DE LA FEUILLE =======
+      console.log('🔧 ANALYSE DES BESOINS DE COLONNES');
+      
+      // Vérifier si on a besoin d'étendre la feuille
+      const needsMissingTitleColumns = titleColumns.length < 15; // On veut 15 titres
+      const needsDescriptionColumns = descriptionColumns.length === 0; // On veut 4 descriptions
+      
+      console.log('📊 Besoins identifiés:', {
+        titresActuels: titleColumns.length,
+        titresNecessaires: 15,
+        needsMissingTitleColumns,
+        descriptionsActuelles: descriptionColumns.length,
+        descriptionsNecessaires: 4,
+        needsDescriptionColumns
+      });
+      
+      // ÉTENDRE LA FEUILLE si nécessaire
+      if (needsMissingTitleColumns || needsDescriptionColumns) {
+        console.log('🚀 EXTENSION DE LA FEUILLE NÉCESSAIRE');
+        
+        // Créer une copie des headers pour modification
+        const extendedHeaders = [...headers];
+        
+        // Ajouter les colonnes de titre manquantes
+        if (needsMissingTitleColumns) {
+          const missingTitles = 15 - titleColumns.length;
+          console.log(`➕ Ajout de ${missingTitles} colonnes de titre manquantes`);
+          
+          for (let i = 0; i < missingTitles; i++) {
+            const titleNumber = titleColumns.length + i + 1;
+            extendedHeaders.push(`Headline ${titleNumber}`);
+            extendedHeaders.push('nbcar');
+            titleColumns.push(extendedHeaders.length - 2); // Index du titre (pas du nbcar)
+          }
+        }
+        
+        // Ajouter les colonnes de description
+        if (needsDescriptionColumns) {
+          console.log('➕ Ajout de 4 colonnes de descriptions');
+          for (let i = 1; i <= 4; i++) {
+            extendedHeaders.push(`Description ${i}`);
+            extendedHeaders.push('nbcar');
+            descriptionColumns.push(extendedHeaders.length - 2); // Index de la description (pas du nbcar)
+          }
+        }
+        
+        // Mettre à jour les headers dans les données
+        currentSheetData[0] = extendedHeaders;
+        
+        console.log('✅ Feuille étendue:', {
+          anciensHeaders: headers.length,
+          nouveauxHeaders: extendedHeaders.length,
+          nouveauxTitles: titleColumns.length,
+          nouvellesDescriptions: descriptionColumns.length
+        });
+      }
+      
       // Mise à jour de la ligne de données
       const updatedSheetData = [...currentSheetData];
       const originalRow = updatedSheetData[rowIndex] || [];
       const updatedRow = [...originalRow];
       
-      // ANALYSER et ÉTENDRE la feuille si nécessaire pour les descriptions
-      let needsDescriptionColumns = descriptionColumns.length === 0;
-      
-      if (needsDescriptionColumns) {
-        console.log('⚠️ Aucune colonne de description trouvée - ajout automatique');
-        
-        // Ajouter les colonnes de descriptions manquantes après les colonnes existantes
-        const descriptionHeaders = ['Description 1', 'Description 2', 'Description 3', 'Description 4'];
-        const currentHeaders = [...headers];
-        
-        // Ajouter les en-têtes de descriptions
-        descriptionHeaders.forEach((header, index) => {
-          currentHeaders.push(header);
-          descriptionColumns.push(currentHeaders.length - 1);
-        });
-        
-        // Mettre à jour la ligne d'en-têtes dans les données
-        currentSheetData[0] = currentHeaders;
-        
-        console.log('✅ Colonnes de descriptions ajoutées:', {
-          nouveauxHeaders: descriptionHeaders,
-          positionsDescriptions: descriptionColumns
-        });
-      }
-      
-      // RESPECTER la structure (existante + nouvelles colonnes si ajoutées)
-      const totalColumns = Math.max(originalRow.length, currentSheetData[0].length);
+      // Étendre la ligne aux nouvelles colonnes
+      const totalColumns = currentSheetData[0].length;
       while (updatedRow.length < totalColumns) {
         updatedRow.push('');
       }
