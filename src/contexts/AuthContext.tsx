@@ -1,8 +1,6 @@
 
 import React, { createContext, useContext, ReactNode } from "react";
-import { useSimpleAuth } from "@/hooks/useSimpleAuth";
-import { useAuthActions } from "@/hooks/useAuthActions";
-import { processAuthTokens } from "@/utils/authUtils";
+import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 import { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -13,6 +11,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshSession: () => Promise<void>;
   processAuthTokens: () => Promise<boolean>;
 }
 
@@ -23,18 +22,11 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const { user, session, isLoading, isAuthenticated, signOut } = useSimpleAuth();
-  const { login, signup } = useAuthActions();
+  const auth = useUnifiedAuth();
 
   const contextValue: AuthContextType = {
-    user,
-    session,
-    isLoading,
-    isAuthenticated,
-    login,
-    signup,
-    logout: signOut,
-    processAuthTokens
+    ...auth,
+    logout: auth.signOut // Alias for backward compatibility
   };
 
   return (
