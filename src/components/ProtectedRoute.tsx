@@ -42,6 +42,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/dashboard" replace />;
   }
 
+  // Si l'utilisateur est connecté et sur la homepage, le rediriger vers le dashboard
+  if (!requireAuth && isAuthenticated && location.pathname === '/') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return <>{children}</>;
 };
 

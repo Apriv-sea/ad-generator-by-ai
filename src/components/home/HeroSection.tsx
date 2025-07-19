@@ -82,23 +82,50 @@ const HeroSection: React.FC<HeroSectionProps> = ({ authError }) => {
           })}
         </div>
       ) : (
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-          <Button 
-            size="lg" 
-            onClick={() => navigate("/auth")} 
-            className="px-8 py-3"
-          >
-            Commencer
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-          <Button 
-            variant="outline" 
-            size="lg" 
-            onClick={() => navigate("/how-it-works")}
-            className="px-8 py-3"
-          >
-            Comment ça marche
-          </Button>
+        <div className="space-y-6 mb-16">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              size="lg" 
+              onClick={() => navigate("/auth")} 
+              className="px-8 py-3 text-lg"
+            >
+              Essayer gratuitement
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              onClick={() => navigate("/how-it-works")}
+              className="px-8 py-3 text-lg"
+            >
+              Comment ça marche
+            </Button>
+          </div>
+          
+          <div className="text-sm text-slate-500">
+            ✨ Aucune carte de crédit requise • ⚡ Configuration en 2 minutes
+          </div>
+          
+          {/* Aperçu des fonctionnalités pour non-connectés */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+            {quickActions.map((action, index) => {
+              const IconComponent = action.icon;
+              return (
+                <Card key={index} className="opacity-75 cursor-pointer hover:opacity-100 transition-opacity" onClick={() => navigate("/auth")}>
+                  <div className={`bg-gradient-to-br ${action.color} p-4`}>
+                    <div className="flex items-center text-white">
+                      <IconComponent className="w-6 h-6 mr-3" />
+                      <CardTitle className="text-lg text-white">{action.title}</CardTitle>
+                    </div>
+                  </div>
+                  <CardContent className="p-4">
+                    <p className="text-slate-600 text-sm">{action.description}</p>
+                    <p className="text-xs text-slate-400 mt-2">Cliquez pour commencer</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

@@ -15,17 +15,42 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b">
+      <header className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="text-xl font-bold text-slate-900">
               Ad Content Generator
             </Link>
-            {!isAuthenticated && (
-              <Button onClick={() => window.location.href = "/auth"} variant="outline">
-                Connexion
-              </Button>
-            )}
+            <nav className="hidden md:flex items-center gap-6">
+              <Link to="/how-it-works" className="text-slate-600 hover:text-blue-600 transition-colors">
+                Comment ça marche
+              </Link>
+              <Link to="/privacy-policy" className="text-slate-600 hover:text-blue-600 transition-colors">
+                Confidentialité
+              </Link>
+            </nav>
+            <div className="flex items-center gap-3">
+              {!isAuthenticated ? (
+                <>
+                  <Button asChild variant="ghost">
+                    <Link to="/auth">
+                      Connexion
+                    </Link>
+                  </Button>
+                  <Button asChild>
+                    <Link to="/auth">
+                      Créer un compte
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <Button asChild>
+                  <Link to="/dashboard">
+                    Accéder au tableau de bord
+                  </Link>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </header>
