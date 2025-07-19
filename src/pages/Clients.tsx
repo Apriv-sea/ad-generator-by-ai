@@ -242,9 +242,8 @@ const Clients = () => {
             </Card>
           </div>
         </div>
-      </div>
 
-      <AddClientDialog
+        <AddClientDialog
         isOpen={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         newClient={newClient}
