@@ -89,7 +89,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ authError }) => {
               onClick={() => navigate("/auth")} 
               className="px-8 py-3 text-lg"
             >
-              Essayer gratuitement
+              Commencer
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
             <Button 
@@ -100,10 +100,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ authError }) => {
             >
               Comment ça marche
             </Button>
-          </div>
-          
-          <div className="text-sm text-slate-500">
-            ✨ Aucune carte de crédit requise • ⚡ Configuration en 2 minutes
           </div>
           
           {/* Aperçu des fonctionnalités pour non-connectés */}
