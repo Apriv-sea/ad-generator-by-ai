@@ -1,6 +1,5 @@
 
 import React from "react";
-import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
@@ -8,10 +7,8 @@ import WorkflowSteps from "@/components/workflow/WorkflowSteps";
 
 const Campaigns = () => {
   return (
-    <>
-      <Navigation />
-      <div className="container mx-auto py-8 px-4">
-        <div className="mb-8">
+    <div className="container mx-auto py-8 px-4">
+      <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Campagnes Publicitaires</h1>
           <p className="text-gray-600">
             Créez et optimisez vos campagnes Google Ads avec l'intelligence artificielle
@@ -61,7 +58,7 @@ const Campaigns = () => {
           </Card>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
