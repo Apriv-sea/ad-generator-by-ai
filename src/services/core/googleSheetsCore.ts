@@ -23,6 +23,13 @@ export interface AuthTokens {
 class GoogleSheetsCoreService {
   private static readonly STORAGE_KEY = 'google_sheets_auth';
   private static readonly API_BASE_URL = 'https://lbmfkppvzimklebisefm.supabase.co/functions/v1/google-sheets-api';
+  
+  // Détection si on est dans l'environnement de preview Lovable
+  private isLovablePreview(): boolean {
+    return window.location.hostname.includes('lovable.app') || 
+           window.location.hostname.includes('localhost') ||
+           window.location.hostname.includes('127.0.0.1');
+  }
 
   // =============== AUTHENTIFICATION ===============
 
@@ -33,6 +40,11 @@ class GoogleSheetsCoreService {
   }
 
   isAuthenticated(): boolean {
+    // En mode preview, on simule l'authentification
+    if (this.isLovablePreview()) {
+      return false; // Désactiver les fonctionnalités Google Sheets en preview
+    }
+    
     const tokens = this.getStoredTokens();
     if (!tokens?.access_token) return false;
     
@@ -70,6 +82,11 @@ class GoogleSheetsCoreService {
   }
 
   async initiateAuth(): Promise<string> {
+    // En mode preview Lovable, on retourne une URL de démonstration
+    if (this.isLovablePreview()) {
+      throw new Error('Les fonctionnalités Google Sheets ne sont pas disponibles en mode preview. Déployez votre application pour les utiliser.');
+    }
+    
     try {
       const response = await fetch(GoogleSheetsCoreService.API_BASE_URL, {
         method: 'POST',
@@ -93,7 +110,6 @@ class GoogleSheetsCoreService {
       return data.authUrl;
     } catch (error) {
       console.error('Erreur initiateAuth:', error);
-      // Fallback gracieux si l'Edge Function n'est pas disponible
       throw new Error('Service Google Sheets temporairement indisponible. Veuillez réessayer plus tard.');
     }
   }
@@ -142,6 +158,14 @@ class GoogleSheetsCoreService {
     }
 
     try {
+      // En mode preview, on retourne des données de démonstration
+      if (this.isLovablePreview()) {
+        return {
+          title: 'Feuille de démonstration (Preview)',
+          values: [this.getStandardHeaders()]
+        };
+      }
+      
       if (this.isAuthenticated()) {
         return await this.readSheetViaAPI(sheetId, range);
       }
