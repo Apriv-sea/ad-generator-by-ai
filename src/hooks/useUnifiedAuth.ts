@@ -66,7 +66,12 @@ export function useUnifiedAuth(): UseAuthReturn {
         }
 
         if (isMounted) {
-          updateAuthState(session);
+          setAuthState({
+            session,
+            user: session?.user || null,
+            isAuthenticated: !!session?.user,
+            isLoading: false
+          });
         }
 
         // Set up auth state listener
@@ -75,7 +80,12 @@ export function useUnifiedAuth(): UseAuthReturn {
             console.log('🔐 Auth state changed:', event);
             
             if (isMounted) {
-              updateAuthState(session);
+              setAuthState({
+                session,
+                user: session?.user || null,
+                isAuthenticated: !!session?.user,
+                isLoading: false
+              });
               
               // Handle specific events
               if (event === 'SIGNED_OUT') {
@@ -106,7 +116,7 @@ export function useUnifiedAuth(): UseAuthReturn {
         subscriptionRef.current.unsubscribe();
       }
     };
-  }, [updateAuthState]);
+  }, []); // Removed updateAuthState dependency
 
   // Login function
   const login = useCallback(async (email: string, password: string) => {
