@@ -1,6 +1,7 @@
 import { PromptTemplates } from './promptTemplates';
 import { supabase } from '@/integrations/supabase/client';
 import { GoogleSheetsService } from '../googlesheets/googleSheetsService';
+import { CampaignContextService } from '../campaign/campaignContextService';
 
 interface ContentGenerationOptions {
   model: string;
@@ -60,12 +61,22 @@ export class DebugContentGeneration {
         totalDescriptionColumns: descriptionColumns.length
       });
       
-      // Générer le contenu avec un prompt optimisé
+      // Obtenir le contexte dynamique de la campagne pour cette ligne
+      const campaignName = currentSheetData[rowIndex][0]; // Colonne A
+      const dynamicCampaignContext = CampaignContextService.getContextForCampaign(campaignName);
+      
+      console.log('🎯 Contexte dynamique:', {
+        campaignName,
+        dynamicCampaignContext: dynamicCampaignContext.substring(0, 100) + '...',
+        originalCampaignContext: options.campaignContext.substring(0, 100) + '...'
+      });
+      
+      // Générer le contenu avec un prompt optimisé utilisant le contexte dynamique
       const prompt = PromptTemplates.buildCompletePrompt({
         adGroupName: options.adGroupContext,
         keywords: options.keywords.join(', '),
         clientContext: options.clientContext,
-        campaignContext: options.campaignContext
+        campaignContext: dynamicCampaignContext || options.campaignContext // Fallback sur le contexte original
       });
       
       console.log('📝 Prompt généré:', prompt.substring(0, 200) + '...');

@@ -1,14 +1,16 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Wand2, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { Wand2, CheckCircle, AlertCircle, RefreshCw, Settings } from "lucide-react";
 import { Campaign, Client } from "@/services/types";
 import { enhancedContentGenerationService } from "@/services/content/enhancedContentGenerationService";
 import { googleSheetsCoreService } from "@/services/core/googleSheetsCore";
+import { CampaignContextService } from "@/services/campaign/campaignContextService";
+import { CampaignContextForm } from "./CampaignContextForm";
 import { toast } from "sonner";
 import ModelSelector from "./ModelSelector";
 
@@ -28,12 +30,43 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
   const [progress, setProgress] = useState(0);
   const [generationComplete, setGenerationComplete] = useState(false);
   const [currentCampaign, setCurrentCampaign] = useState<string>("");
+  const [showCampaignContextForm, setShowCampaignContextForm] = useState(false);
+  const [detectedCampaigns, setDetectedCampaigns] = useState<string[]>([]);
+  const [campaignContextsReady, setCampaignContextsReady] = useState(false);
   const [generationResults, setGenerationResults] = useState<{
     success: number;
     failed: number;
     total: number;
     details: { campaign: string; status: 'success' | 'failed'; error?: string }[];
   }>({ success: 0, failed: 0, total: 0, details: [] });
+
+  // Détection des campagnes au chargement
+  useEffect(() => {
+    const detectCampaigns = async () => {
+      if (sheetId && campaigns.length > 0) {
+        try {
+          const sheetData = await googleSheetsCoreService.getSheetData(sheetId);
+          if (sheetData?.values) {
+            const campaignNames = CampaignContextService.extractCampaignNames(sheetData.values);
+            setDetectedCampaigns(campaignNames);
+            
+            // Vérifier si des contextes existent déjà
+            const areComplete = CampaignContextService.areContextsComplete(campaignNames);
+            setCampaignContextsReady(areComplete);
+            
+            console.log('🏷️ Campagnes détectées:', {
+              campaignNames,
+              contextesComplets: areComplete
+            });
+          }
+        } catch (error) {
+          console.error('❌ Erreur détection campagnes:', error);
+        }
+      }
+    };
+
+    detectCampaigns();
+  }, [sheetId, campaigns]);
 
   const validatePrerequisites = () => {
     const errors: string[] = [];
@@ -48,7 +81,18 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
       errors.push("Aucune campagne extraite");
     }
 
+    if (detectedCampaigns.length > 0 && !campaignContextsReady) {
+      errors.push("Les contextes des campagnes doivent être renseignés");
+    }
+
     return errors;
+  };
+
+  const handleCampaignContextsSave = (contexts: Record<string, string>) => {
+    CampaignContextService.saveContexts(contexts);
+    setCampaignContextsReady(true);
+    setShowCampaignContextForm(false);
+    toast.success('Contextes des campagnes sauvegardés');
   };
 
   const generateContent = async () => {
@@ -217,6 +261,32 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
             </Alert>
           )}
 
+          {/* Configuration des contextes de campagne */}
+          {detectedCampaigns.length > 0 && (
+            <Alert>
+              <Settings className="h-4 w-4" />
+              <AlertDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <strong>Campagnes détectées:</strong> {detectedCampaigns.length}
+                    <br/>
+                    <span className="text-sm">
+                      {campaignContextsReady ? '✅ Contextes configurés' : '⚠️ Contextes à renseigner'}
+                    </span>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowCampaignContextForm(true)}
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    {campaignContextsReady ? 'Modifier contextes' : 'Configurer contextes'}
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Sélection du modèle */}
           <div>
             <label className="block text-sm font-medium mb-2">Modèle d'IA</label>
@@ -311,6 +381,20 @@ const ContentGeneratorWorkflow: React.FC<ContentGeneratorWorkflowProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de configuration des contextes de campagne */}
+      {showCampaignContextForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-4xl max-h-[80vh] overflow-y-auto w-full mx-4">
+            <CampaignContextForm
+              campaigns={detectedCampaigns}
+              existingContexts={CampaignContextService.loadContexts()}
+              onSave={handleCampaignContextsSave}
+              onCancel={() => setShowCampaignContextForm(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
