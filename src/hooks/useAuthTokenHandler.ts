@@ -15,7 +15,7 @@ export const useAuthTokenHandler = () => {
         console.log("🔗 Processing auth tokens from URL");
         toast.success("Authentification réussie!");
         window.history.replaceState({}, document.title, window.location.pathname);
-        navigate("/dashboard");
+        // Ne plus rediriger automatiquement, laisser l'utilisateur sur la page actuelle
         return;
       }
 
@@ -29,7 +29,7 @@ export const useAuthTokenHandler = () => {
     };
 
     handleAuthTokens();
-  }, [navigate]);
+  }, []);
 
   return {
     authError,
