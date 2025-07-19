@@ -70,26 +70,32 @@ class GoogleSheetsCoreService {
   }
 
   async initiateAuth(): Promise<string> {
-    const response = await fetch(GoogleSheetsCoreService.API_BASE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        action: 'auth',
-        redirectUri: this.getRedirectUri()
-      })
-    });
+    try {
+      const response = await fetch(GoogleSheetsCoreService.API_BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: 'auth',
+          redirectUri: this.getRedirectUri()
+        })
+      });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Erreur serveur (${response.status}): ${error}`);
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Erreur serveur (${response.status}): ${error}`);
+      }
+
+      const data = await response.json();
+      if (!data.authUrl) {
+        throw new Error('URL d\'authentification manquante');
+      }
+
+      return data.authUrl;
+    } catch (error) {
+      console.error('Erreur initiateAuth:', error);
+      // Fallback gracieux si l'Edge Function n'est pas disponible
+      throw new Error('Service Google Sheets temporairement indisponible. Veuillez réessayer plus tard.');
     }
-
-    const data = await response.json();
-    if (!data.authUrl) {
-      throw new Error('URL d\'authentification manquante');
-    }
-
-    return data.authUrl;
   }
 
   async completeAuth(code: string): Promise<void> {

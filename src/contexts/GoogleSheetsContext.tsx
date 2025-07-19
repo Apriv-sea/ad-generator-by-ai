@@ -33,9 +33,14 @@ export const GoogleSheetsProvider: React.FC<GoogleSheetsProviderProps> = ({ chil
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const authenticated = googleSheetsCoreService.isAuthenticated();
-    console.log('État d\'authentification initial:', authenticated);
-    setIsAuthenticated(authenticated);
+    try {
+      const authenticated = googleSheetsCoreService.isAuthenticated();
+      console.log('État d\'authentification initial:', authenticated);
+      setIsAuthenticated(authenticated);
+    } catch (error) {
+      console.error('Erreur lors de la vérification auth:', error);
+      setIsAuthenticated(false);
+    }
   }, []);
 
   const initiateAuth = async (): Promise<string> => {
