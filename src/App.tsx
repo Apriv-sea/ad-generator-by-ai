@@ -6,6 +6,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { GoogleSheetsProvider } from "@/contexts/GoogleSheetsContext";
 import GlobalErrorBoundary from "@/components/GlobalErrorBoundary";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { AppLayout } from "@/components/layout/AppLayout";
 
 // Pages
 import Index from "@/pages/Index";
@@ -68,7 +69,9 @@ const router = createBrowserRouter([
     path: "/dashboard",
     element: (
       <ProtectedRoute>
-        <Dashboard />
+        <AppLayout>
+          <Dashboard />
+        </AppLayout>
       </ProtectedRoute>
     ),
   },
@@ -76,7 +79,9 @@ const router = createBrowserRouter([
     path: "/campaigns",
     element: (
       <ProtectedRoute>
-        <Campaigns />
+        <AppLayout>
+          <Campaigns />
+        </AppLayout>
       </ProtectedRoute>
     ),
   },
@@ -84,7 +89,9 @@ const router = createBrowserRouter([
     path: "/clients",
     element: (
       <ProtectedRoute>
-        <Clients />
+        <AppLayout>
+          <Clients />
+        </AppLayout>
       </ProtectedRoute>
     ),
   },
@@ -92,7 +99,9 @@ const router = createBrowserRouter([
     path: "/settings",
     element: (
       <ProtectedRoute>
-        <Settings />
+        <AppLayout>
+          <Settings />
+        </AppLayout>
       </ProtectedRoute>
     ),
   },
@@ -100,7 +109,9 @@ const router = createBrowserRouter([
     path: "/profile",
     element: (
       <ProtectedRoute>
-        <Profile />
+        <AppLayout>
+          <Profile />
+        </AppLayout>
       </ProtectedRoute>
     ),
   },
