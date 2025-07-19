@@ -9,25 +9,25 @@ const Campaigns = () => {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Campagnes Publicitaires</h1>
-          <p className="text-gray-600">
-            Créez et optimisez vos campagnes Google Ads avec l'intelligence artificielle
-          </p>
-        </div>
+        <h1 className="text-3xl font-bold mb-2">Campagnes Publicitaires</h1>
+        <p className="text-gray-600">
+          Créez et optimisez vos campagnes Google Ads avec l'intelligence artificielle
+        </p>
+      </div>
 
-        <div className="mb-6">
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Processus de création :</strong> Connectez-vous à Google Sheets, définissez vos groupes d'annonces et mots-clés, 
-              puis laissez l'IA générer des titres et descriptions optimisés pour chaque groupe.
-            </AlertDescription>
-          </Alert>
-        </div>
-        
-        <WorkflowSteps />
-        
-        <div className="mt-8">
+      <div className="mb-6">
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Processus de création :</strong> Connectez-vous à Google Sheets, définissez vos groupes d'annonces et mots-clés, 
+            puis laissez l'IA générer des titres et descriptions optimisés pour chaque groupe.
+          </AlertDescription>
+        </Alert>
+      </div>
+      
+      <WorkflowSteps />
+      
+      <div className="mt-8">
           <Card>
             <CardHeader>
               <CardTitle>Optimisation IA</CardTitle>
@@ -55,8 +55,7 @@ const Campaigns = () => {
                 </div>
               </div>
             </CardContent>
-          </Card>
-        </div>
+        </Card>
       </div>
     </div>
   );
