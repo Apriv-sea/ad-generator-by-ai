@@ -245,6 +245,10 @@ export class DebugContentGeneration {
       
       updatedSheetData[rowIndex] = updatedRow;
       
+      // Ajouter les formules nbcar pour les colonnes de caractères
+      console.log('🚨🚨🚨 DEBUG - Ajout des formules nbcar');
+      this.addCharacterCountFormulas(updatedSheetData, rowIndex, titleColumns, descriptionColumns);
+      
       console.log('📝 Ligne finale:', {
         originalLength: originalRow.length,
         updatedLength: updatedRow.length,
@@ -344,5 +348,59 @@ export class DebugContentGeneration {
         error: `Erreur parsing JSON: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
       };
     }
+  }
+
+  private static addCharacterCountFormulas(
+    sheetData: string[][],
+    rowIndex: number,
+    titleColumns: number[],
+    descriptionColumns: number[]
+  ): void {
+    console.log('🔧 Ajout des formules nbcar');
+    
+    const headers = sheetData[0];
+    const row = sheetData[rowIndex];
+    
+    // Pour chaque colonne titre, vérifier s'il y a une colonne nbcar à droite
+    titleColumns.forEach((titleColumnIndex) => {
+      const nextColumnIndex = titleColumnIndex + 1;
+      if (nextColumnIndex < headers.length) {
+        const nextColumnHeader = String(headers[nextColumnIndex]).toLowerCase();
+        if (nextColumnHeader.includes('nbcar')) {
+          // Convertir l'index en notation de colonne (A, B, C, ...)
+          const columnLetter = this.numberToColumnLetter(titleColumnIndex);
+          const formula = `=LEN(${columnLetter}${rowIndex + 1})`;
+          row[nextColumnIndex] = formula;
+          console.log(`✅ Formule nbcar ajoutée pour titre en colonne ${titleColumnIndex}: ${formula}`);
+        }
+      }
+    });
+
+    // Pour chaque colonne description, vérifier s'il y a une colonne nbcar à droite  
+    descriptionColumns.forEach((descColumnIndex) => {
+      const nextColumnIndex = descColumnIndex + 1;
+      if (nextColumnIndex < headers.length) {
+        const nextColumnHeader = String(headers[nextColumnIndex]).toLowerCase();
+        if (nextColumnHeader.includes('nbcar')) {
+          // Convertir l'index en notation de colonne (A, B, C, ...)
+          const columnLetter = this.numberToColumnLetter(descColumnIndex);
+          const formula = `=LEN(${columnLetter}${rowIndex + 1})`;
+          row[nextColumnIndex] = formula;
+          console.log(`✅ Formule nbcar ajoutée pour description en colonne ${descColumnIndex}: ${formula}`);
+        }
+      }
+    });
+  }
+
+  private static numberToColumnLetter(columnIndex: number): string {
+    let result = '';
+    let num = columnIndex;
+    
+    while (num >= 0) {
+      result = String.fromCharCode(65 + (num % 26)) + result;
+      num = Math.floor(num / 26) - 1;
+    }
+    
+    return result;
   }
 }
