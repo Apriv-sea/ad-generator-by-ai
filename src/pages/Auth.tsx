@@ -41,8 +41,7 @@ const Auth = () => {
             // Clean the URL
             window.history.replaceState({}, document.title, window.location.pathname);
             
-            // Redirect to dashboard after successful auth
-            setTimeout(() => navigate("/dashboard"), 500);
+            // Ne plus rediriger automatiquement
           } else {
             console.error("Auth page: Failed to process token");
             setAuthError("Échec du traitement du jeton d'authentification.");
@@ -72,8 +71,8 @@ const Auth = () => {
     checkUrlForTokens();
   }, [location, processAuthTokens, navigate]);
   
-  // Redirect if already authenticated
-  if (isAuthenticated && !processingAuth) {
+  // Redirect if already authenticated and explicitly came to auth page
+  if (isAuthenticated && !processingAuth && location.state?.from?.pathname !== '/') {
     return <Navigate to="/dashboard" />;
   }
 

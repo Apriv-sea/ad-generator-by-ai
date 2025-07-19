@@ -38,7 +38,7 @@ const LoginForm = () => {
       setIsLoading(true);
       await login(values.email, values.password);
       toast.success("Connexion réussie");
-      navigate("/dashboard");
+      // Ne plus rediriger automatiquement
     } catch (error: any) {
       console.error("Erreur de connexion:", error);
       toast.error(error.message || "Erreur de connexion");

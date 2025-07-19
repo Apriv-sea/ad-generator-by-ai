@@ -52,10 +52,7 @@ const AuthCallback: React.FC = () => {
             console.log("Authentification standard réussie");
             setStatus('success');
             setStatusMessage('Authentification réussie !');
-            // Rediriger vers le dashboard après un court délai
-            setTimeout(() => {
-              navigate('/dashboard');
-            }, 1500);
+            // Ne plus rediriger automatiquement vers le dashboard
           } else {
             console.error("Échec de l'authentification standard");
             setStatus('error');
