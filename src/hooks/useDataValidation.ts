@@ -1,32 +1,17 @@
 
 import { useMemo } from 'react';
-import { z } from 'zod';
-
-// Schémas de validation avec Zod
-const ClientSchema = z.object({
-  id: z.string().min(1, "L'ID client est requis"),
-  name: z.string().min(1, "Le nom du client est requis"),
-  businessContext: z.string().optional(),
-  specifics: z.string().optional(),
-  editorialGuidelines: z.string().optional(),
-});
-
-const CampaignSchema = z.object({
-  name: z.string().min(1, "Le nom de la campagne est requis"),
-  context: z.string(),
-  adGroups: z.array(z.object({
-    name: z.string().min(1, "Le nom du groupe d'annonces est requis"),
-    keywords: z.array(z.string()).min(1, "Au moins un mot-clé est requis"),
-    context: z.string()
-  }))
-});
+import { ZodError } from 'zod';
+import { ClientSchema, CampaignSchema } from '@/schemas/validation';
 
 export function useDataValidation() {
   const validateClient = useMemo(() => (data: unknown) => {
     try {
       return { success: true, data: ClientSchema.parse(data), error: null };
     } catch (error) {
-      return { success: false, data: null, error: error.message };
+      if (error instanceof ZodError) {
+        return { success: false, data: null, error: error.issues[0]?.message || 'Erreur de validation' };
+      }
+      return { success: false, data: null, error: 'Erreur de validation inconnue' };
     }
   }, []);
 
@@ -34,7 +19,10 @@ export function useDataValidation() {
     try {
       return { success: true, data: CampaignSchema.parse(data), error: null };
     } catch (error) {
-      return { success: false, data: null, error: error.message };
+      if (error instanceof ZodError) {
+        return { success: false, data: null, error: error.issues[0]?.message || 'Erreur de validation' };
+      }
+      return { success: false, data: null, error: 'Erreur de validation inconnue' };
     }
   }, []);
 
