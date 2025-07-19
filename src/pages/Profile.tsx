@@ -1,6 +1,5 @@
 
 import React, { useState } from "react";
-import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,14 +38,11 @@ const Profile = () => {
 
   if (isLoading) {
     return (
-      <>
-        <Navigation />
-        <div className="container mx-auto py-8 px-4">
-          <div className="flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin" />
-          </div>
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin" />
         </div>
-      </>
+      </div>
     );
   }
 
@@ -55,10 +51,8 @@ const Profile = () => {
   };
 
   return (
-    <>
-      <Navigation />
-      <div className="container mx-auto py-8 px-4 max-w-2xl">
-        <div className="mb-8">
+    <div className="container mx-auto py-8 px-4 max-w-2xl">
+      <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Mon Profil</h1>
           <p className="text-gray-600">
             Gérez vos informations personnelles et vos préférences
@@ -171,7 +165,7 @@ const Profile = () => {
           </Card>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

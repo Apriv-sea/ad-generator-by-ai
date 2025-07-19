@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Users, Target, FileText } from "lucide-react";
@@ -184,10 +183,8 @@ const Clients = () => {
   };
 
   return (
-    <>
-      <Navigation />
-      <div className="container mx-auto py-8 px-4 max-w-6xl">
-        <div className="text-center mb-12">
+    <div className="container mx-auto py-8 px-4 max-w-6xl">
+      <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Gestion des Clients</h1>
           <p className="text-xl text-muted-foreground mb-8">
             Créez des profils clients pour personnaliser vos campagnes
@@ -262,7 +259,7 @@ const Clients = () => {
         onClientChange={handleEditClientChange}
         onUpdateClient={handleUpdateClient}
       />
-    </>
+    </div>
   );
 };
 

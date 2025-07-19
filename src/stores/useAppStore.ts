@@ -39,20 +39,9 @@ export const useAppStore = create<AppStore>()(
       toggleDarkMode: () => {
         const newMode = !get().isDarkMode;
         set({ isDarkMode: newMode });
-        // Apply to document
-        if (newMode) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
       },
       setDarkMode: (isDark: boolean) => {
         set({ isDarkMode: isDark });
-        if (isDark) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
       },
 
       // Campaign State
@@ -88,11 +77,3 @@ export const useAppStore = create<AppStore>()(
     }
   )
 );
-
-// Initialize theme on load
-if (typeof window !== 'undefined') {
-  const { isDarkMode } = useAppStore.getState();
-  if (isDarkMode) {
-    document.documentElement.classList.add('dark');
-  }
-}
