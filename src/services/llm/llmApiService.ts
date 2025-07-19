@@ -1,7 +1,7 @@
 
 import { GenerationPrompt } from "../types";
 import { toast } from "sonner";
-import { secureLLMService, SecureLLMResponse } from "./secureLLMService";
+import { SecureLLMService, SecureLLMResponse } from "./secureLLMService";
 import type { LLMConfig } from "./secureLLMService";
 
 export interface LLMResponse {
@@ -32,19 +32,17 @@ class LLMApiService {
     console.log("🔒 Utilisation du service LLM sécurisé");
     
     try {
-      // Convert old LLMConfig format to new format
-      const secureConfigs = configs.map(config => ({
-        provider: config.provider,
-        model: config.model
-      }));
-
-      const response: SecureLLMResponse = await secureLLMService.generateContent(secureConfigs, prompt);
+      const response: SecureLLMResponse = await SecureLLMService.generateContent(configs, prompt);
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
       
       return {
-        titles: response.titles,
-        descriptions: response.descriptions,
-        provider: response.provider,
-        model: response.model,
+        titles: response.titles || [],
+        descriptions: response.descriptions || [],
+        provider: response.provider || configs[0]?.provider || 'unknown',
+        model: response.model || configs[0]?.model || 'unknown',
         tokensUsed: response.tokensUsed
       };
     } catch (error) {
@@ -54,7 +52,7 @@ class LLMApiService {
   }
 
   async validateApiKeys(): Promise<{ [key: string]: boolean }> {
-    return await secureLLMService.validateApiKeys();
+    return await SecureLLMService.validateApiKeys();
   }
 }
 
