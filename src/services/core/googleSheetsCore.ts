@@ -24,11 +24,12 @@ class GoogleSheetsCoreService {
   private static readonly STORAGE_KEY = 'google_sheets_auth';
   private static readonly API_BASE_URL = 'https://lbmfkppvzimklebisefm.supabase.co/functions/v1/google-sheets-api';
   
-  // Détection si on est dans l'environnement de preview Lovable
+  // Détection si on est dans l'environnement de preview Lovable (pas l'app déployée)
   private isLovablePreview(): boolean {
-    return window.location.hostname.includes('lovable.app') || 
-           window.location.hostname.includes('localhost') ||
-           window.location.hostname.includes('127.0.0.1');
+    return window.location.hostname.includes('localhost') || 
+           window.location.hostname.includes('127.0.0.1') ||
+           window.location.hostname.includes('lovable.dev') ||
+           window.location.hostname.includes('preview.lovable');
   }
 
   // =============== AUTHENTIFICATION ===============
