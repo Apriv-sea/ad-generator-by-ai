@@ -57,11 +57,21 @@ class ModelDiscoveryService {
         };
       }
 
-      // Pour maintenant, retourner les modèles par défaut
-      // TODO: Implémenter la découverte automatique via Edge Function
-      const defaultModels = this.getDefaultModels(provider);
+      // Découverte dynamique via Edge Function
+      const dynamicModels = await this.discoverModelsViaAPI(provider);
       
-      console.log(`✅ Modèles par défaut pour ${provider}:`, defaultModels);
+      if (dynamicModels.length > 0) {
+        console.log(`✅ ${dynamicModels.length} modèles découverts dynamiquement pour ${provider}`);
+        return {
+          provider,
+          models: dynamicModels,
+          error: undefined
+        };
+      }
+
+      // Fallback vers les modèles par défaut
+      console.log(`⚠️ Fallback vers les modèles par défaut pour ${provider}`);
+      const defaultModels = this.getDefaultModels(provider);
       
       return {
         provider,
@@ -70,11 +80,54 @@ class ModelDiscoveryService {
       };
     } catch (error) {
       console.error(`❌ Erreur lors de la découverte des modèles pour ${provider}:`, error);
+      
+      // En cas d'erreur, retourner les modèles par défaut avec un avertissement
+      const defaultModels = this.getDefaultModels(provider);
       return {
         provider,
-        models: [],
-        error: error instanceof Error ? error.message : 'Erreur inconnue'
+        models: defaultModels,
+        error: `Impossible de récupérer la liste dynamique, modèles par défaut affichés`
       };
+    }
+  }
+
+  /**
+   * Découvre les modèles via l'Edge Function
+   */
+  private async discoverModelsViaAPI(provider: 'openai' | 'anthropic' | 'google'): Promise<ModelInfo[]> {
+    try {
+      // Importer supabase pour l'authentication
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Obtenir le token d'authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Utilisateur non authentifié');
+      }
+
+      const response = await fetch('https://lbmfkppvzimklebisefm.supabase.co/functions/v1/discover-models', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ provider })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      return data.models || [];
+    } catch (error) {
+      console.error('Erreur appel Edge Function discover-models:', error);
+      throw error;
     }
   }
 
@@ -123,9 +176,45 @@ class ModelDiscoveryService {
       ],
       anthropic: [
         {
+          id: 'claude-opus-4-20250514',
+          name: 'Claude 4 Opus',
+          description: 'Le modèle le plus puissant avec capacités de raisonnement supérieures',
+          contextWindow: 200000,
+          maxTokens: 8192,
+          supportsVision: true,
+          pricing: { input: 0.015, output: 0.075 }
+        },
+        {
+          id: 'claude-sonnet-4-20250514',
+          name: 'Claude 4 Sonnet',
+          description: 'Modèle haute performance avec raisonnement exceptionnel et efficacité',
+          contextWindow: 200000,
+          maxTokens: 8192,
+          supportsVision: true,
+          pricing: { input: 0.003, output: 0.015 }
+        },
+        {
+          id: 'claude-3-5-haiku-20241022',
+          name: 'Claude 3.5 Haiku',
+          description: 'Le modèle le plus rapide pour les réponses instantanées',
+          contextWindow: 200000,
+          maxTokens: 8192,
+          supportsVision: true,
+          pricing: { input: 0.00025, output: 0.00125 }
+        },
+        {
+          id: 'claude-3-7-sonnet-20250219',
+          name: 'Claude 3.7 Sonnet',
+          description: 'Modèle avec capacités de raisonnement étendues',
+          contextWindow: 200000,
+          maxTokens: 8192,
+          supportsVision: true,
+          pricing: { input: 0.003, output: 0.015 }
+        },
+        {
           id: 'claude-3-5-sonnet-20241022',
           name: 'Claude 3.5 Sonnet',
-          description: 'Most intelligent Claude model',
+          description: 'Modèle intelligent de génération 3.5',
           contextWindow: 200000,
           maxTokens: 8192,
           supportsVision: true,
@@ -134,7 +223,7 @@ class ModelDiscoveryService {
         {
           id: 'claude-3-opus-20240229',
           name: 'Claude 3 Opus',
-          description: 'Most powerful Claude 3 model',
+          description: 'Modèle puissant de génération 3',
           contextWindow: 200000,
           maxTokens: 8192,
           supportsVision: true,
@@ -143,7 +232,7 @@ class ModelDiscoveryService {
         {
           id: 'claude-3-sonnet-20240229',
           name: 'Claude 3 Sonnet',
-          description: 'Balanced performance and speed',
+          description: 'Modèle équilibré de génération 3',
           contextWindow: 200000,
           maxTokens: 8192,
           supportsVision: true,
@@ -152,7 +241,7 @@ class ModelDiscoveryService {
         {
           id: 'claude-3-haiku-20240307',
           name: 'Claude 3 Haiku',
-          description: 'Fastest Claude 3 model',
+          description: 'Modèle rapide et économique de génération 3',
           contextWindow: 200000,
           maxTokens: 8192,
           supportsVision: true,
