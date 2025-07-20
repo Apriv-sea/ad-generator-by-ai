@@ -54,22 +54,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
         </Alert>}
 
       {/* Actions principales */}
-      {isAuthenticated ? <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          {quickActions.map((action, index) => {
-        const IconComponent = action.icon;
-        return <Card key={index} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={action.action}>
-                <div className={`bg-gradient-to-br ${action.color} p-4`}>
-                  <div className="flex items-center text-white">
-                    <IconComponent className="w-6 h-6 mr-3" />
-                    <CardTitle className="text-lg text-white">{action.title}</CardTitle>
-                  </div>
-                </div>
-                <CardContent className="p-4">
-                  <p className="text-slate-600 text-sm">{action.description}</p>
-                </CardContent>
-              </Card>;
-      })}
-        </div> : <div className="space-y-6 mb-16">
+      {!isAuthenticated && <div className="space-y-6 mb-16">
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" onClick={() => navigate("/auth")} className="px-8 py-3 text-lg">
               Commencer
@@ -78,24 +63,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({
             <Button variant="outline" size="lg" onClick={() => navigate("/how-it-works")} className="px-8 py-3 text-lg">
               Comment ça marche
             </Button>
-          </div>
-          
-          {/* Aperçu des fonctionnalités pour non-connectés */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-            {quickActions.map((action, index) => {
-              const IconComponent = action.icon;
-              return <Card key={index} className="opacity-75">
-                <div className={`bg-gradient-to-br ${action.color} p-4`}>
-                  <div className="flex items-center text-white">
-                    <IconComponent className="w-6 h-6 mr-3" />
-                    <CardTitle className="text-lg text-white">{action.title}</CardTitle>
-                  </div>
-                </div>
-                <CardContent className="p-4">
-                  <p className="text-slate-600 text-sm">{action.description}</p>
-                </CardContent>
-              </Card>;
-            })}
           </div>
         </div>}
     </div>;
