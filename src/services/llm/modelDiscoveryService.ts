@@ -57,7 +57,7 @@ class ModelDiscoveryService {
         };
       }
 
-      // Découverte dynamique via Edge Function
+      // Découverte dynamique via Edge Function uniquement
       const dynamicModels = await this.discoverModelsViaAPI(provider);
       
       if (dynamicModels.length > 0) {
@@ -69,24 +69,20 @@ class ModelDiscoveryService {
         };
       }
 
-      // Fallback vers les modèles par défaut
-      console.log(`⚠️ Fallback vers les modèles par défaut pour ${provider}`);
-      const defaultModels = this.getDefaultModels(provider);
-      
+      // Aucun modèle trouvé dynamiquement
       return {
         provider,
-        models: defaultModels,
-        error: undefined
+        models: [],
+        error: `Aucun modèle disponible avec votre clé API ${provider}`
       };
     } catch (error) {
       console.error(`❌ Erreur lors de la découverte des modèles pour ${provider}:`, error);
       
-      // En cas d'erreur, retourner les modèles par défaut avec un avertissement
-      const defaultModels = this.getDefaultModels(provider);
+      // En cas d'erreur, ne pas afficher de modèles par défaut
       return {
         provider,
-        models: defaultModels,
-        error: `Impossible de récupérer la liste dynamique, modèles par défaut affichés`
+        models: [],
+        error: `Erreur lors de la récupération des modèles via votre clé API: ${error.message}`
       };
     }
   }
