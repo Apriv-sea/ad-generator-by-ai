@@ -83,9 +83,19 @@ const HeroSection: React.FC<HeroSectionProps> = ({
           {/* Aperçu des fonctionnalités pour non-connectés */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
             {quickActions.map((action, index) => {
-          const IconComponent = action.icon;
-          return;
-        })}
+              const IconComponent = action.icon;
+              return <Card key={index} className="opacity-75">
+                <div className={`bg-gradient-to-br ${action.color} p-4`}>
+                  <div className="flex items-center text-white">
+                    <IconComponent className="w-6 h-6 mr-3" />
+                    <CardTitle className="text-lg text-white">{action.title}</CardTitle>
+                  </div>
+                </div>
+                <CardContent className="p-4">
+                  <p className="text-slate-600 text-sm">{action.description}</p>
+                </CardContent>
+              </Card>;
+            })}
           </div>
         </div>}
     </div>;
