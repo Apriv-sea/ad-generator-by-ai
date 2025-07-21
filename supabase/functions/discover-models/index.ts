@@ -166,12 +166,38 @@ async function discoverOpenAIModels(apiKey: string) {
       name: getOpenAIModelDisplayName(model.id),
       description: getOpenAIModelDescription(model.id),
       contextWindow: getOpenAIContextWindow(model.id),
-      supportsVision: model.id.includes('gpt-4') && !model.id.includes('gpt-4-turbo-preview')
+      supportsVision: model.id.includes('gpt-4') && !model.id.includes('gpt-4-turbo-preview'),
+      created: model.created
     }))
 
-  return gptModels.sort((a: any, b: any) => {
+  // Dédupliquer les modèles par famille (garder le plus récent de chaque famille)
+  const modelFamilies = new Map()
+  
+  gptModels.forEach((model: any) => {
+    let family = model.id
+    
+    // Identifier la famille du modèle (supprimer les dates et versions spécifiques)
+    if (model.id.includes('gpt-4-turbo')) family = 'gpt-4-turbo'
+    else if (model.id.includes('gpt-4o-mini')) family = 'gpt-4o-mini'
+    else if (model.id.includes('gpt-4o')) family = 'gpt-4o'
+    else if (model.id.includes('gpt-4')) family = 'gpt-4'
+    else if (model.id.includes('gpt-3.5-turbo')) family = 'gpt-3.5-turbo'
+    else if (model.id.includes('o1-preview')) family = 'o1-preview'
+    else if (model.id.includes('o1-mini')) family = 'o1-mini'
+    else if (model.id.includes('text-davinci')) family = 'text-davinci'
+    
+    // Garder le modèle le plus récent de chaque famille
+    if (!modelFamilies.has(family) || 
+        (model.created && model.created > modelFamilies.get(family).created)) {
+      modelFamilies.set(family, model)
+    }
+  })
+
+  const uniqueModels = Array.from(modelFamilies.values())
+
+  return uniqueModels.sort((a: any, b: any) => {
     // Prioriser les modèles les plus récents
-    const priority = ['gpt-4', 'gpt-3.5', 'o1']
+    const priority = ['gpt-4o', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5', 'o1']
     for (const p of priority) {
       if (a.id.includes(p) && !b.id.includes(p)) return -1
       if (!a.id.includes(p) && b.id.includes(p)) return 1
