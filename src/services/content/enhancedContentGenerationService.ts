@@ -58,12 +58,17 @@ export class EnhancedContentGenerationService {
       
       console.log('🎯 Provider/Modèle finaux:', { provider, model });
 
-      // Appeler l'API de génération avec le bon provider
-      const response = await supabase.functions.invoke('llm-generation', {
+      // Appeler l'API de génération sécurisée avec le bon provider
+      const response = await supabase.functions.invoke('secure-llm-api', {
         body: {
-          prompt,
           provider,
-          model
+          model,
+          messages: [
+            { role: 'system', content: 'You are a helpful AI assistant for generating advertising content.' },
+            { role: 'user', content: prompt }
+          ],
+          maxTokens: 2000,
+          temperature: 0.7
         }
       });
 

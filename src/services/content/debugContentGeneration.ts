@@ -81,12 +81,16 @@ export class DebugContentGeneration {
       
       console.log('📝 Prompt généré:', prompt.substring(0, 200) + '...');
       
-      // Appel vers l'edge function
-      const { data: llmResponse, error: llmError } = await supabase.functions.invoke('llm-generation', {
+      // Appel vers l'edge function sécurisée
+      const { data: llmResponse, error: llmError } = await supabase.functions.invoke('secure-llm-api', {
         body: {
-          prompt,
-          model: options.model,
-          max_tokens: 2000,
+          provider: options.model.split(':')[0] || 'openai',
+          model: options.model.split(':')[1] || options.model,
+          messages: [
+            { role: 'system', content: 'You are a helpful AI assistant for generating advertising content.' },
+            { role: 'user', content: prompt }
+          ],
+          maxTokens: 2000,
           temperature: 0.7
         }
       });
