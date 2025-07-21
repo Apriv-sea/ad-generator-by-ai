@@ -57,26 +57,6 @@ export class SecureLLMService {
    */
   static async generateContent(configs: LLMConfig[] | SecureLLMRequest, prompt?: GenerationPrompt): Promise<SecureLLMResponse> {
     try {
-      // En mode preview Lovable, retourner des données de démonstration
-      if (this.isLovablePreview()) {
-        console.log('🎯 Mode preview détecté - retour de contenu de démonstration');
-        return {
-          titles: [
-            'Titre de démonstration 1',
-            'Titre de démonstration 2', 
-            'Titre de démonstration 3'
-          ],
-          descriptions: [
-            'Description de démonstration 1 pour votre campagne',
-            'Description de démonstration 2 pour tester l\'interface',
-            'Description de démonstration 3 pour valider le design'
-          ],
-          provider: 'demo',
-          model: 'demo-model',
-          tokensUsed: 100
-        };
-      }
-      
       let request: SecureLLMRequest;
       
       // Handle legacy format
@@ -100,14 +80,32 @@ export class SecureLLMService {
 
       console.log('🔒 Secure LLM request:', { provider: request.provider, model: request.model });
 
+      // Vérifier d'abord si l'utilisateur a une clé API pour ce provider
+      const hasKey = await this.hasValidAPIKey(request.provider);
+      if (!hasKey) {
+        throw new Error(`Aucune clé API trouvée pour ${request.provider}. Veuillez configurer votre clé API dans les paramètres.`);
+      }
+
       const { data, error } = await supabase.functions.invoke('secure-llm-api', {
         body: request
       });
 
       if (error) {
         console.error('❌ Secure LLM error:', error);
-        throw new Error(`LLM API error: ${error.message}`);
+        throw new Error(`Erreur API: ${error.message}`);
       }
+
+      if (!data) {
+        throw new Error('Aucune réponse reçue de l\'API');
+      }
+
+      // Vérifier si la réponse contient une erreur
+      if (data.error) {
+        console.error('❌ LLM response error:', data.error);
+        throw new Error(data.error);
+      }
+
+      console.log('✅ LLM response received:', data);
 
       // Normaliser la réponse selon le provider et extraire titles/descriptions si nécessaire
       const normalized = this.normalizeResponse(request.provider, data);
@@ -130,7 +128,7 @@ export class SecureLLMService {
     } catch (error) {
       console.error('💥 Secure LLM service error:', error);
       return {
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Erreur inconnue lors de la génération'
       };
     }
   }
