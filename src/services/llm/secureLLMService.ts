@@ -43,15 +43,6 @@ export interface APIKeyTestResult {
 export class SecureLLMService {
   
   /**
-   * Détecte si on est dans l'environnement de preview Lovable
-   */
-  private static isLovablePreview(): boolean {
-    return window.location.hostname.includes('lovable.app') || 
-           window.location.hostname.includes('localhost') ||
-           window.location.hostname.includes('127.0.0.1');
-  }
-  
-  /**
    * Génère du contenu via un modèle LLM de manière sécurisée
    * Compatible avec l'ancienne interface pour la migration progressive
    */
@@ -138,16 +129,6 @@ export class SecureLLMService {
    */
   static async testAPIKey(provider: 'openai' | 'anthropic' | 'google', apiKey: string): Promise<APIKeyTestResult> {
     try {
-      // En mode preview Lovable, simuler un test réussi
-      if (this.isLovablePreview()) {
-        console.log('🎯 Mode preview - simulation du test de clé API');
-        return {
-          isValid: true,
-          models: ['gpt-3.5-turbo', 'gpt-4'],
-          provider,
-        };
-      }
-      
       console.log('🧪 Testing API key for provider:', provider);
 
       const { data, error } = await supabase.functions.invoke('test-api-key-secure', {
@@ -222,11 +203,6 @@ export class SecureLLMService {
    */
   static async hasValidAPIKey(provider: 'openai' | 'anthropic' | 'google'): Promise<boolean> {
     try {
-      // En mode preview Lovable, simuler qu'il y a des clés API
-      if (this.isLovablePreview()) {
-        return true;
-      }
-      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
 
