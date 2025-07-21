@@ -140,7 +140,7 @@ export class DebugContentGeneration {
       
       // Vérifier si on a besoin d'étendre la feuille
       const needsMissingTitleColumns = titleColumns.length < 15; // On veut 15 titres
-      const needsDescriptionColumns = descriptionColumns.length === 0; // On veut 4 descriptions
+      const needsMoreDescriptionColumns = descriptionColumns.length < 4; // On veut 4 descriptions
       
       console.log('📊 Besoins identifiés:', {
         titresActuels: titleColumns.length,
@@ -148,11 +148,11 @@ export class DebugContentGeneration {
         needsMissingTitleColumns,
         descriptionsActuelles: descriptionColumns.length,
         descriptionsNecessaires: 4,
-        needsDescriptionColumns
+        needsMoreDescriptionColumns
       });
       
       // ÉTENDRE LA FEUILLE si nécessaire
-      if (needsMissingTitleColumns || needsDescriptionColumns) {
+      if (needsMissingTitleColumns || needsMoreDescriptionColumns) {
         console.log('🚀 EXTENSION DE LA FEUILLE NÉCESSAIRE');
         
         // Créer une copie des headers pour modification
@@ -171,11 +171,14 @@ export class DebugContentGeneration {
           }
         }
         
-        // Ajouter les colonnes de description
-        if (needsDescriptionColumns) {
-          console.log('➕ Ajout de 4 colonnes de descriptions');
-          for (let i = 1; i <= 4; i++) {
-            extendedHeaders.push(`Description ${i}`);
+        // Ajouter les colonnes de description manquantes
+        if (needsMoreDescriptionColumns) {
+          const missingDescriptions = 4 - descriptionColumns.length;
+          console.log(`➕ Ajout de ${missingDescriptions} colonnes de descriptions (actuelles: ${descriptionColumns.length})`);
+          
+          for (let i = 0; i < missingDescriptions; i++) {
+            const descriptionNumber = descriptionColumns.length + i + 1;
+            extendedHeaders.push(`Description ${descriptionNumber}`);
             extendedHeaders.push('nbcar');
             descriptionColumns.push(extendedHeaders.length - 2); // Index de la description (pas du nbcar)
           }
