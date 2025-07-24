@@ -14,8 +14,8 @@ const Dashboard = () => {
   const quickActions = [
     {
       icon: FileSpreadsheet,
-      title: "Nouvelle Campagne",
-      description: "Créez une campagne publicitaire",
+      title: "Générer des Annonces",
+      description: "Traiter un Google Sheet et générer du contenu",
       action: () => navigate("/campaigns"),
       color: "from-blue-600 to-blue-700"
     },
@@ -38,9 +38,9 @@ const Dashboard = () => {
   const stats = [
     {
       icon: TrendingUp,
-      title: "Campagnes Actives",
+      title: "Sheets Traités",
       value: "0",
-      description: "Campagnes en cours"
+      description: "Projets de génération"
     },
     {
       icon: Wand2,
@@ -63,7 +63,7 @@ const Dashboard = () => {
             Tableau de bord
           </h1>
           <p className="text-gray-600">
-            Bienvenue {user?.email?.split('@')[0] || 'utilisateur'}, gérez vos campagnes publicitaires
+            Bienvenue {user?.email?.split('@')[0] || 'utilisateur'}, générez du contenu publicitaire optimisé
           </p>
         </div>
 
@@ -120,7 +120,7 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle>Guide de démarrage</CardTitle>
             <CardDescription>
-              Suivez ces étapes pour créer votre première campagne
+              Suivez ces étapes pour générer vos premières annonces
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -147,10 +147,10 @@ const Dashboard = () => {
             <div className="flex items-start space-x-3">
               <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold">3</div>
               <div>
-                <h4 className="font-medium">Créez votre première campagne</h4>
-                <p className="text-sm text-gray-600">Générez du contenu publicitaire optimisé</p>
+                <h4 className="font-medium">Générez vos premières annonces</h4>
+                <p className="text-sm text-gray-600">Importez un Google Sheet et générez du contenu optimisé</p>
                 <Button variant="outline" size="sm" className="mt-2" onClick={() => navigate("/campaigns")}>
-                  Nouvelle campagne
+                  Commencer la génération
                 </Button>
               </div>
             </div>

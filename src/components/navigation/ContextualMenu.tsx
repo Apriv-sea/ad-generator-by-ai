@@ -28,7 +28,7 @@ export const ContextualMenu: React.FC<ContextualMenuProps> = ({ onAction }) => {
         return [
           { 
             icon: Plus, 
-            label: 'Nouvelle campagne', 
+            label: 'Générer des annonces', 
             action: 'new-campaign',
             variant: 'default' as const,
             shortcut: 'Ctrl+N'
@@ -46,7 +46,7 @@ export const ContextualMenu: React.FC<ContextualMenuProps> = ({ onAction }) => {
         return [
           { 
             icon: Plus, 
-            label: 'Nouvelle campagne', 
+            label: 'Générer des annonces', 
             action: 'new-campaign',
             variant: 'default' as const,
             shortcut: 'Ctrl+N'
