@@ -18,8 +18,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({
   } = useAuth();
   const quickActions = [{
     icon: FileSpreadsheet,
-    title: "Campagnes",
-    description: "Gérez vos campagnes publicitaires",
+    title: "Annonces",
+    description: "Générez vos annonces publicitaires",
     action: () => navigate("/campaigns"),
     color: "from-blue-600 to-blue-700"
   }, {

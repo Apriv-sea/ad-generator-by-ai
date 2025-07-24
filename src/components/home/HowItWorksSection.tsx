@@ -14,8 +14,8 @@ const HowItWorksSection: React.FC = () => {
     },
     {
       number: 2,
-      title: "Créez vos campagnes",
-      description: "Définissez vos groupes d'annonces et mots-clés principaux"
+      title: "Importez vos données",
+      description: "Utilisez un Google Sheet avec vos groupes d'annonces et mots-clés"
     },
     {
       number: 3,

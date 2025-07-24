@@ -26,7 +26,7 @@ const Navigation = () => {
   const navigationItems = [
     { path: "/dashboard", label: "Tableau de bord" },
     { path: "/clients", label: "Clients" },
-    { path: "/campaigns", label: "Campagnes" },
+    { path: "/campaigns", label: "Annonces" },
     { path: "/settings", label: "Paramètres" },
   ];
 

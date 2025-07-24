@@ -16,16 +16,16 @@ const routeLabels: Record<string, string> = {
   '/auth': 'Connexion',
   '/settings': 'Paramètres',
   '/clients': 'Clients',
-  '/campaigns': 'Campagnes',
+  '/campaigns': 'Annonces',
   '/profile': 'Profil',
   '/how-it-works': 'Comment ça marche',
   '/privacy-policy': 'Politique de confidentialité'
 };
 
 const routeDescriptions: Record<string, string> = {
-  '/dashboard': 'Vue d\'ensemble de vos campagnes et performances',
+  '/dashboard': 'Vue d\'ensemble de vos projets et performances',
   '/clients': 'Gestion de votre portefeuille clients',
-  '/campaigns': 'Création et gestion de vos campagnes publicitaires',
+  '/campaigns': 'Génération et gestion de vos annonces publicitaires',
   '/settings': 'Configuration de votre compte et préférences'
 };
 

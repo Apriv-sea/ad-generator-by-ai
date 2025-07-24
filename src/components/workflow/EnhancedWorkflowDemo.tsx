@@ -23,9 +23,9 @@ export const EnhancedWorkflowDemo: React.FC = () => {
     },
     {
       id: 'campaign-setup',
-      title: 'Création campagne',
+      title: 'Import des données',
       status: currentStep > 1 ? 'completed' : currentStep === 1 ? 'current' : 'pending',
-      description: 'Configurer les groupes d\'annonces et mots-clés'
+      description: 'Importer le Google Sheet avec les données'
     },
     {
       id: 'content-generation',
@@ -62,14 +62,14 @@ export const EnhancedWorkflowDemo: React.FC = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Wand2 className="h-5 w-5" />
-          Workflow de Génération de Campagne
+          Workflow de Génération d'Annonces
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         <ProgressIndicator 
           steps={workflowSteps}
           currentStepIndex={currentStep}
-          title="Progression de votre campagne"
+          title="Progression de votre génération"
         />
 
         {/* Current Step Content */}
@@ -92,7 +92,7 @@ export const EnhancedWorkflowDemo: React.FC = () => {
           {currentStep === 1 && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <FileSpreadsheet className="h-4 w-4" />
-              Définissez vos groupes d'annonces et mots-clés cibles
+              Importez votre Google Sheet avec les données structurées
             </div>
           )}
           
@@ -106,7 +106,7 @@ export const EnhancedWorkflowDemo: React.FC = () => {
           {currentStep === 3 && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Download className="h-4 w-4" />
-              Exportez vos campagnes vers Google Sheets ou téléchargez en CSV
+              Exportez vos annonces vers Google Sheets ou téléchargez en CSV
             </div>
           )}
         </div>
