@@ -5,6 +5,66 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Security validation for URLs
+function validateUrl(url: string): { isValid: boolean; error?: string } {
+  try {
+    const urlObj = new URL(url);
+    
+    // Only allow HTTP/HTTPS protocols
+    if (!['http:', 'https:'].includes(urlObj.protocol)) {
+      return { isValid: false, error: 'Only HTTP and HTTPS protocols are allowed' };
+    }
+    
+    // Block private IP ranges and localhost
+    const hostname = urlObj.hostname;
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '::1' ||
+      hostname.match(/^10\./) ||
+      hostname.match(/^172\.(1[6-9]|2[0-9]|3[01])\./) ||
+      hostname.match(/^192\.168\./)
+    ) {
+      return { isValid: false, error: 'Private IP addresses and localhost are not allowed' };
+    }
+    
+    return { isValid: true };
+  } catch {
+    return { isValid: false, error: 'Invalid URL format' };
+  }
+}
+
+// Rate limiting (simple in-memory implementation)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 10; // requests per hour
+const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour in milliseconds
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const userLimit = rateLimitMap.get(userId);
+  
+  if (!userLimit || now > userLimit.resetTime) {
+    rateLimitMap.set(userId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+  
+  if (userLimit.count >= RATE_LIMIT) {
+    return false;
+  }
+  
+  userLimit.count++;
+  return true;
+}
+
+// Input sanitization
+function sanitizeInput(input: string): string {
+  return input
+    .replace(/[<>]/g, '') // Remove HTML brackets
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .trim()
+    .substring(0, 1000); // Limit input length
+}
+
 Deno.serve(async (req) => {
   console.log('🌐 Website Scraper called:', req.method, req.url)
 
@@ -33,6 +93,15 @@ Deno.serve(async (req) => {
 
     console.log('✅ User authenticated:', user.id)
 
+    // Check rate limit
+    if (!checkRateLimit(user.id)) {
+      console.warn('⚠️ Rate limit exceeded for user:', user.id)
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Maximum 10 requests per hour.' }), 
+        { status: 429, headers: corsHeaders }
+      )
+    }
+
     const { url } = await req.json()
     
     if (!url) {
@@ -42,11 +111,31 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.log('🔍 Scraping website:', url)
+    // Sanitize and validate URL
+    const sanitizedUrl = sanitizeInput(url);
+    const urlValidation = validateUrl(sanitizedUrl);
+    
+    if (!urlValidation.isValid) {
+      console.warn('⚠️ Invalid URL provided:', sanitizedUrl, urlValidation.error)
+      return new Response(
+        JSON.stringify({ error: urlValidation.error }), 
+        { status: 400, headers: corsHeaders }
+      )
+    }
+
+    console.log('🔍 Scraping website:', sanitizedUrl)
+
+    // Log security event
+    console.log('🔒 Security event: URL scraping request', {
+      userId: user.id,
+      url: sanitizedUrl,
+      timestamp: new Date().toISOString(),
+      userAgent: req.headers.get('user-agent')
+    })
 
     // Simple web scraping using fetch (fallback if Firecrawl is not available)
     try {
-      const response = await fetch(url, {
+      const response = await fetch(sanitizedUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }

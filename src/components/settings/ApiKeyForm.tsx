@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserId } from "@/services/utils/supabaseUtils";
+import { SecurityMonitoringService } from "@/services/security/securityMonitoringService";
 
 interface ApiKeyFormProps {
   onSave: () => void;
@@ -41,6 +42,7 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({ onSave }) => {
     }
     
     if (!validateApiKey(service, apiKey)) {
+      await SecurityMonitoringService.logApiKeyEvent('validation_failed', service);
       toast.error("Format de clé API invalide pour ce service");
       return;
     }
@@ -76,6 +78,7 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({ onSave }) => {
           
         if (updateError) throw updateError;
         
+        await SecurityMonitoringService.logApiKeyEvent('updated', service);
         toast.success(`Clé API pour ${service} mise à jour avec succès`);
       } else {
         // Insert new key
@@ -89,6 +92,7 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({ onSave }) => {
           
         if (insertError) throw insertError;
         
+        await SecurityMonitoringService.logApiKeyEvent('created', service);
         toast.success(`Clé API pour ${service} ajoutée avec succès`);
       }
       

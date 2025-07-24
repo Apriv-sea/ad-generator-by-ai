@@ -5,6 +5,37 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Rate limiting
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 20; // requests per hour for market research
+const RATE_LIMIT_WINDOW = 60 * 60 * 1000;
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const userLimit = rateLimitMap.get(userId);
+  
+  if (!userLimit || now > userLimit.resetTime) {
+    rateLimitMap.set(userId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+  
+  if (userLimit.count >= RATE_LIMIT) {
+    return false;
+  }
+  
+  userLimit.count++;
+  return true;
+}
+
+// Input sanitization
+function sanitizeInput(input: string): string {
+  return input
+    .replace(/[<>]/g, '')
+    .replace(/javascript:/gi, '')
+    .trim()
+    .substring(0, 500);
+}
+
 Deno.serve(async (req) => {
   console.log('🔍 Market Research called:', req.method, req.url)
 
@@ -33,6 +64,15 @@ Deno.serve(async (req) => {
 
     console.log('✅ User authenticated:', user.id)
 
+    // Check rate limit
+    if (!checkRateLimit(user.id)) {
+      console.warn('⚠️ Rate limit exceeded for user:', user.id)
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Maximum 20 requests per hour.' }), 
+        { status: 429, headers: corsHeaders }
+      )
+    }
+
     const { businessName, industry, query } = await req.json()
     
     if (!businessName || !industry) {
@@ -42,7 +82,20 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.log('📊 Conducting market research for:', businessName, 'in', industry)
+    // Sanitize inputs
+    const sanitizedBusinessName = sanitizeInput(businessName);
+    const sanitizedIndustry = sanitizeInput(industry);
+    const sanitizedQuery = query ? sanitizeInput(query) : '';
+
+    console.log('📊 Conducting market research for:', sanitizedBusinessName, 'in', sanitizedIndustry)
+
+    // Log security event
+    console.log('🔒 Security event: Market research request', {
+      userId: user.id,
+      businessName: sanitizedBusinessName,
+      industry: sanitizedIndustry,
+      timestamp: new Date().toISOString()
+    })
 
     // For now, we'll use a basic web search approach
     // In the future, this could be enhanced with Perplexity API
