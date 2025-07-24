@@ -2,6 +2,8 @@ import React from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/navigation/AppSidebar';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { ContextualMenu } from '@/components/navigation/ContextualMenu';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { LogOut, User } from 'lucide-react';
@@ -13,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -21,10 +24,36 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  // Initialize keyboard shortcuts
+  useKeyboardShortcuts();
 
   const handleLogout = async () => {
     await logout();
     navigate('/');
+  };
+
+  const handleContextualAction = (action: string) => {
+    switch (action) {
+      case 'new-campaign':
+        navigate('/campaigns');
+        break;
+      case 'new-client':
+        navigate('/clients');
+        break;
+      case 'quick-generate':
+        navigate('/campaigns');
+        break;
+      case 'shortcuts':
+        toast({
+          title: "Raccourcis clavier disponibles",
+          description: "Appuyez sur Ctrl+/ pour voir tous les raccourcis",
+        });
+        break;
+      default:
+        console.log('Action:', action);
+    }
   };
 
   return (
@@ -72,6 +101,9 @@ export function AppLayout({ children }: AppLayoutProps) {
               </div>
             </div>
           </header>
+          
+          {/* Contextual Menu */}
+          <ContextualMenu onAction={handleContextualAction} />
           
           {/* Main content */}
           <main className="flex-1 overflow-auto">

@@ -2,6 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EnhancedWorkflowDemo } from "@/components/workflow/EnhancedWorkflowDemo";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { FileSpreadsheet, Users, Settings, Wand2, TrendingUp, Clock } from "lucide-react";
@@ -106,6 +107,12 @@ const Dashboard = () => {
               );
             })}
           </div>
+        </div>
+
+        {/* Enhanced Workflow Demo */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">Workflow Interactif</h2>
+          <EnhancedWorkflowDemo />
         </div>
 
         {/* Guide de démarrage */}

@@ -2,10 +2,12 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronRight, Home } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface BreadcrumbItem {
   label: string;
   path: string;
+  isActive?: boolean;
 }
 
 const routeLabels: Record<string, string> = {
@@ -20,6 +22,13 @@ const routeLabels: Record<string, string> = {
   '/privacy-policy': 'Politique de confidentialité'
 };
 
+const routeDescriptions: Record<string, string> = {
+  '/dashboard': 'Vue d\'ensemble de vos campagnes et performances',
+  '/clients': 'Gestion de votre portefeuille clients',
+  '/campaigns': 'Création et gestion de vos campagnes publicitaires',
+  '/settings': 'Configuration de votre compte et préférences'
+};
+
 const Breadcrumb: React.FC = () => {
   const location = useLocation();
   const pathnames = location.pathname.split('/').filter(x => x);
@@ -29,10 +38,14 @@ const Breadcrumb: React.FC = () => {
   ];
 
   let currentPath = '';
-  pathnames.forEach(pathname => {
+  pathnames.forEach((pathname, index) => {
     currentPath += `/${pathname}`;
     const label = routeLabels[currentPath] || pathname.charAt(0).toUpperCase() + pathname.slice(1);
-    breadcrumbs.push({ label, path: currentPath });
+    breadcrumbs.push({ 
+      label, 
+      path: currentPath,
+      isActive: index === pathnames.length - 1
+    });
   });
 
   // Don't show breadcrumb on home page or auth page
@@ -40,28 +53,47 @@ const Breadcrumb: React.FC = () => {
     return null;
   }
 
+  const currentRoute = location.pathname;
+  const description = routeDescriptions[currentRoute];
+
   return (
-    <nav className="flex items-center space-x-1 text-sm text-gray-600 mb-4">
-      <Link to="/" className="flex items-center hover:text-blue-600 transition-colors">
-        <Home className="w-4 h-4" />
-      </Link>
-      
-      {breadcrumbs.slice(1).map((breadcrumb, index) => (
-        <React.Fragment key={breadcrumb.path}>
-          <ChevronRight className="w-4 h-4 text-gray-400" />
-          {index === breadcrumbs.length - 2 ? (
-            <span className="text-gray-900 font-medium">{breadcrumb.label}</span>
-          ) : (
-            <Link 
-              to={breadcrumb.path} 
-              className="hover:text-blue-600 transition-colors"
-            >
-              {breadcrumb.label}
-            </Link>
-          )}
-        </React.Fragment>
-      ))}
-    </nav>
+    <div className="space-y-2 mb-6">
+      {/* Breadcrumb Navigation */}
+      <nav className="flex items-center space-x-1 text-sm">
+        <Link 
+          to="/" 
+          className="flex items-center text-muted-foreground hover:text-primary transition-colors p-1 rounded"
+        >
+          <Home className="w-4 h-4" />
+        </Link>
+        
+        {breadcrumbs.slice(1).map((breadcrumb, index) => (
+          <React.Fragment key={breadcrumb.path}>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            {breadcrumb.isActive ? (
+              <div className="flex items-center gap-2">
+                <span className="text-foreground font-medium">{breadcrumb.label}</span>
+                <Badge variant="secondary" className="text-xs">Actuel</Badge>
+              </div>
+            ) : (
+              <Link 
+                to={breadcrumb.path} 
+                className="text-muted-foreground hover:text-primary transition-colors p-1 rounded"
+              >
+                {breadcrumb.label}
+              </Link>
+            )}
+          </React.Fragment>
+        ))}
+      </nav>
+
+      {/* Page Description */}
+      {description && (
+        <p className="text-sm text-muted-foreground pl-5">
+          {description}
+        </p>
+      )}
+    </div>
   );
 };
 
