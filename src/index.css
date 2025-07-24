@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    /* Brand Colors - Violet/Orange Theme */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
@@ -13,45 +14,55 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary Brand - Rich Violet */
+    --primary: 262 73% 42%;
+    --primary-foreground: 0 0% 98%;
+    --primary-light: 262 73% 60%;
+    --primary-dark: 262 73% 25%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary Brand - Warm Orange */
+    --secondary: 25 95% 62%;
+    --secondary-foreground: 0 0% 13%;
 
+    /* Accent Colors */
+    --accent: 262 73% 95%;
+    --accent-foreground: 262 73% 25%;
+
+    /* Neutral Colors */
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 262 73% 42%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(262 73% 42%), hsl(262 73% 60%));
+    --gradient-secondary: linear-gradient(135deg, hsl(25 95% 62%), hsl(35 100% 70%));
+    --gradient-brand: linear-gradient(135deg, hsl(262 73% 42%), hsl(25 95% 62%));
+
+    /* Sidebar */
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
+    --sidebar-primary: 262 73% 42%;
     --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
+    --sidebar-accent: 262 73% 95%;
+    --sidebar-accent-foreground: 262 73% 25%;
     --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 262 73% 42%;
 
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Shadows */
+    --shadow-brand: 0 10px 30px -10px hsl(262 73% 42% / 0.3);
+    --shadow-glow: 0 0 40px hsl(262 73% 60% / 0.2);
   }
 
   .dark {
+    /* Dark Mode - Rich & Modern */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
@@ -61,32 +72,49 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Primary Brand - Bright Violet in Dark Mode */
+    --primary: 262 73% 65%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --primary-light: 262 73% 80%;
+    --primary-dark: 262 73% 45%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    /* Secondary Brand - Bright Orange in Dark Mode */
+    --secondary: 25 95% 70%;
+    --secondary-foreground: 222.2 84% 4.9%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
+    /* Accent Colors */
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    /* Neutral Colors */
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --destructive: 0 62.8% 50.6%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --ring: 262 73% 65%;
+
+    /* Gradients for Dark Mode */
+    --gradient-primary: linear-gradient(135deg, hsl(262 73% 65%), hsl(262 73% 80%));
+    --gradient-secondary: linear-gradient(135deg, hsl(25 95% 70%), hsl(35 100% 80%));
+    --gradient-brand: linear-gradient(135deg, hsl(262 73% 65%), hsl(25 95% 70%));
+
+    /* Sidebar Dark Mode */
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 262 73% 65%;
+    --sidebar-primary-foreground: 222.2 84% 4.9%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 262 73% 65%;
+
+    /* Shadows for Dark Mode */
+    --shadow-brand: 0 10px 30px -10px hsl(262 73% 65% / 0.4);
+    --shadow-glow: 0 0 40px hsl(262 73% 80% / 0.3);
   }
 }
 
@@ -96,6 +124,44 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-inter;
+  }
+
+  /* Typography Hierarchy */
+  h1, .h1 {
+    @apply text-4xl md:text-5xl font-bold tracking-tight;
+  }
+
+  h2, .h2 {
+    @apply text-3xl md:text-4xl font-semibold tracking-tight;
+  }
+
+  h3, .h3 {
+    @apply text-2xl md:text-3xl font-semibold tracking-tight;
+  }
+
+  h4, .h4 {
+    @apply text-xl md:text-2xl font-medium tracking-tight;
+  }
+
+  h5, .h5 {
+    @apply text-lg md:text-xl font-medium tracking-tight;
+  }
+
+  h6, .h6 {
+    @apply text-base md:text-lg font-medium tracking-tight;
+  }
+
+  /* Brand Gradient Text */
+  .text-gradient-brand {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Smooth Transitions */
+  * {
+    @apply transition-colors duration-200;
   }
 }
