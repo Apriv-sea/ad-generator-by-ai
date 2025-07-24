@@ -58,7 +58,7 @@ export class ClientContextAnalysisService {
   }
 
   // Analyser le site web d'un client
-  static async analyzeWebsite(websiteUrl: string): Promise<WebsiteAnalysis> {
+  static async analyzeWebsite(websiteUrl: string, selectedModel: string = 'openai:gpt-4.1-2025-04-14'): Promise<WebsiteAnalysis> {
     console.log('🌐 Analyse du site web:', websiteUrl);
     
     // Vérifier les clés API
@@ -97,14 +97,19 @@ Analysez et retournez au format JSON:
 Soyez précis et basez-vous uniquement sur le contenu fourni.
       `;
 
+      // Parser le modèle sélectionné
+      const [provider, model] = selectedModel.includes(':') 
+        ? selectedModel.split(':') 
+        : ['openai', selectedModel];
+
       const response = await SecureLLMService.generateContent([
-        { provider: 'openai', model: 'gpt-4.1-2025-04-14' }
+        { provider: provider as any, model }
       ], {
         clientContext: 'Website analysis for client context generation',
         campaignContext: analysisPrompt,
         adGroupContext: 'Website content analysis',
         keywords: ['website', 'analysis', 'branding'],
-        model: 'gpt-4.1-2025-04-14'
+        model
       });
 
       // Parser la réponse JSON
@@ -140,7 +145,7 @@ Soyez précis et basez-vous uniquement sur le contenu fourni.
   }
 
   // Effectuer une recherche sectorielle
-  static async conductMarketResearch(businessName: string, industry: string): Promise<MarketResearch> {
+  static async conductMarketResearch(businessName: string, industry: string, selectedModel: string = 'openai:gpt-4.1-2025-04-14'): Promise<MarketResearch> {
     console.log('🔍 Recherche sectorielle pour:', businessName, 'dans', industry);
     
     try {
@@ -176,14 +181,19 @@ Retournez au format JSON:
 Soyez précis et actionnable pour une stratégie marketing.
       `;
 
+      // Parser le modèle sélectionné
+      const [provider, model] = selectedModel.includes(':') 
+        ? selectedModel.split(':') 
+        : ['openai', selectedModel];
+
       const response = await SecureLLMService.generateContent([
-        { provider: 'openai', model: 'gpt-4.1-2025-04-14' }
+        { provider: provider as any, model }
       ], {
         clientContext: 'Market research for client context generation',
         campaignContext: analysisPrompt,
         adGroupContext: 'Market analysis and competitive research',
         keywords: ['market', 'research', 'competition'],
-        model: 'gpt-4.1-2025-04-14'
+        model
       });
 
       // Parser la réponse JSON
@@ -216,7 +226,7 @@ Soyez précis et actionnable pour une stratégie marketing.
   }
 
   // Générer le contexte client final
-  static async generateClientContext(data: ClientContextData): Promise<GeneratedContext> {
+  static async generateClientContext(data: ClientContextData, selectedModel: string = 'openai:gpt-4.1-2025-04-14'): Promise<GeneratedContext> {
     console.log('🧠 Génération du contexte client pour:', data.businessName);
     
     try {
@@ -253,14 +263,19 @@ Le contexte doit être:
 - Adapté au secteur et à la cible
       `;
 
+      // Parser le modèle sélectionné
+      const [provider, model] = selectedModel.includes(':') 
+        ? selectedModel.split(':') 
+        : ['openai', selectedModel];
+
       const response = await SecureLLMService.generateContent([
-        { provider: 'openai', model: 'gpt-4.1-2025-04-14' }
+        { provider: provider as any, model }
       ], {
         clientContext: 'Client context generation',
         campaignContext: contextPrompt,
         adGroupContext: 'Final context synthesis',
         keywords: ['context', 'generation', 'marketing'],
-        model: 'gpt-4.1-2025-04-14'
+        model
       });
 
       // Parser la réponse JSON

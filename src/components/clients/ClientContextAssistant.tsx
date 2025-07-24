@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Globe, Search, Brain, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ClientContextAnalysisService } from '@/services/clientContextAnalysisService';
+import ModelSelector from '@/components/campaign/ModelSelector';
 
 interface AnalysisStep {
   id: string;
@@ -35,6 +36,7 @@ export const ClientContextAssistant: React.FC<ClientContextAssistantProps> = ({
   const [progress, setProgress] = useState(0);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [currentStep, setCurrentStep] = useState<string>('');
+  const [selectedModel, setSelectedModel] = useState('openai:gpt-4.1-2025-04-14');
 
   const analysisSteps: AnalysisStep[] = [
     {
@@ -84,7 +86,7 @@ export const ClientContextAssistant: React.FC<ClientContextAssistantProps> = ({
       updateStepStatus('website-analysis', 'running');
       setProgress(20);
       
-      const websiteAnalysis = await ClientContextAnalysisService.analyzeWebsite(websiteUrl);
+      const websiteAnalysis = await ClientContextAnalysisService.analyzeWebsite(websiteUrl, selectedModel);
       
       updateStepStatus('website-analysis', 'completed');
       setProgress(40);
@@ -95,7 +97,8 @@ export const ClientContextAssistant: React.FC<ClientContextAssistantProps> = ({
       
       const marketResearch = await ClientContextAnalysisService.conductMarketResearch(
         businessName, 
-        websiteAnalysis.industry || 'business'
+        websiteAnalysis.industry || 'business',
+        selectedModel
       );
       
       updateStepStatus('market-research', 'completed');
@@ -110,7 +113,7 @@ export const ClientContextAssistant: React.FC<ClientContextAssistantProps> = ({
         websiteUrl,
         websiteAnalysis,
         marketResearch
-      });
+      }, selectedModel);
       
       updateStepStatus('context-generation', 'completed');
       setProgress(100);
@@ -190,6 +193,15 @@ export const ClientContextAssistant: React.FC<ClientContextAssistantProps> = ({
               disabled={isAnalyzing}
             />
           </div>
+        </div>
+
+        {/* Sélecteur de modèle IA */}
+        <div className="space-y-2">
+          <Label>Modèle IA pour l'analyse</Label>
+          <ModelSelector
+            selectedModel={selectedModel}
+            onModelSelect={setSelectedModel}
+          />
         </div>
 
         {/* Bouton d'analyse */}
