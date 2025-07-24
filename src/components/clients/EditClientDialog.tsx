@@ -29,21 +29,23 @@ const EditClientDialog: React.FC<EditClientDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Modifier le client</DialogTitle>
           <DialogDescription>
             Modifiez les informations du client
           </DialogDescription>
         </DialogHeader>
         
-        <ClientForm
-          client={editingClient}
-          isEditing={true}
-          onChange={onClientChange}
-          onSubmit={onUpdateClient}
-          onCancel={() => onOpenChange(false)}
-        />
+        <div className="overflow-y-auto flex-1 pr-6 -mr-6">
+          <ClientForm
+            client={editingClient}
+            isEditing={true}
+            onChange={onClientChange}
+            onSubmit={onUpdateClient}
+            onCancel={() => onOpenChange(false)}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );

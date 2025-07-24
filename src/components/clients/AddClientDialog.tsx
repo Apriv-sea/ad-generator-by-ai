@@ -27,21 +27,23 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Ajouter un nouveau client</DialogTitle>
           <DialogDescription>
             Remplissez les informations du client pour personnaliser la génération de contenu
           </DialogDescription>
         </DialogHeader>
         
-        <ClientForm
-          client={newClient}
-          isEditing={false}
-          onChange={onClientChange}
-          onSubmit={onAddClient}
-          onCancel={() => onOpenChange(false)}
-        />
+        <div className="overflow-y-auto flex-1 pr-6 -mr-6">
+          <ClientForm
+            client={newClient}
+            isEditing={false}
+            onChange={onClientChange}
+            onSubmit={onAddClient}
+            onCancel={() => onOpenChange(false)}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );
