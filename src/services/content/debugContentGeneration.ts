@@ -385,57 +385,59 @@ export class DebugContentGeneration {
       rowIndex,
       titleColumns,
       descriptionColumns,
-      totalHeaders: sheetData[0]?.length || 0
+      headers: sheetData[0]
     });
     
     const headers = sheetData[0];
     const row = sheetData[rowIndex];
     
-    // Pour chaque colonne titre, chercher la colonne de comptage correspondante
+    // Pour chaque colonne titre, vérifier s'il y a une colonne "nbcar" juste après
     titleColumns.forEach((titleColumnIndex, i) => {
       const titleHeader = headers[titleColumnIndex];
+      const nextColumnIndex = titleColumnIndex + 1;
+      
       console.log(`🎯 Traitement titre ${i + 1}: "${titleHeader}" (index ${titleColumnIndex})`);
+      console.log(`🔍 Colonne suivante (${nextColumnIndex}): "${headers[nextColumnIndex]}"`);
       
-      // Chercher la colonne "Nb car Titre X" correspondante
-      const expectedNbcarHeader = `Nb car Titre ${i + 1}`;
-      const nbcarColumnIndex = headers.findIndex(h => 
-        String(h).toLowerCase().includes('nb car') && 
-        String(h).toLowerCase().includes(`titre ${i + 1}`)
-      );
-      
-      console.log(`🔍 Recherche colonne: "${expectedNbcarHeader}", trouvée à l'index: ${nbcarColumnIndex}`);
-      
-      if (nbcarColumnIndex !== -1 && nbcarColumnIndex < row.length) {
-        const columnLetter = this.numberToColumnLetter(titleColumnIndex + 1); // +1 car Excel commence à 1
-        const formula = `=NBCAR(${columnLetter}${rowIndex + 1})`;
-        row[nbcarColumnIndex] = formula;
-        console.log(`✅ Formule NBCAR ajoutée pour titre ${i + 1}: ${formula} -> colonne ${nbcarColumnIndex}`);
+      if (nextColumnIndex < headers.length) {
+        const nextColumnHeader = String(headers[nextColumnIndex]).toLowerCase();
+        
+        // Vérifier si la colonne suivante est "nbcar"
+        if (nextColumnHeader.includes('nbcar')) {
+          const columnLetter = this.numberToColumnLetter(titleColumnIndex + 1); // +1 car Excel commence à 1
+          const formula = `=NBCAR(${columnLetter}${rowIndex + 1})`;
+          row[nextColumnIndex] = formula;
+          console.log(`✅ Formule NBCAR ajoutée pour titre ${i + 1}: ${formula} -> colonne ${nextColumnIndex} (${headers[nextColumnIndex]})`);
+        } else {
+          console.log(`❌ Colonne suivante n'est pas "nbcar": "${headers[nextColumnIndex]}"`);
+        }
       } else {
-        console.log(`❌ Colonne NBCAR non trouvée pour titre ${i + 1}`);
+        console.log(`❌ Pas de colonne suivante après titre ${i + 1}`);
       }
     });
 
-    // Pour chaque colonne description, chercher la colonne de comptage correspondante
+    // Pour chaque colonne description, vérifier s'il y a une colonne "nbcar" juste après
     descriptionColumns.forEach((descColumnIndex, i) => {
       const descHeader = headers[descColumnIndex];
+      const nextColumnIndex = descColumnIndex + 1;
+      
       console.log(`🎯 Traitement description ${i + 1}: "${descHeader}" (index ${descColumnIndex})`);
+      console.log(`🔍 Colonne suivante (${nextColumnIndex}): "${headers[nextColumnIndex]}"`);
       
-      // Chercher la colonne "Nb car Desc X" correspondante
-      const expectedNbcarHeader = `Nb car Desc ${i + 1}`;
-      const nbcarColumnIndex = headers.findIndex(h => 
-        String(h).toLowerCase().includes('nb car') && 
-        String(h).toLowerCase().includes(`desc ${i + 1}`)
-      );
-      
-      console.log(`🔍 Recherche colonne: "${expectedNbcarHeader}", trouvée à l'index: ${nbcarColumnIndex}`);
-      
-      if (nbcarColumnIndex !== -1 && nbcarColumnIndex < row.length) {
-        const columnLetter = this.numberToColumnLetter(descColumnIndex + 1); // +1 car Excel commence à 1
-        const formula = `=NBCAR(${columnLetter}${rowIndex + 1})`;
-        row[nbcarColumnIndex] = formula;
-        console.log(`✅ Formule NBCAR ajoutée pour description ${i + 1}: ${formula} -> colonne ${nbcarColumnIndex}`);
+      if (nextColumnIndex < headers.length) {
+        const nextColumnHeader = String(headers[nextColumnIndex]).toLowerCase();
+        
+        // Vérifier si la colonne suivante est "nbcar"
+        if (nextColumnHeader.includes('nbcar')) {
+          const columnLetter = this.numberToColumnLetter(descColumnIndex + 1); // +1 car Excel commence à 1
+          const formula = `=NBCAR(${columnLetter}${rowIndex + 1})`;
+          row[nextColumnIndex] = formula;
+          console.log(`✅ Formule NBCAR ajoutée pour description ${i + 1}: ${formula} -> colonne ${nextColumnIndex} (${headers[nextColumnIndex]})`);
+        } else {
+          console.log(`❌ Colonne suivante n'est pas "nbcar": "${headers[nextColumnIndex]}"`);
+        }
       } else {
-        console.log(`❌ Colonne NBCAR non trouvée pour description ${i + 1}`);
+        console.log(`❌ Pas de colonne suivante après description ${i + 1}`);
       }
     });
     
