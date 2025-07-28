@@ -122,7 +122,7 @@ export class ColumnMappingService {
   }
   
   /**
-   * Appliquer les résultats de génération aux bonnes colonnes
+   * Appliquer les résultats de génération aux bonnes colonnes avec formules NBCAR
    */
   static applyGenerationResults(
     originalRow: string[],
@@ -143,11 +143,11 @@ export class ColumnMappingService {
     const allColumnIndices = Object.values(mappings).filter(index => typeof index === 'number' && index !== -1) as number[];
     const maxColumnIndex = allColumnIndices.length > 0 ? Math.max(...allColumnIndices) : 0;
     
-    while (updatedRow.length <= maxColumnIndex) {
+    while (updatedRow.length <= maxColumnIndex + 50) { // Plus d'espace pour les formules
       updatedRow.push('');
     }
     
-    // Appliquer les titres (jusqu'à 15) - SEULEMENT si ce ne sont pas des formules
+    // Appliquer les titres (jusqu'à 15) avec formules NBCAR
     for (let i = 0; i < Math.min(titles.length, 15); i++) {
       const titleColumnKey = `title${i + 1}Column`;
       console.log(`🔍 Recherche ${titleColumnKey}, valeur mapping: ${mappings[titleColumnKey]}`);
@@ -156,6 +156,20 @@ export class ColumnMappingService {
         const existingValue = updatedRow[mappings[titleColumnKey]];
         if (!existingValue || !existingValue.toString().startsWith('=')) {
           updatedRow[mappings[titleColumnKey]] = titles[i];
+          
+          // Ajouter formule NBCAR dans la colonne suivante si elle est vide
+          const charCountColumnIndex = mappings[titleColumnKey] + 1;
+          if (charCountColumnIndex < updatedRow.length) {
+            const charCountValue = updatedRow[charCountColumnIndex];
+            if (!charCountValue || (!charCountValue.toString().startsWith('=') && charCountValue.toString().trim() === '')) {
+              // Convertir index en lettre de colonne (A, B, C, etc.)
+              const columnLetter = this.numberToColumnLetter(mappings[titleColumnKey] + 1);
+              const rowNumber = 2; // Supposant que les données commencent à la ligne 2
+              updatedRow[charCountColumnIndex] = `=NBCAR(${columnLetter}${rowNumber})`;
+              console.log(`✅ Formule NBCAR ajoutée en colonne ${charCountColumnIndex}: =NBCAR(${columnLetter}${rowNumber})`);
+            }
+          }
+          
           console.log(`✅ Titre ${i + 1} ajouté en colonne ${mappings[titleColumnKey]}: "${titles[i]}"`);
         } else {
           console.log(`⚠️ Titre ${i + 1} ignoré - formule existante en colonne ${mappings[titleColumnKey]}: "${existingValue}"`);
@@ -165,7 +179,7 @@ export class ColumnMappingService {
       }
     }
     
-    // Appliquer les descriptions (jusqu'à 4) - SEULEMENT si ce ne sont pas des formules
+    // Appliquer les descriptions (jusqu'à 4) avec formules NBCAR
     for (let i = 0; i < Math.min(descriptions.length, 4); i++) {
       const descriptionColumnKey = `description${i + 1}Column`;
       console.log(`🔍 Recherche ${descriptionColumnKey}, valeur mapping: ${mappings[descriptionColumnKey]}`);
@@ -174,6 +188,20 @@ export class ColumnMappingService {
         const existingValue = updatedRow[mappings[descriptionColumnKey]];
         if (!existingValue || !existingValue.toString().startsWith('=')) {
           updatedRow[mappings[descriptionColumnKey]] = descriptions[i];
+          
+          // Ajouter formule NBCAR dans la colonne suivante si elle est vide
+          const charCountColumnIndex = mappings[descriptionColumnKey] + 1;
+          if (charCountColumnIndex < updatedRow.length) {
+            const charCountValue = updatedRow[charCountColumnIndex];
+            if (!charCountValue || (!charCountValue.toString().startsWith('=') && charCountValue.toString().trim() === '')) {
+              // Convertir index en lettre de colonne
+              const columnLetter = this.numberToColumnLetter(mappings[descriptionColumnKey] + 1);
+              const rowNumber = 2; // Supposant que les données commencent à la ligne 2
+              updatedRow[charCountColumnIndex] = `=NBCAR(${columnLetter}${rowNumber})`;
+              console.log(`✅ Formule NBCAR ajoutée en colonne ${charCountColumnIndex}: =NBCAR(${columnLetter}${rowNumber})`);
+            }
+          }
+          
           console.log(`✅ Description ${i + 1} ajoutée en colonne ${mappings[descriptionColumnKey]}: "${descriptions[i]}"`);
         } else {
           console.log(`⚠️ Description ${i + 1} ignorée - formule existante en colonne ${mappings[descriptionColumnKey]}: "${existingValue}"`);
@@ -186,6 +214,19 @@ export class ColumnMappingService {
     console.log('📝 Ligne finale après application:', updatedRow.slice(0, 15));
     
     return updatedRow;
+  }
+  
+  /**
+   * Convertir un numéro de colonne en lettre (1 = A, 2 = B, etc.)
+   */
+  private static numberToColumnLetter(columnNumber: number): string {
+    let result = '';
+    while (columnNumber > 0) {
+      columnNumber--;
+      result = String.fromCharCode(65 + (columnNumber % 26)) + result;
+      columnNumber = Math.floor(columnNumber / 26);
+    }
+    return result;
   }
   
   /**
@@ -209,26 +250,39 @@ export class ColumnMappingService {
   }
   
   /**
-   * Créer une feuille avec les en-têtes standard
+   * Créer une feuille avec les en-têtes standard incluant les colonnes de comptage NBCAR
    */
   static getStandardHeaders(): string[] {
-    return [
-      'Nom de la campagne',
-      'Nom du groupe d\'annonces',
-      'Top 3 mots-clés (séparés par des virgules)',
-      'État du groupe d\'annonces',
-      'Type de correspondance par défaut',
-      'Titre 1', 'Titre 2', 'Titre 3', 'Titre 4', 'Titre 5',
-      'Titre 6', 'Titre 7', 'Titre 8', 'Titre 9', 'Titre 10',
-      'Titre 11', 'Titre 12', 'Titre 13', 'Titre 14', 'Titre 15',
-      'Description 1', 'Description 2', 'Description 3', 'Description 4',
-      'URL finale',
-      'Chemin d\'affichage 1',
-      'Chemin d\'affichage 2',
-      'Mots-clés ciblés',
-      'Mots-clés négatifs',
-      'Audience ciblée',
-      'Extensions d\'annonces'
-    ];
+    const headers = [];
+    
+    // Colonnes de base
+    headers.push('Nom de la campagne');
+    headers.push('Nom du groupe d\'annonces');
+    headers.push('Top 3 mots-clés (séparés par des virgules)');
+    headers.push('État du groupe d\'annonces');
+    headers.push('Type de correspondance par défaut');
+    
+    // Titres avec colonnes de comptage NBCAR
+    for (let i = 1; i <= 15; i++) {
+      headers.push(`Titre ${i}`);
+      headers.push(`Nb car Titre ${i}`);
+    }
+    
+    // Descriptions avec colonnes de comptage NBCAR
+    for (let i = 1; i <= 4; i++) {
+      headers.push(`Description ${i}`);
+      headers.push(`Nb car Desc ${i}`);
+    }
+    
+    // Colonnes finales
+    headers.push('URL finale');
+    headers.push('Chemin d\'affichage 1');
+    headers.push('Chemin d\'affichage 2');
+    headers.push('Mots-clés ciblés');
+    headers.push('Mots-clés négatifs');
+    headers.push('Audience ciblée');
+    headers.push('Extensions d\'annonces');
+    
+    return headers;
   }
 }

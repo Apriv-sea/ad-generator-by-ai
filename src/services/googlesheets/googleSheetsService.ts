@@ -39,23 +39,39 @@ export class GoogleSheetsService {
     return googleSheetsCoreService.createNewSheetUrl();
   }
 
-  // Méthode utilitaire pour les en-têtes standard
+  // Méthode utilitaire pour les en-têtes standard avec colonnes de comptage de caractères
   static getStandardHeaders(): string[] {
-    return [
-      'Nom de la campagne',
-      'Nom du groupe d\'annonces',
-      'État du groupe d\'annonces',
-      'Type de correspondance par défaut',
-      'Top 3 mots-clés (séparés par des virgules)',
-      'Titre 1', 'Titre 2', 'Titre 3', 'Titre 4', 'Titre 5',
-      'Titre 6', 'Titre 7', 'Titre 8', 'Titre 9', 'Titre 10',
-      'Titre 11', 'Titre 12', 'Titre 13', 'Titre 14', 'Titre 15',
-      'Description 1', 'Description 2', 'Description 3', 'Description 4',
-      'URL finale',
-      'Chemin d\'affichage 1', 'Chemin d\'affichage 2',
-      'Mots-clés ciblés', 'Mots-clés négatifs',
-      'Audience ciblée', 'Extensions d\'annonces'
-    ];
+    const headers = [];
+    
+    // Colonnes de base
+    headers.push('Nom de la campagne');
+    headers.push('Nom du groupe d\'annonces');
+    headers.push('État du groupe d\'annonces');
+    headers.push('Type de correspondance par défaut');
+    headers.push('Top 3 mots-clés (séparés par des virgules)');
+    
+    // Titres avec colonnes de comptage NBCAR
+    for (let i = 1; i <= 15; i++) {
+      headers.push(`Titre ${i}`);
+      headers.push(`Nb car Titre ${i}`);
+    }
+    
+    // Descriptions avec colonnes de comptage NBCAR
+    for (let i = 1; i <= 4; i++) {
+      headers.push(`Description ${i}`);
+      headers.push(`Nb car Desc ${i}`);
+    }
+    
+    // Colonnes finales
+    headers.push('URL finale');
+    headers.push('Chemin d\'affichage 1');
+    headers.push('Chemin d\'affichage 2');
+    headers.push('Mots-clés ciblés');
+    headers.push('Mots-clés négatifs');
+    headers.push('Audience ciblée');
+    headers.push('Extensions d\'annonces');
+    
+    return headers;
   }
 }
 
