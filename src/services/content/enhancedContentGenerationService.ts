@@ -2,10 +2,13 @@
 import { supabase } from '@/integrations/supabase/client';
 import { googleSheetsCoreService } from '@/services/core/googleSheetsCore';
 import { ColumnMappingService } from '@/services/googlesheets/columnMappingService';
+import { UnifiedPromptService } from './unifiedPromptService';
 
 export interface ContentGenerationOptions {
   model: string;
   clientContext: string;
+  industry?: string;              // Nouveau champ
+  targetPersona?: string;         // Nouveau champ
   campaignContext: string;
   adGroupContext: string;
   keywords: string[];
@@ -152,32 +155,15 @@ export class EnhancedContentGenerationService {
   }
 
   private static buildOptimizedPrompt(options: ContentGenerationOptions): string {
-    return `Vous êtes un rédacteur publicitaire hautement qualifié avec une solide expérience en rédaction persuasive, en optimisation des conversions et en techniques de marketing. Vous rédigez des textes convaincants qui touchent les émotions et les besoins du public cible, les incitant à agir ou à acheter. Vous comprenez l'importance de la méthode AIDA (Attention, Intérêt, Désir et Action) et d'autres formules de rédaction éprouvées, que vous intégrez parfaitement dans vos écrits. Vous avez un talent pour créer des titres accrocheurs, des introductions captivantes et des appels à l'action persuasifs. Vous maîtrisez bien la psychologie des consommateurs et utilisez ces connaissances pour créer des messages qui résonnent avec le public cible.
-
-
-CONTEXTE CLIENT:
-${options.clientContext}
-
-CONTEXTE CAMPAGNE:
-Campagne: ${options.campaignContext}
-Groupe d'annonces: ${options.adGroupContext}
-Mots-clés principaux: ${options.keywords.join(', ')}
-
-TÂCHE:
-Génère EXACTEMENT 15 titres et 4 descriptions pour Google Ads en respectant ces contraintes:
-- Titres: EXACTEMENT 15 titres, maximum 30 caractères chacun
-- Descriptions: EXACTEMENT 4 descriptions, maximum 90 caractères chacune
-- Inclure les mots-clés naturellement
-- Ton persuasif et accrocheur
-- Appel à l'action clair
-
-FORMAT DE RÉPONSE (JSON uniquement):
-{
-  "titles": ["Titre 1", "Titre 2", "Titre 3", "Titre 4", "Titre 5", "Titre 6", "Titre 7", "Titre 8", "Titre 9", "Titre 10", "Titre 11", "Titre 12", "Titre 13", "Titre 14", "Titre 15"],
-  "descriptions": ["Description 1", "Description 2", "Description 3", "Description 4"]
-}
-
-IMPORTANT: Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire.`;
+    return UnifiedPromptService.buildUnifiedPrompt({
+      clientContext: options.clientContext,
+      industry: options.industry,
+      targetPersona: options.targetPersona,
+      campaignContext: options.campaignContext,
+      adGroupContext: options.adGroupContext,
+      keywords: options.keywords,
+      model: options.model
+    });
   }
 
   private static parseGeneratedContent(content: string): {
@@ -186,59 +172,7 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire.`;
     descriptions?: string[];
     error?: string;
   } {
-    try {
-      // Nettoyer le contenu pour extraire le JSON
-      let cleanContent = content.trim();
-      
-      // Rechercher le JSON dans le contenu
-      const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        cleanContent = jsonMatch[0];
-      }
-
-      // Parser le JSON
-      const parsed = JSON.parse(cleanContent);
-      
-      // Valider la structure
-      if (!parsed.titles || !Array.isArray(parsed.titles) || 
-          !parsed.descriptions || !Array.isArray(parsed.descriptions)) {
-        return {
-          success: false,
-          error: 'Structure JSON invalide: titles et descriptions requis'
-        };
-      }
-
-      // Valider les contraintes
-      const validTitles = parsed.titles.filter(t => t && t.length <= 30);
-      const validDescriptions = parsed.descriptions.filter(d => d && d.length <= 90);
-
-      if (validTitles.length === 0) {
-        return {
-          success: false,
-          error: 'Aucun titre valide généré'
-        };
-      }
-
-      if (validDescriptions.length === 0) {
-        return {
-          success: false,
-          error: 'Aucune description valide générée'
-        };
-      }
-
-      return {
-        success: true,
-        titles: validTitles.slice(0, 15),
-        descriptions: validDescriptions.slice(0, 4)
-      };
-
-    } catch (error) {
-      console.error('Erreur parsing JSON:', error);
-      return {
-        success: false,
-        error: `Erreur parsing JSON: ${error.message}`
-      };
-    }
+    return UnifiedPromptService.parseGeneratedContent(content);
   }
 
   private static async saveToHistory(

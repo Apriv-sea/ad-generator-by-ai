@@ -39,7 +39,7 @@ export const useContentGeneration = ({
       return;
     }
 
-    // Utiliser le contexte client déjà disponible
+    // Utiliser le contexte client déjà disponible avec les nouveaux champs
     const clientContext = clientInfo.businessContext + 
       (clientInfo.specifics ? ` ${clientInfo.specifics}` : '') + 
       (clientInfo.editorialGuidelines ? ` Style éditorial: ${clientInfo.editorialGuidelines}` : '');
@@ -92,6 +92,8 @@ export const useContentGeneration = ({
           {
             model: selectedModel,
             clientContext,
+            industry: clientInfo.industry,           // Nouveau champ
+            targetPersona: clientInfo.targetPersona, // Nouveau champ
             campaignContext: campaign,
             adGroupContext: adGroup,
             keywords: keywords.slice(0, 3)

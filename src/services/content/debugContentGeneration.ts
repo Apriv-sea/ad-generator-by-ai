@@ -1,4 +1,5 @@
 import { PromptTemplates } from './promptTemplates';
+import { UnifiedPromptService } from './unifiedPromptService';
 import { supabase } from '@/integrations/supabase/client';
 import { GoogleSheetsService } from '../googlesheets/googleSheetsService';
 import { CampaignContextService } from '../campaign/campaignContextService';
@@ -6,6 +7,8 @@ import { CampaignContextService } from '../campaign/campaignContextService';
 interface ContentGenerationOptions {
   model: string;
   clientContext: string;
+  industry?: string;              // Nouveau champ
+  targetPersona?: string;         // Nouveau champ
   campaignContext: string;
   adGroupContext: string;
   keywords: string[];
@@ -71,12 +74,15 @@ export class DebugContentGeneration {
         originalCampaignContext: options.campaignContext.substring(0, 100) + '...'
       });
       
-      // Générer le contenu avec un prompt optimisé utilisant le contexte dynamique
-      const prompt = PromptTemplates.buildCompletePrompt({
-        adGroupName: options.adGroupContext,
-        keywords: options.keywords.join(', '),
+      // Générer le contenu avec le prompt unifié optimisé
+      const prompt = UnifiedPromptService.buildUnifiedPrompt({
         clientContext: options.clientContext,
-        campaignContext: dynamicCampaignContext || options.campaignContext // Fallback sur le contexte original
+        industry: options.industry,
+        targetPersona: options.targetPersona,
+        campaignContext: dynamicCampaignContext || options.campaignContext,
+        adGroupContext: options.adGroupContext,
+        keywords: options.keywords,
+        model: options.model
       });
       
       console.log('📝 Prompt généré:', prompt.substring(0, 200) + '...');
@@ -121,8 +127,8 @@ export class DebugContentGeneration {
       
       console.log('📄 Contenu généré brut:', generatedContent);
       
-      // Parser le JSON
-      const parsedContent = this.parseGeneratedContent(generatedContent);
+      // Parser le JSON avec le service unifié
+      const parsedContent = UnifiedPromptService.parseGeneratedContent(generatedContent);
       
       if (!parsedContent.success) {
         console.error('❌ Erreur parsing:', parsedContent.error);
