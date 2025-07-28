@@ -53,6 +53,9 @@ export class DebugContentGeneration {
         } else if (headerLower.includes('description')) {
           descriptionColumns.push(index);
           console.log(`    ✅ DESCRIPTION détectée -> Index ${index}`);
+        } else if (headerLower.includes('desc')) {
+          descriptionColumns.push(index);
+          console.log(`    ✅ DESC détectée -> Index ${index}`);
         }
       });
       
