@@ -175,8 +175,8 @@ export class DebugContentGeneration {
           
           for (let i = 0; i < missingTitles; i++) {
             const titleNumber = titleColumns.length + i + 1;
-            extendedHeaders.push(`Headline ${titleNumber}`);
-            extendedHeaders.push('nbcar');
+            extendedHeaders.push(`Titre ${titleNumber}`);
+            extendedHeaders.push(`Nb car Titre ${titleNumber}`);
             titleColumns.push(extendedHeaders.length - 2); // Index du titre (pas du nbcar)
           }
         }
@@ -189,7 +189,7 @@ export class DebugContentGeneration {
           for (let i = 0; i < missingDescriptions; i++) {
             const descriptionNumber = descriptionColumns.length + i + 1;
             extendedHeaders.push(`Description ${descriptionNumber}`);
-            extendedHeaders.push('nbcar');
+            extendedHeaders.push(`Nb car Desc ${descriptionNumber}`);
             descriptionColumns.push(extendedHeaders.length - 2); // Index de la description (pas du nbcar)
           }
         }
@@ -380,45 +380,71 @@ export class DebugContentGeneration {
     titleColumns: number[],
     descriptionColumns: number[]
   ): void {
-    console.log('🔧 Ajout des formules nbcar');
+    console.log('🔧 Ajout des formules NBCAR');
+    console.log('📊 Données pour formules:', {
+      rowIndex,
+      titleColumns,
+      descriptionColumns,
+      totalHeaders: sheetData[0]?.length || 0
+    });
     
     const headers = sheetData[0];
     const row = sheetData[rowIndex];
     
-    // Pour chaque colonne titre, vérifier s'il y a une colonne nbcar à droite
-    titleColumns.forEach((titleColumnIndex) => {
-      const nextColumnIndex = titleColumnIndex + 1;
-      if (nextColumnIndex < headers.length) {
-        const nextColumnHeader = String(headers[nextColumnIndex]).toLowerCase();
-        if (nextColumnHeader.includes('nbcar')) {
-          // Convertir l'index en notation de colonne (A, B, C, ...)
-          const columnLetter = this.numberToColumnLetter(titleColumnIndex);
-          const formula = `=LEN(${columnLetter}${rowIndex + 1})`;
-          row[nextColumnIndex] = formula;
-          console.log(`✅ Formule nbcar ajoutée pour titre en colonne ${titleColumnIndex}: ${formula}`);
-        }
+    // Pour chaque colonne titre, chercher la colonne de comptage correspondante
+    titleColumns.forEach((titleColumnIndex, i) => {
+      const titleHeader = headers[titleColumnIndex];
+      console.log(`🎯 Traitement titre ${i + 1}: "${titleHeader}" (index ${titleColumnIndex})`);
+      
+      // Chercher la colonne "Nb car Titre X" correspondante
+      const expectedNbcarHeader = `Nb car Titre ${i + 1}`;
+      const nbcarColumnIndex = headers.findIndex(h => 
+        String(h).toLowerCase().includes('nb car') && 
+        String(h).toLowerCase().includes(`titre ${i + 1}`)
+      );
+      
+      console.log(`🔍 Recherche colonne: "${expectedNbcarHeader}", trouvée à l'index: ${nbcarColumnIndex}`);
+      
+      if (nbcarColumnIndex !== -1 && nbcarColumnIndex < row.length) {
+        const columnLetter = this.numberToColumnLetter(titleColumnIndex + 1); // +1 car Excel commence à 1
+        const formula = `=NBCAR(${columnLetter}${rowIndex + 1})`;
+        row[nbcarColumnIndex] = formula;
+        console.log(`✅ Formule NBCAR ajoutée pour titre ${i + 1}: ${formula} -> colonne ${nbcarColumnIndex}`);
+      } else {
+        console.log(`❌ Colonne NBCAR non trouvée pour titre ${i + 1}`);
       }
     });
 
-    // Pour chaque colonne description, vérifier s'il y a une colonne nbcar à droite  
-    descriptionColumns.forEach((descColumnIndex) => {
-      const nextColumnIndex = descColumnIndex + 1;
-      if (nextColumnIndex < headers.length) {
-        const nextColumnHeader = String(headers[nextColumnIndex]).toLowerCase();
-        if (nextColumnHeader.includes('nbcar')) {
-          // Convertir l'index en notation de colonne (A, B, C, ...)
-          const columnLetter = this.numberToColumnLetter(descColumnIndex);
-          const formula = `=LEN(${columnLetter}${rowIndex + 1})`;
-          row[nextColumnIndex] = formula;
-          console.log(`✅ Formule nbcar ajoutée pour description en colonne ${descColumnIndex}: ${formula}`);
-        }
+    // Pour chaque colonne description, chercher la colonne de comptage correspondante
+    descriptionColumns.forEach((descColumnIndex, i) => {
+      const descHeader = headers[descColumnIndex];
+      console.log(`🎯 Traitement description ${i + 1}: "${descHeader}" (index ${descColumnIndex})`);
+      
+      // Chercher la colonne "Nb car Desc X" correspondante
+      const expectedNbcarHeader = `Nb car Desc ${i + 1}`;
+      const nbcarColumnIndex = headers.findIndex(h => 
+        String(h).toLowerCase().includes('nb car') && 
+        String(h).toLowerCase().includes(`desc ${i + 1}`)
+      );
+      
+      console.log(`🔍 Recherche colonne: "${expectedNbcarHeader}", trouvée à l'index: ${nbcarColumnIndex}`);
+      
+      if (nbcarColumnIndex !== -1 && nbcarColumnIndex < row.length) {
+        const columnLetter = this.numberToColumnLetter(descColumnIndex + 1); // +1 car Excel commence à 1
+        const formula = `=NBCAR(${columnLetter}${rowIndex + 1})`;
+        row[nbcarColumnIndex] = formula;
+        console.log(`✅ Formule NBCAR ajoutée pour description ${i + 1}: ${formula} -> colonne ${nbcarColumnIndex}`);
+      } else {
+        console.log(`❌ Colonne NBCAR non trouvée pour description ${i + 1}`);
       }
     });
+    
+    console.log('🔧 Fin ajout formules NBCAR');
   }
 
-  private static numberToColumnLetter(columnIndex: number): string {
+  private static numberToColumnLetter(columnNumber: number): string {
     let result = '';
-    let num = columnIndex;
+    let num = columnNumber - 1; // Convertir en base 0 pour le calcul
     
     while (num >= 0) {
       result = String.fromCharCode(65 + (num % 26)) + result;
