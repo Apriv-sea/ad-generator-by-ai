@@ -141,11 +141,38 @@ export class DebugContentGeneration {
         };
       }
       
-      console.log('✅ Contenu parsé:', {
+      console.log('✅ Contenu parsé initial:', {
         titlesCount: parsedContent.titles?.length || 0,
         descriptionsCount: parsedContent.descriptions?.length || 0,
         titles: parsedContent.titles,
         descriptions: parsedContent.descriptions
+      });
+
+      // ======= LOGIQUE DE RETRY POUR DESCRIPTIONS MANQUANTES =======
+      let finalDescriptions = parsedContent.descriptions || [];
+      
+      // Si on n'a pas assez de descriptions valides (on en veut 4), faire un retry
+      if (finalDescriptions.length < 4) {
+        const missingDescriptions = 4 - finalDescriptions.length;
+        console.log(`🔄 RETRY DESCRIPTIONS: Il manque ${missingDescriptions} descriptions valides, appel API supplémentaire...`);
+        
+        const retryResult = await this.retryMissingDescriptions(
+          options,
+          missingDescriptions,
+          finalDescriptions
+        );
+        
+        if (retryResult.success && retryResult.descriptions) {
+          finalDescriptions = [...finalDescriptions, ...retryResult.descriptions];
+          console.log(`✅ RETRY RÉUSSI: ${retryResult.descriptions.length} descriptions ajoutées`);
+        } else {
+          console.log(`⚠️ RETRY ÉCHOUÉ: ${retryResult.error || 'Erreur inconnue'}`);
+        }
+      }
+      
+      console.log('📊 Descriptions finales:', {
+        count: finalDescriptions.length,
+        descriptions: finalDescriptions
       });
       
       // ======= ANALYSE ET EXTENSION DE LA FEUILLE =======
@@ -257,15 +284,15 @@ export class DebugContentGeneration {
         });
       }
       
-      // Remplir les colonnes de descriptions (nouvellement créées ou existantes)
-      if (parsedContent.descriptions && descriptionColumns.length > 0) {
-        const maxDescriptions = Math.min(parsedContent.descriptions.length, descriptionColumns.length);
+      // Remplir les colonnes de descriptions (avec les descriptions finales après retry)
+      if (finalDescriptions && descriptionColumns.length > 0) {
+        const maxDescriptions = Math.min(finalDescriptions.length, descriptionColumns.length);
         
         for (let i = 0; i < maxDescriptions; i++) {
           const columnIndex = descriptionColumns[i];
           if (columnIndex < updatedRow.length) {
-            updatedRow[columnIndex] = parsedContent.descriptions[i];
-            console.log(`✅ Description ${i + 1} -> Colonne ${columnIndex} (${currentSheetData[0][columnIndex]}): "${parsedContent.descriptions[i]}"`);
+            updatedRow[columnIndex] = finalDescriptions[i];
+            console.log(`✅ Description ${i + 1} -> Colonne ${columnIndex} (${currentSheetData[0][columnIndex]}): "${finalDescriptions[i]}"`);
           }
         }
       }
@@ -546,5 +573,201 @@ export class DebugContentGeneration {
     }
     
     return result;
+  }
+
+  // ======= MÉTHODE DE RETRY POUR DESCRIPTIONS MANQUANTES =======
+  private static async retryMissingDescriptions(
+    options: ContentGenerationOptions,
+    missingCount: number,
+    existingDescriptions: string[]
+  ): Promise<{
+    success: boolean;
+    descriptions?: string[];
+    error?: string;
+  }> {
+    try {
+      console.log(`🔄 RETRY: Génération de ${missingCount} descriptions supplémentaires`);
+      
+      // Créer un prompt spécialisé pour les descriptions uniquement
+      const retryPrompt = this.buildDescriptionRetryPrompt(options, missingCount, existingDescriptions);
+      
+      console.log('📝 Prompt retry descriptions:', retryPrompt.substring(0, 300) + '...');
+      
+      // Appel vers l'edge function avec le prompt spécialisé
+      const { data: llmResponse, error: llmError } = await supabase.functions.invoke('secure-llm-api', {
+        body: {
+          provider: options.model.split(':')[0] || 'anthropic',
+          model: options.model.split(':')[1] || 'claude-sonnet-4-20250514',
+          messages: [
+            { role: 'system', content: 'You are a specialized copywriter focused on creating perfect ad descriptions.' },
+            { role: 'user', content: retryPrompt }
+          ],
+          maxTokens: 1000,
+          temperature: 0.7
+        }
+      });
+      
+      if (llmError) {
+        console.error('❌ Erreur LLM retry:', llmError);
+        return {
+          success: false,
+          error: `Erreur LLM retry: ${llmError.message}`
+        };
+      }
+      
+      // Extraire le contenu généré (même logique que dans la méthode principale)
+      let generatedContent;
+      if (llmResponse?.content?.[0]?.text) {
+        generatedContent = llmResponse.content[0].text;
+      } else if (llmResponse?.generatedText) {
+        generatedContent = llmResponse.generatedText;
+      } else {
+        console.error('❌ Structure de réponse retry inattendue:', llmResponse);
+        return {
+          success: false,
+          error: 'Structure de réponse LLM retry inattendue'
+        };
+      }
+      
+      console.log('📄 Contenu retry généré:', generatedContent);
+      
+      // Parser spécialement pour les descriptions
+      const parsedDescriptions = this.parseDescriptionsOnly(generatedContent);
+      
+      if (!parsedDescriptions.success) {
+        return {
+          success: false,
+          error: parsedDescriptions.error
+        };
+      }
+      
+      return {
+        success: true,
+        descriptions: parsedDescriptions.descriptions
+      };
+      
+    } catch (error) {
+      console.error('❌ Erreur retry descriptions:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur retry inconnue'
+      };
+    }
+  }
+
+  private static buildDescriptionRetryPrompt(
+    options: ContentGenerationOptions,
+    missingCount: number,
+    existingDescriptions: string[]
+  ): string {
+    return `GÉNÉRATION SPÉCIALISÉE DE DESCRIPTIONS PUBLICITAIRES
+
+CONTEXTE CLIENT:
+${options.clientContext}
+
+${options.industry ? `SECTEUR: ${options.industry}` : ''}
+${options.targetPersona ? `CIBLE: ${options.targetPersona}` : ''}
+
+CONTEXTE CAMPAGNE:
+${options.campaignContext}
+
+GROUPE D'ANNONCES:
+${options.adGroupContext}
+
+MOTS-CLÉS PRINCIPAUX: ${options.keywords.join(', ')}
+
+DESCRIPTIONS DÉJÀ GÉNÉRÉES:
+${existingDescriptions.map((desc, i) => `${i + 1}. ${desc}`).join('\n')}
+
+MISSION: Générer EXACTEMENT ${missingCount} descriptions publicitaires complémentaires.
+
+CONTRAINTES STRICTES:
+✅ Chaque description doit faire MINIMUM 65 caractères et MAXIMUM 90 caractères
+✅ Inclure naturellement les mots-clés
+✅ Être différente des descriptions déjà générées
+✅ Respecter le ton et le positionnement du client
+✅ Être persuasive et inciter à l'action
+
+FORMAT DE RÉPONSE OBLIGATOIRE (JSON uniquement):
+{
+  "descriptions": [
+    "Description 1 de ${missingCount} requises (65-90 caractères)",
+    "Description 2 de ${missingCount} requises (65-90 caractères)"${missingCount > 2 ? ',' : ''}
+    ${missingCount > 2 ? `"Description 3 de ${missingCount} requises (65-90 caractères)"${missingCount > 3 ? ',' : ''}` : ''}
+    ${missingCount > 3 ? `"Description 4 de ${missingCount} requises (65-90 caractères)"` : ''}
+  ]
+}
+
+IMPORTANT: Retourner UNIQUEMENT le JSON, rien d'autre.`;
+  }
+
+  private static parseDescriptionsOnly(content: string): {
+    success: boolean;
+    descriptions?: string[];
+    error?: string;
+  } {
+    try {
+      console.log('🔍 Parsing retry descriptions:', content.substring(0, 500));
+      
+      // Nettoyer et extraire le JSON (même logique que parseGeneratedContent)
+      let cleanContent = content.trim();
+      cleanContent = cleanContent.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+      
+      let jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        jsonMatch = cleanContent.match(/\{[^}]*"descriptions"[^}]*\}/s);
+      }
+      
+      if (jsonMatch) {
+        cleanContent = jsonMatch[0];
+      }
+      
+      cleanContent = this.cleanMalformedJson(cleanContent);
+      
+      console.log('🔍 JSON retry extrait:', cleanContent);
+      
+      let parsed;
+      try {
+        parsed = JSON.parse(cleanContent);
+      } catch (firstParseError) {
+        const correctedJson = this.attemptJsonCorrection(cleanContent);
+        try {
+          parsed = JSON.parse(correctedJson);
+        } catch (secondParseError) {
+          throw firstParseError;
+        }
+      }
+      
+      if (!parsed.descriptions || !Array.isArray(parsed.descriptions)) {
+        return {
+          success: false,
+          error: 'Pas de tableau de descriptions trouvé dans la réponse retry'
+        };
+      }
+      
+      // Valider et nettoyer les descriptions
+      const validDescriptions = parsed.descriptions
+        .filter((d: any) => d && typeof d === 'string')
+        .map((d: string) => d.trim())
+        .filter((d: string) => d.length >= 65 && d.length <= 90);
+      
+      console.log('✅ Descriptions retry validées:', {
+        total: parsed.descriptions.length,
+        valides: validDescriptions.length,
+        descriptions: validDescriptions
+      });
+      
+      return {
+        success: true,
+        descriptions: validDescriptions
+      };
+      
+    } catch (error) {
+      console.error('❌ Erreur parsing descriptions retry:', error);
+      return {
+        success: false,
+        error: `Erreur parsing descriptions retry: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+      };
+    }
   }
 }
