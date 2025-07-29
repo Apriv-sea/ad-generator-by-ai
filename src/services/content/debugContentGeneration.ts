@@ -150,28 +150,45 @@ export class DebugContentGeneration {
 
       // ======= LOGIQUE DE RETRY POUR DESCRIPTIONS MANQUANTES =======
       let finalDescriptions = parsedContent.descriptions || [];
+      let retryCount = 0;
+      const MAX_RETRIES = 2; // LIMITE DE SÉCURITÉ
       
-      // Si on n'a pas assez de descriptions valides (on en veut 4), faire un retry
-      if (finalDescriptions.length < 4) {
+      // Boucle de retry avec limite de sécurité
+      while (finalDescriptions.length < 4 && retryCount < MAX_RETRIES) {
         const missingDescriptions = 4 - finalDescriptions.length;
-        console.log(`🔄 RETRY DESCRIPTIONS: Il manque ${missingDescriptions} descriptions valides, appel API supplémentaire...`);
+        retryCount++;
+        
+        console.log(`🔄 RETRY ${retryCount}/${MAX_RETRIES}: Il manque ${missingDescriptions} descriptions valides, appel API supplémentaire...`);
         
         const retryResult = await this.retryMissingDescriptions(
           options,
           missingDescriptions,
-          finalDescriptions
+          finalDescriptions,
+          retryCount
         );
         
         if (retryResult.success && retryResult.descriptions) {
           finalDescriptions = [...finalDescriptions, ...retryResult.descriptions];
-          console.log(`✅ RETRY RÉUSSI: ${retryResult.descriptions.length} descriptions ajoutées`);
+          console.log(`✅ RETRY ${retryCount} RÉUSSI: ${retryResult.descriptions.length} descriptions ajoutées (total: ${finalDescriptions.length})`);
+          
+          // Si on a maintenant 4 descriptions, on peut arrêter
+          if (finalDescriptions.length >= 4) {
+            console.log(`🎯 OBJECTIF ATTEINT: 4 descriptions obtenues après ${retryCount} retry(s)`);
+            break;
+          }
         } else {
-          console.log(`⚠️ RETRY ÉCHOUÉ: ${retryResult.error || 'Erreur inconnue'}`);
+          console.log(`⚠️ RETRY ${retryCount} ÉCHOUÉ: ${retryResult.error || 'Erreur inconnue'}`);
         }
+      }
+      
+      // Log final du statut
+      if (finalDescriptions.length < 4 && retryCount >= MAX_RETRIES) {
+        console.log(`⚠️ LIMITE DE RETRY ATTEINTE: ${finalDescriptions.length}/4 descriptions après ${MAX_RETRIES} tentatives`);
       }
       
       console.log('📊 Descriptions finales:', {
         count: finalDescriptions.length,
+        retryCount,
         descriptions: finalDescriptions
       });
       
@@ -579,19 +596,20 @@ export class DebugContentGeneration {
   private static async retryMissingDescriptions(
     options: ContentGenerationOptions,
     missingCount: number,
-    existingDescriptions: string[]
+    existingDescriptions: string[],
+    retryAttempt: number
   ): Promise<{
     success: boolean;
     descriptions?: string[];
     error?: string;
   }> {
     try {
-      console.log(`🔄 RETRY: Génération de ${missingCount} descriptions supplémentaires`);
+      console.log(`🔄 RETRY ${retryAttempt}/2: Génération de ${missingCount} descriptions supplémentaires`);
       
       // Créer un prompt spécialisé pour les descriptions uniquement
-      const retryPrompt = this.buildDescriptionRetryPrompt(options, missingCount, existingDescriptions);
+      const retryPrompt = this.buildDescriptionRetryPrompt(options, missingCount, existingDescriptions, retryAttempt);
       
-      console.log('📝 Prompt retry descriptions:', retryPrompt.substring(0, 300) + '...');
+      console.log(`📝 Prompt retry ${retryAttempt}:`, retryPrompt.substring(0, 300) + '...');
       
       // Appel vers l'edge function avec le prompt spécialisé
       const { data: llmResponse, error: llmError } = await supabase.functions.invoke('secure-llm-api', {
@@ -658,9 +676,10 @@ export class DebugContentGeneration {
   private static buildDescriptionRetryPrompt(
     options: ContentGenerationOptions,
     missingCount: number,
-    existingDescriptions: string[]
+    existingDescriptions: string[],
+    retryAttempt: number
   ): string {
-    return `GÉNÉRATION SPÉCIALISÉE DE DESCRIPTIONS PUBLICITAIRES
+    return `GÉNÉRATION SPÉCIALISÉE DE DESCRIPTIONS PUBLICITAIRES - TENTATIVE ${retryAttempt}/2
 
 CONTEXTE CLIENT:
 ${options.clientContext}
@@ -680,6 +699,7 @@ DESCRIPTIONS DÉJÀ GÉNÉRÉES:
 ${existingDescriptions.map((desc, i) => `${i + 1}. ${desc}`).join('\n')}
 
 MISSION: Générer EXACTEMENT ${missingCount} descriptions publicitaires complémentaires.
+${retryAttempt > 1 ? `⚠️ TENTATIVE ${retryAttempt}/2 - Soyez plus créatif et varié dans vos approches !` : ''}
 
 CONTRAINTES STRICTES:
 ✅ Chaque description doit faire MINIMUM 65 caractères et MAXIMUM 90 caractères
