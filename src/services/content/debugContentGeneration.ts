@@ -394,51 +394,49 @@ export class DebugContentGeneration {
     const headers = sheetData[0];
     const row = sheetData[rowIndex];
     
-    // Pour chaque colonne titre, vérifier s'il y a une colonne "nbcar" juste après
+    // Pour chaque colonne titre, ajouter automatiquement la formule NBCAR dans la colonne juste à droite
     titleColumns.forEach((titleColumnIndex, i) => {
       const titleHeader = headers[titleColumnIndex];
       const nextColumnIndex = titleColumnIndex + 1;
       
       console.log(`🎯 Traitement titre ${i + 1}: "${titleHeader}" (index ${titleColumnIndex})`);
-      console.log(`🔍 Colonne suivante (${nextColumnIndex}): "${headers[nextColumnIndex]}"`);
+      console.log(`🔍 Ajout formule NBCAR dans colonne ${nextColumnIndex}: "${headers[nextColumnIndex]}"`);
       
       if (nextColumnIndex < headers.length) {
-        const nextColumnHeader = String(headers[nextColumnIndex]).toLowerCase();
+        const columnLetter = this.numberToColumnLetter(titleColumnIndex + 1); // +1 car Excel commence à 1
+        const formula = `=NBCAR(${columnLetter}${rowIndex + 1})`;
         
-        // Vérifier si la colonne suivante est "nbcar"
-        if (nextColumnHeader.includes('nbcar')) {
-          const columnLetter = this.numberToColumnLetter(titleColumnIndex + 1); // +1 car Excel commence à 1
-          const formula = `=NBCAR(${columnLetter}${rowIndex + 1})`;
-          row[nextColumnIndex] = formula;
-          console.log(`✅ Formule NBCAR ajoutée pour titre ${i + 1}: ${formula} -> colonne ${nextColumnIndex} (${headers[nextColumnIndex]})`);
-        } else {
-          console.log(`❌ Colonne suivante n'est pas "nbcar": "${headers[nextColumnIndex]}"`);
+        // Étendre la ligne si nécessaire
+        while (row.length <= nextColumnIndex) {
+          row.push('');
         }
+        
+        row[nextColumnIndex] = formula;
+        console.log(`✅ Formule NBCAR ajoutée pour titre ${i + 1}: ${formula} -> colonne ${nextColumnIndex} (${headers[nextColumnIndex]})`);
       } else {
         console.log(`❌ Pas de colonne suivante après titre ${i + 1}`);
       }
     });
 
-    // Pour chaque colonne description, vérifier s'il y a une colonne "nbcar" juste après
+    // Pour chaque colonne description, ajouter automatiquement la formule NBCAR dans la colonne juste à droite
     descriptionColumns.forEach((descColumnIndex, i) => {
       const descHeader = headers[descColumnIndex];
       const nextColumnIndex = descColumnIndex + 1;
       
       console.log(`🎯 Traitement description ${i + 1}: "${descHeader}" (index ${descColumnIndex})`);
-      console.log(`🔍 Colonne suivante (${nextColumnIndex}): "${headers[nextColumnIndex]}"`);
+      console.log(`🔍 Ajout formule NBCAR dans colonne ${nextColumnIndex}: "${headers[nextColumnIndex]}"`);
       
       if (nextColumnIndex < headers.length) {
-        const nextColumnHeader = String(headers[nextColumnIndex]).toLowerCase();
+        const columnLetter = this.numberToColumnLetter(descColumnIndex + 1); // +1 car Excel commence à 1
+        const formula = `=NBCAR(${columnLetter}${rowIndex + 1})`;
         
-        // Vérifier si la colonne suivante est "nbcar"
-        if (nextColumnHeader.includes('nbcar')) {
-          const columnLetter = this.numberToColumnLetter(descColumnIndex + 1); // +1 car Excel commence à 1
-          const formula = `=NBCAR(${columnLetter}${rowIndex + 1})`;
-          row[nextColumnIndex] = formula;
-          console.log(`✅ Formule NBCAR ajoutée pour description ${i + 1}: ${formula} -> colonne ${nextColumnIndex} (${headers[nextColumnIndex]})`);
-        } else {
-          console.log(`❌ Colonne suivante n'est pas "nbcar": "${headers[nextColumnIndex]}"`);
+        // Étendre la ligne si nécessaire
+        while (row.length <= nextColumnIndex) {
+          row.push('');
         }
+        
+        row[nextColumnIndex] = formula;
+        console.log(`✅ Formule NBCAR ajoutée pour description ${i + 1}: ${formula} -> colonne ${nextColumnIndex} (${headers[nextColumnIndex]})`);
       } else {
         console.log(`❌ Pas de colonne suivante après description ${i + 1}`);
       }
