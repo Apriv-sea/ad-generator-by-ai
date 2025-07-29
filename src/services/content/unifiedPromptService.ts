@@ -34,7 +34,7 @@ Génère EXACTEMENT 15 titres et 4 descriptions Google Ads ultra-percutants qui 
 
 CONTRAINTES TECHNIQUES STRICTES:
 ✅ Titres: EXACTEMENT 15 titres, maximum 30 caractères chacun
-✅ Descriptions: EXACTEMENT 4 descriptions, minimum 65 caractères et maximum 90 caractères chacune
+✅ Descriptions: EXACTEMENT 4 descriptions, minimum 55 caractères et maximum 90 caractères chacune
 ✅ Inclure naturellement les mots-clés dans chaque élément
 ✅ Respecter le secteur d'activité et le public cible
 
@@ -107,7 +107,7 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire.`;
         .slice(0, 15);
         
       const validDescriptions = parsed.descriptions
-        .filter(d => d && typeof d === 'string' && d.length >= 65 && d.length <= 90)
+        .filter(d => d && typeof d === 'string' && d.length >= 55 && d.length <= 90)
         .slice(0, 4);
 
       if (validTitles.length === 0) {
@@ -120,7 +120,7 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire.`;
       if (validDescriptions.length === 0) {
         return {
           success: false,
-          error: 'Aucune description valide générée (min 65, max 90 caractères)'
+          error: 'Aucune description valide générée (min 55, max 90 caractères)'
         };
       }
 
@@ -156,7 +156,7 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire.`;
   static validateDescription(description: string): boolean {
     return description && 
            typeof description === 'string' && 
-           description.length >= 65 && 
+           description.length >= 55 && 
            description.length <= 90 &&
            !description.includes('\n');
   }

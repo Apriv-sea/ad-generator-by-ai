@@ -430,7 +430,7 @@ export class DebugContentGeneration {
       const validDescriptions = parsed.descriptions
         .filter((d: any) => d && typeof d === 'string')
         .map((d: string) => d.trim())
-        .filter((d: string) => d.length >= 65 && d.length <= 90);
+        .filter((d: string) => d.length >= 55 && d.length <= 90);
       
       console.log('🔍 Validation:', {
         titresTotal: parsed.titles.length,
@@ -702,7 +702,7 @@ MISSION: Générer EXACTEMENT ${missingCount} descriptions publicitaires complé
 ${retryAttempt > 1 ? `⚠️ TENTATIVE ${retryAttempt}/2 - Soyez plus créatif et varié dans vos approches !` : ''}
 
 CONTRAINTES STRICTES:
-✅ Chaque description doit faire MINIMUM 65 caractères et MAXIMUM 90 caractères
+✅ Chaque description doit faire MINIMUM 55 caractères et MAXIMUM 90 caractères
 ✅ Inclure naturellement les mots-clés
 ✅ Être différente des descriptions déjà générées
 ✅ Respecter le ton et le positionnement du client
@@ -711,10 +711,10 @@ CONTRAINTES STRICTES:
 FORMAT DE RÉPONSE OBLIGATOIRE (JSON uniquement):
 {
   "descriptions": [
-    "Description 1 de ${missingCount} requises (65-90 caractères)",
-    "Description 2 de ${missingCount} requises (65-90 caractères)"${missingCount > 2 ? ',' : ''}
-    ${missingCount > 2 ? `"Description 3 de ${missingCount} requises (65-90 caractères)"${missingCount > 3 ? ',' : ''}` : ''}
-    ${missingCount > 3 ? `"Description 4 de ${missingCount} requises (65-90 caractères)"` : ''}
+    "Description 1 de ${missingCount} requises (55-90 caractères)",
+    "Description 2 de ${missingCount} requises (55-90 caractères)"${missingCount > 2 ? ',' : ''}
+    ${missingCount > 2 ? `"Description 3 de ${missingCount} requises (55-90 caractères)"${missingCount > 3 ? ',' : ''}` : ''}
+    ${missingCount > 3 ? `"Description 4 de ${missingCount} requises (55-90 caractères)"` : ''}
   ]
 }
 
@@ -769,7 +769,7 @@ IMPORTANT: Retourner UNIQUEMENT le JSON, rien d'autre.`;
       const validDescriptions = parsed.descriptions
         .filter((d: any) => d && typeof d === 'string')
         .map((d: string) => d.trim())
-        .filter((d: string) => d.length >= 65 && d.length <= 90);
+        .filter((d: string) => d.length >= 55 && d.length <= 90);
       
       console.log('✅ Descriptions retry validées:', {
         total: parsed.descriptions.length,
