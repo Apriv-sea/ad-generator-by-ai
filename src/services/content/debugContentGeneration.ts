@@ -323,16 +323,42 @@ export class DebugContentGeneration {
       // Nettoyer le contenu pour extraire le JSON
       let cleanContent = content.trim();
       
-      // Rechercher le JSON dans le contenu
-      const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+      // Supprimer les caractères de contrôle et caractères invisibles
+      cleanContent = cleanContent.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+      
+      // Rechercher le JSON dans le contenu avec plusieurs patterns
+      let jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        // Essayer de trouver un JSON avec des patterns plus flexibles
+        jsonMatch = cleanContent.match(/\{[^}]*"titles"[^}]*\}/s);
+      }
+      
       if (jsonMatch) {
         cleanContent = jsonMatch[0];
       }
       
-      console.log('🔍 JSON extrait:', cleanContent);
+      // Nettoyer le JSON potentiellement malformé
+      cleanContent = this.cleanMalformedJson(cleanContent);
       
-      // Parser le JSON
-      const parsed = JSON.parse(cleanContent);
+      console.log('🔍 JSON extrait et nettoyé:', cleanContent);
+      
+      // Essayer de parser le JSON
+      let parsed;
+      try {
+        parsed = JSON.parse(cleanContent);
+      } catch (firstParseError) {
+        console.log('🔧 Première tentative de parsing échouée, essai de correction...');
+        
+        // Tentative de correction automatique du JSON
+        const correctedJson = this.attemptJsonCorrection(cleanContent);
+        try {
+          parsed = JSON.parse(correctedJson);
+          console.log('✅ JSON corrigé avec succès');
+        } catch (secondParseError) {
+          console.error('❌ Impossible de corriger le JSON:', secondParseError);
+          throw firstParseError; // Utiliser l'erreur originale
+        }
+      }
       
       console.log('🔍 JSON parsé:', parsed);
       
@@ -351,9 +377,16 @@ export class DebugContentGeneration {
         };
       }
       
-      // Valider les contraintes
-      const validTitles = parsed.titles.filter((t: any) => t && typeof t === 'string' && t.length <= 30);
-      const validDescriptions = parsed.descriptions.filter((d: any) => d && typeof d === 'string' && d.length <= 90);
+      // Valider et nettoyer les titres et descriptions
+      const validTitles = parsed.titles
+        .filter((t: any) => t && typeof t === 'string')
+        .map((t: string) => t.trim())
+        .filter((t: string) => t.length > 0 && t.length <= 30);
+        
+      const validDescriptions = parsed.descriptions
+        .filter((d: any) => d && typeof d === 'string')
+        .map((d: string) => d.trim())
+        .filter((d: string) => d.length > 0 && d.length <= 90);
       
       console.log('🔍 Validation:', {
         titresTotal: parsed.titles.length,
@@ -375,6 +408,44 @@ export class DebugContentGeneration {
         error: `Erreur parsing JSON: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
       };
     }
+  }
+
+  private static cleanMalformedJson(jsonString: string): string {
+    // Supprimer les retours à la ligne indésirables dans les valeurs de chaînes
+    let cleaned = jsonString;
+    
+    // Corriger les guillemets manquants ou malformés
+    cleaned = cleaned.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+    
+    // Supprimer les virgules en trop
+    cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1');
+    
+    // Ajouter des virgules manquantes entre les éléments d'array
+    cleaned = cleaned.replace(/"\s*\n\s*"/g, '", "');
+    
+    return cleaned;
+  }
+
+  private static attemptJsonCorrection(jsonString: string): string {
+    let corrected = jsonString;
+    
+    // Essayer de fermer les accolades manquantes
+    const openBraces = (corrected.match(/\{/g) || []).length;
+    const closeBraces = (corrected.match(/\}/g) || []).length;
+    
+    if (openBraces > closeBraces) {
+      corrected += '}';
+    }
+    
+    // Essayer de fermer les crochets manquants
+    const openBrackets = (corrected.match(/\[/g) || []).length;
+    const closeBrackets = (corrected.match(/\]/g) || []).length;
+    
+    if (openBrackets > closeBrackets) {
+      corrected += ']';
+    }
+    
+    return corrected;
   }
 
   private static addCharacterCountFormulas(
