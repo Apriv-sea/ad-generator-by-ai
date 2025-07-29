@@ -122,7 +122,7 @@ export class ColumnMappingService {
   }
   
   /**
-   * Appliquer les résultats de génération aux bonnes colonnes avec formules NBCAR
+   * Appliquer les résultats de génération aux bonnes colonnes (sans formules NBCAR)
    */
   static applyGenerationResults(
     originalRow: string[],
@@ -147,67 +147,25 @@ export class ColumnMappingService {
       updatedRow.push('');
     }
     
-    // Appliquer les titres (jusqu'à 15) avec formules NBCAR
-    for (let i = 0; i < Math.min(titles.length, 15); i++) {
-      const titleColumnKey = `title${i + 1}Column`;
-      console.log(`🔍 Recherche ${titleColumnKey}, valeur mapping: ${mappings[titleColumnKey]}`);
-      if (mappings[titleColumnKey] !== -1) {
-        // Vérifier si la cellule contient une formule (commence par =)
-        const existingValue = updatedRow[mappings[titleColumnKey]];
-        if (!existingValue || !existingValue.toString().startsWith('=')) {
-          updatedRow[mappings[titleColumnKey]] = titles[i];
-          
-          // Ajouter formule NBCAR dans la colonne suivante si elle est vide
-          const charCountColumnIndex = mappings[titleColumnKey] + 1;
-          if (charCountColumnIndex < updatedRow.length) {
-            const charCountValue = updatedRow[charCountColumnIndex];
-            if (!charCountValue || (!charCountValue.toString().startsWith('=') && charCountValue.toString().trim() === '')) {
-              // Convertir index en lettre de colonne (A, B, C, etc.)
-              const columnLetter = this.numberToColumnLetter(mappings[titleColumnKey] + 1);
-              const rowNumber = 2; // Supposant que les données commencent à la ligne 2
-              updatedRow[charCountColumnIndex] = `=NBCAR(${columnLetter}${rowNumber})`;
-              console.log(`✅ Formule NBCAR ajoutée en colonne ${charCountColumnIndex}: =NBCAR(${columnLetter}${rowNumber})`);
-            }
-          }
-          
-          console.log(`✅ Titre ${i + 1} ajouté en colonne ${mappings[titleColumnKey]}: "${titles[i]}"`);
-        } else {
-          console.log(`⚠️ Titre ${i + 1} ignoré - formule existante en colonne ${mappings[titleColumnKey]}: "${existingValue}"`);
+    // Appliquer les titres (jusqu'à 15) sans formules NBCAR
+    if (titles) {
+      for (let i = 0; i < Math.min(titles.length, 15); i++) {
+        const titleIndex = mappings.titleStartIndex + i;
+        if (titleIndex < updatedRow.length) {
+          updatedRow[titleIndex] = titles[i];
+          console.log(`✅ Titre ${i + 1} appliqué en colonne ${titleIndex}: "${titles[i]}"`);
         }
-      } else {
-        console.log(`❌ Titre ${i + 1} - Colonne non trouvée (${titleColumnKey})`);
       }
     }
     
-    // Appliquer les descriptions (jusqu'à 4) avec formules NBCAR
-    for (let i = 0; i < Math.min(descriptions.length, 4); i++) {
-      const descriptionColumnKey = `description${i + 1}Column`;
-      console.log(`🔍 Recherche ${descriptionColumnKey}, valeur mapping: ${mappings[descriptionColumnKey]}`);
-      if (mappings[descriptionColumnKey] !== -1) {
-        // Vérifier si la cellule contient une formule (commence par =)
-        const existingValue = updatedRow[mappings[descriptionColumnKey]];
-        if (!existingValue || !existingValue.toString().startsWith('=')) {
-          updatedRow[mappings[descriptionColumnKey]] = descriptions[i];
-          
-          // Ajouter formule NBCAR dans la colonne suivante si elle est vide
-          const charCountColumnIndex = mappings[descriptionColumnKey] + 1;
-          if (charCountColumnIndex < updatedRow.length) {
-            const charCountValue = updatedRow[charCountColumnIndex];
-            if (!charCountValue || (!charCountValue.toString().startsWith('=') && charCountValue.toString().trim() === '')) {
-              // Convertir index en lettre de colonne
-              const columnLetter = this.numberToColumnLetter(mappings[descriptionColumnKey] + 1);
-              const rowNumber = 2; // Supposant que les données commencent à la ligne 2
-              updatedRow[charCountColumnIndex] = `=NBCAR(${columnLetter}${rowNumber})`;
-              console.log(`✅ Formule NBCAR ajoutée en colonne ${charCountColumnIndex}: =NBCAR(${columnLetter}${rowNumber})`);
-            }
-          }
-          
-          console.log(`✅ Description ${i + 1} ajoutée en colonne ${mappings[descriptionColumnKey]}: "${descriptions[i]}"`);
-        } else {
-          console.log(`⚠️ Description ${i + 1} ignorée - formule existante en colonne ${mappings[descriptionColumnKey]}: "${existingValue}"`);
+    // Appliquer les descriptions (jusqu'à 4) sans formules NBCAR
+    if (descriptions) {
+      for (let i = 0; i < Math.min(descriptions.length, 4); i++) {
+        const descIndex = mappings.descriptionStartIndex + i;
+        if (descIndex < updatedRow.length) {
+          updatedRow[descIndex] = descriptions[i];
+          console.log(`✅ Description ${i + 1} appliquée en colonne ${descIndex}: "${descriptions[i]}"`);
         }
-      } else {
-        console.log(`❌ Description ${i + 1} - Colonne non trouvée (${descriptionColumnKey})`);
       }
     }
     
@@ -250,7 +208,7 @@ export class ColumnMappingService {
   }
   
   /**
-   * Créer une feuille avec les en-têtes standard incluant les colonnes de comptage NBCAR
+   * Créer une feuille avec les en-têtes standard (sans les colonnes de comptage NBCAR)
    */
   static getStandardHeaders(): string[] {
     const headers = [];
@@ -262,16 +220,14 @@ export class ColumnMappingService {
     headers.push('État du groupe d\'annonces');
     headers.push('Type de correspondance par défaut');
     
-    // Titres avec colonnes de comptage NBCAR
+    // Titres (sans colonnes de comptage)
     for (let i = 1; i <= 15; i++) {
       headers.push(`Titre ${i}`);
-      headers.push(`Nb car Titre ${i}`);
     }
     
-    // Descriptions avec colonnes de comptage NBCAR
+    // Descriptions (sans colonnes de comptage)
     for (let i = 1; i <= 4; i++) {
       headers.push(`Description ${i}`);
-      headers.push(`Nb car Desc ${i}`);
     }
     
     // Colonnes finales

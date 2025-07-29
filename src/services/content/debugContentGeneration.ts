@@ -215,29 +215,27 @@ export class DebugContentGeneration {
         // Créer une copie des headers pour modification
         const extendedHeaders = [...headers];
         
-        // Ajouter les colonnes de titre manquantes
+        // Ajouter les colonnes de titre manquantes (sans les colonnes NBCAR)
         if (needsMissingTitleColumns) {
           const missingTitles = 15 - titleColumns.length;
-          console.log(`➕ Ajout de ${missingTitles} colonnes de titre manquantes`);
+          console.log(`➕ Ajout de ${missingTitles} colonnes de titre manquantes (sans comptage de caractères)`);
           
           for (let i = 0; i < missingTitles; i++) {
             const titleNumber = titleColumns.length + i + 1;
             extendedHeaders.push(`Titre ${titleNumber}`);
-            extendedHeaders.push(`Nb car Titre ${titleNumber}`);
-            titleColumns.push(extendedHeaders.length - 2); // Index du titre (pas du nbcar)
+            titleColumns.push(extendedHeaders.length - 1); // Index du titre
           }
         }
         
-        // Ajouter les colonnes de description manquantes
+        // Ajouter les colonnes de description manquantes (sans les colonnes NBCAR)
         if (needsMoreDescriptionColumns) {
           const missingDescriptions = 4 - descriptionColumns.length;
-          console.log(`➕ Ajout de ${missingDescriptions} colonnes de descriptions (actuelles: ${descriptionColumns.length})`);
+          console.log(`➕ Ajout de ${missingDescriptions} colonnes de descriptions (actuelles: ${descriptionColumns.length}, sans comptage)`);
           
           for (let i = 0; i < missingDescriptions; i++) {
             const descriptionNumber = descriptionColumns.length + i + 1;
             extendedHeaders.push(`Description ${descriptionNumber}`);
-            extendedHeaders.push(`Nb car Desc ${descriptionNumber}`);
-            descriptionColumns.push(extendedHeaders.length - 2); // Index de la description (pas du nbcar)
+            descriptionColumns.push(extendedHeaders.length - 1); // Index de la description
           }
         }
         
@@ -265,7 +263,7 @@ export class DebugContentGeneration {
       
       console.log(`📏 Ligne adaptée à ${updatedRow.length} colonnes (total: ${totalColumns})`);
       
-      // Remplir UNIQUEMENT les colonnes de titres détectées
+      // Remplir UNIQUEMENT les colonnes de titres détectées (en évitant les colonnes protégées)
       console.log('🎯 DÉBUT MAPPING TITRES');
       console.log('📊 Données pour mapping:', {
         titresDisponibles: parsedContent.titles?.length || 0,
@@ -280,6 +278,13 @@ export class DebugContentGeneration {
         
         for (let i = 0; i < maxTitles; i++) {
           const columnIndex = titleColumns[i];
+          
+          // Vérifier si la colonne est protégée
+          if (this.isColumnProtected(columnIndex)) {
+            console.log(`🔒 SKIP: Titre ${i + 1} - Colonne ${columnIndex} protégée`);
+            continue;
+          }
+          
           console.log(`🎯 Tentative mapping titre ${i + 1}:`);
           console.log(`  - Titre: "${parsedContent.titles[i]}"`);
           console.log(`  - Index colonne: ${columnIndex}`);
@@ -301,12 +306,19 @@ export class DebugContentGeneration {
         });
       }
       
-      // Remplir les colonnes de descriptions (avec les descriptions finales après retry)
+      // Remplir les colonnes de descriptions (en évitant les colonnes protégées)
       if (finalDescriptions && descriptionColumns.length > 0) {
         const maxDescriptions = Math.min(finalDescriptions.length, descriptionColumns.length);
         
         for (let i = 0; i < maxDescriptions; i++) {
           const columnIndex = descriptionColumns[i];
+          
+          // Vérifier si la colonne est protégée
+          if (this.isColumnProtected(columnIndex)) {
+            console.log(`🔒 SKIP: Description ${i + 1} - Colonne ${columnIndex} protégée`);
+            continue;
+          }
+          
           if (columnIndex < updatedRow.length) {
             updatedRow[columnIndex] = finalDescriptions[i];
             console.log(`✅ Description ${i + 1} -> Colonne ${columnIndex} (${currentSheetData[0][columnIndex]}): "${finalDescriptions[i]}"`);
@@ -316,9 +328,8 @@ export class DebugContentGeneration {
       
       updatedSheetData[rowIndex] = updatedRow;
       
-      // Ajouter les formules nbcar pour les colonnes de caractères
-      console.log('🚨🚨🚨 DEBUG - Ajout des formules nbcar');
-      this.addCharacterCountFormulas(updatedSheetData, rowIndex, titleColumns, descriptionColumns);
+      // Les formules de comptage de caractères sont maintenant gérées manuellement par l'utilisateur
+      console.log('ℹ️ Comptage de caractères désactivé - géré manuellement par l\'utilisateur');
       
       console.log('📝 Ligne finale:', {
         originalLength: originalRow.length,
@@ -492,92 +503,16 @@ export class DebugContentGeneration {
     return corrected;
   }
 
-  private static addCharacterCountFormulas(
-    sheetData: string[][],
-    rowIndex: number,
-    titleColumns: number[],
-    descriptionColumns: number[]
-  ): void {
-    console.log('🔧 Ajout des formules NBCAR - VERSION CORRIGÉE');
-    console.log('📊 Données pour formules:', {
-      rowIndex,
-      titleColumns,
-      descriptionColumns,
-      headers: sheetData[0]
-    });
-    
-    const headers = sheetData[0];
-    const row = sheetData[rowIndex];
-    
-    // CORRECTION: Identifier les colonnes NBCAR par leur nom, pas par position relative
-    // Parcourir tous les headers pour trouver les colonnes NBCAR
-    headers.forEach((header, index) => {
-      const headerLower = String(header).toLowerCase();
-      
-      // Si c'est une colonne NBCAR pour titre
-      if (headerLower.includes('nb car titre') || headerLower.includes('nbcar titre')) {
-        // Extraire le numéro du titre
-        const titleNumber = this.extractTitleNumber(header);
-        if (titleNumber) {
-          // Trouver la colonne titre correspondante
-          const titleColumnName = `Titre ${titleNumber}`;
-          const titleColumnIndex = headers.findIndex(h => 
-            String(h).toLowerCase() === titleColumnName.toLowerCase()
-          );
-          
-          if (titleColumnIndex !== -1) {
-            const columnLetter = this.numberToColumnLetter(titleColumnIndex + 1);
-            const formula = `=NBCAR(${columnLetter}${rowIndex + 1})`;
-            
-            // Étendre la ligne si nécessaire
-            while (row.length <= index) {
-              row.push('');
-            }
-            
-            row[index] = formula;
-            console.log(`✅ Formule NBCAR titre ${titleNumber}: ${formula} -> colonne ${index} (${header})`);
-          }
-        }
-      }
-      
-      // Si c'est une colonne NBCAR pour description
-      else if (headerLower.includes('nb car desc') || headerLower.includes('nbcar desc')) {
-        // Extraire le numéro de la description
-        const descNumber = this.extractDescriptionNumber(header);
-        if (descNumber) {
-          // Trouver la colonne description correspondante
-          const descColumnName = `Description ${descNumber}`;
-          const descColumnIndex = headers.findIndex(h => 
-            String(h).toLowerCase() === descColumnName.toLowerCase()
-          );
-          
-          if (descColumnIndex !== -1) {
-            const columnLetter = this.numberToColumnLetter(descColumnIndex + 1);
-            const formula = `=NBCAR(${columnLetter}${rowIndex + 1})`;
-            
-            // Étendre la ligne si nécessaire
-            while (row.length <= index) {
-              row.push('');
-            }
-            
-            row[index] = formula;
-            console.log(`✅ Formule NBCAR description ${descNumber}: ${formula} -> colonne ${index} (${header})`);
-          }
-        }
-      }
-    });
-    
-    console.log('🔧 Fin ajout formules NBCAR - VERSION CORRIGÉE');
-  }
-
-  private static extractTitleNumber(header: string): number | null {
-    const match = String(header).match(/titre\s*(\d+)/i);
-    return match ? parseInt(match[1], 10) : null;
-  }
-
-  private static extractDescriptionNumber(header: string): number | null {
-    const match = String(header).match(/desc(?:ription)?\s*(\d+)/i);
-    return match ? parseInt(match[1], 10) : null;
+  // ======= COLONNES PROTÉGÉES - NE PAS ÉCRIRE =======
+  private static readonly PROTECTED_COLUMNS = ['E', 'G', 'I', 'K', 'M', 'O', 'Q', 'S', 'U', 'W', 'Y', 'AA', 'AC', 'AE', 'AG'];
+  
+  private static isColumnProtected(columnIndex: number): boolean {
+    const columnLetter = this.numberToColumnLetter(columnIndex + 1);
+    const isProtected = this.PROTECTED_COLUMNS.includes(columnLetter);
+    if (isProtected) {
+      console.log(`🔒 Colonne ${columnLetter} (index ${columnIndex}) protégée - pas d'écriture`);
+    }
+    return isProtected;
   }
 
   private static numberToColumnLetter(columnNumber: number): string {

@@ -50,16 +50,14 @@ export class GoogleSheetsService {
     headers.push('Type de correspondance par défaut');
     headers.push('Top 3 mots-clés (séparés par des virgules)');
     
-    // Titres avec colonnes de comptage NBCAR
+    // Titres (sans colonnes de comptage)
     for (let i = 1; i <= 15; i++) {
       headers.push(`Titre ${i}`);
-      headers.push(`Nb car Titre ${i}`);
     }
     
-    // Descriptions avec colonnes de comptage NBCAR
+    // Descriptions (sans colonnes de comptage)
     for (let i = 1; i <= 4; i++) {
       headers.push(`Description ${i}`);
-      headers.push(`Nb car Desc ${i}`);
     }
     
     // Colonnes finales
