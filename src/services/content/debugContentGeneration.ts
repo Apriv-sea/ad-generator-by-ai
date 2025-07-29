@@ -386,7 +386,7 @@ export class DebugContentGeneration {
       const validDescriptions = parsed.descriptions
         .filter((d: any) => d && typeof d === 'string')
         .map((d: string) => d.trim())
-        .filter((d: string) => d.length > 0 && d.length <= 90);
+        .filter((d: string) => d.length >= 65 && d.length <= 90);
       
       console.log('🔍 Validation:', {
         titresTotal: parsed.titles.length,
