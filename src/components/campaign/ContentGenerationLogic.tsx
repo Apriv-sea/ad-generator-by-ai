@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Sheet, Client, sheetService } from "@/services/sheetService";
-import { DebugContentGeneration } from "@/services/content/debugContentGeneration";
+import { DebugContentGeneration } from "@/services/content/DebugContentGeneration";
 import { googleSheetsService } from "@/services/googlesheets/googleSheetsService";
 
 interface UseContentGenerationProps {
