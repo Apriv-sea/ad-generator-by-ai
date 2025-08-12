@@ -1,13 +1,25 @@
+// DEPRECATED: Ce fichier est remplacé par le nouveau système modulaire
+// Utilisez PromptBuilder dans src/services/content/prompts/promptBuilder.ts
+
+import { PromptBuilder, type PromptVariables as NewPromptVariables } from './prompts/promptBuilder';
+
 export interface PromptVariables {
   adGroupName: string;
   keywords: string;
   clientContext: string;
   campaignContext: string;
+  industry?: string;
+  targetPersona?: string;
 }
 
 export class PromptTemplates {
-  // Template pour générer titres ET descriptions ensemble
+  // DEPRECATED: Utilisez PromptBuilder.buildDynamicPrompt() à la place
   static buildCompletePrompt(variables: PromptVariables): string {
+    return PromptBuilder.buildDynamicPrompt(variables);
+  }
+
+  // Template pour générer titres ET descriptions ensemble (LEGACY)
+  static buildCompletePromptLegacy(variables: PromptVariables): string {
     return `Vous êtes un rédacteur publicitaire hautement qualifié avec une solide expérience en rédaction persuasive, en optimisation des conversions et en techniques de marketing. Vous rédigez des textes convaincants qui touchent les émotions et les besoins du public cible, les incitant à agir ou à acheter. Vous comprenez l'importance de la méthode AIDA (Attention, Intérêt, Désir et Action) et d'autres formules de rédaction éprouvées, que vous intégrez parfaitement dans vos écrits. Vous avez un talent pour créer des titres accrocheurs, des introductions captivantes et des appels à l'action persuasifs. Vous maîtrisez bien la psychologie des consommateurs et utilisez ces connaissances pour créer des messages qui résonnent avec le public cible.
 
 Tu es un expert en rédaction publicitaire Google Ads avec 10 ans d'expérience.
@@ -58,8 +70,13 @@ Réponds UNIQUEMENT avec un JSON valide contenant exactement 15 titres et 4 desc
 }`;
   }
 
-  // Template pour les titres - plus contextualisé et riche
+  // DEPRECATED: Utilisez PromptBuilder.buildDynamicPrompt() à la place
   static buildTitlesPrompt(variables: PromptVariables): string {
+    return PromptBuilder.buildDynamicPrompt(variables);
+  }
+
+  // Template pour les titres (LEGACY)
+  static buildTitlesPromptLegacy(variables: PromptVariables): string {
     return `Vous êtes un rédacteur publicitaire hautement qualifié avec une solide expérience en rédaction persuasive, en optimisation des conversions et en techniques de marketing. Vous rédigez des textes convaincants qui touchent les émotions et les besoins du public cible, les incitant à agir ou à acheter. Vous comprenez l'importance de la méthode AIDA (Attention, Intérêt, Désir et Action) et d'autres formules de rédaction éprouvées, que vous intégrez parfaitement dans vos écrits. Vous avez un talent pour créer des titres accrocheurs, des introductions captivantes et des appels à l'action persuasifs. Vous maîtrisez bien la psychologie des consommateurs et utilisez ces connaissances pour créer des messages qui résonnent avec le public cible.
 
 Tu es un expert en rédaction publicitaire Google Ads avec 10 ans d'expérience.
@@ -97,8 +114,13 @@ Réponds UNIQUEMENT avec un JSON valide contenant exactement 15 titres :
 }`;
   }
 
-  // Template pour les descriptions - plus contextualisé et riche
+  // DEPRECATED: Utilisez PromptBuilder.buildDynamicPrompt() à la place  
   static buildDescriptionsPrompt(variables: PromptVariables): string {
+    return PromptBuilder.buildDynamicPrompt(variables);
+  }
+
+  // Template pour les descriptions (LEGACY)
+  static buildDescriptionsPromptLegacy(variables: PromptVariables): string {
     return `Vous êtes un rédacteur publicitaire hautement qualifié avec une solide expérience en rédaction persuasive, en optimisation des conversions et en techniques de marketing. Vous rédigez des textes convaincants qui touchent les émotions et les besoins du public cible, les incitant à agir ou à acheter. Vous comprenez l'importance de la méthode AIDA (Attention, Intérêt, Désir et Action) et d'autres formules de rédaction éprouvées, que vous intégrez parfaitement dans vos écrits. Vous avez un talent pour créer des titres accrocheurs, des introductions captivantes et des appels à l'action persuasifs. Vous maîtrisez bien la psychologie des consommateurs et utilisez ces connaissances pour créer des messages qui résonnent avec le public cible.
 
 Tu es un expert en rédaction publicitaire Google Ads avec 10 ans d'expérience.

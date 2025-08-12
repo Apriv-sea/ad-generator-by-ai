@@ -1,5 +1,7 @@
 import { PromptTemplates } from './promptTemplates';
 import { UnifiedPromptService } from './unifiedPromptService';
+import { PromptBuilder } from './prompts/promptBuilder';
+import { ResponseValidator } from './prompts/responseValidator';
 import { supabase } from '@/integrations/supabase/client';
 import { GoogleSheetsService } from '../googlesheets/googleSheetsService';
 import { CampaignContextService } from '../campaign/campaignContextService';
@@ -77,15 +79,19 @@ export class DebugContentGeneration {
         originalCampaignContext: options.campaignContext.substring(0, 100) + '...'
       });
       
-      // Générer le contenu avec le prompt unifié optimisé
-      const prompt = UnifiedPromptService.buildUnifiedPrompt({
+      // Générer le contenu avec le nouveau prompt dynamique optimisé
+      const prompt = PromptBuilder.buildDynamicPrompt({
+        adGroupName: options.adGroupContext,
+        keywords: options.keywords.join(', '),
         clientContext: options.clientContext,
-        industry: options.industry,
-        targetPersona: options.targetPersona,
         campaignContext: dynamicCampaignContext || options.campaignContext,
-        adGroupContext: options.adGroupContext,
-        keywords: options.keywords,
-        model: options.model
+        industry: options.industry,
+        targetPersona: options.targetPersona
+      }, {
+        includeIndustrySpecifics: true,
+        includePersonaAdaptation: true,
+        enhancedValidation: true,
+        strictFormatting: true
       });
       
       console.log('📝 Prompt généré:', prompt.substring(0, 200) + '...');
@@ -130,15 +136,44 @@ export class DebugContentGeneration {
       
       console.log('📄 Contenu généré brut:', generatedContent);
       
-      // Parser le JSON avec le service unifié
-      const parsedContent = UnifiedPromptService.parseGeneratedContent(generatedContent);
+      // Valider et corriger le contenu avec le nouveau système
+      const validationResult = ResponseValidator.validateAndCorrect(generatedContent, {
+        strictValidation: true,
+        maxTitleLength: 30,
+        maxDescriptionLength: 90,
+        minDescriptionLength: 55,
+        requiredTitlesCount: 15,
+        requiredDescriptionsCount: 4
+      });
       
-      if (!parsedContent.success) {
-        console.error('❌ Erreur parsing:', parsedContent.error);
+      console.log('🔍 Rapport de validation:', ResponseValidator.generateValidationReport(validationResult));
+      
+      if (!validationResult.isValid && !validationResult.correctedContent) {
+        console.error('❌ Erreur validation:', validationResult.errors);
         return {
           success: false,
-          error: `Erreur parsing: ${parsedContent.error}`
+          error: `Erreur validation: ${validationResult.errors.join(', ')}`
         };
+      }
+      
+      // Utiliser le contenu corrigé ou fallback sur le parsing unifié
+      let parsedContent;
+      if (validationResult.correctedContent) {
+        parsedContent = {
+          success: true,
+          titles: validationResult.correctedContent.titles,
+          descriptions: validationResult.correctedContent.descriptions
+        };
+      } else {
+        // Fallback sur l'ancien système si la validation échoue
+        parsedContent = UnifiedPromptService.parseGeneratedContent(generatedContent);
+        if (!parsedContent.success) {
+          console.error('❌ Erreur parsing fallback:', parsedContent.error);
+          return {
+            success: false,
+            error: `Erreur parsing: ${parsedContent.error}`
+          };
+        }
       }
       
       console.log('✅ Contenu parsé initial:', {
