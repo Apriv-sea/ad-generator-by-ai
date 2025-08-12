@@ -1,11 +1,9 @@
 
 import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { EnhancedWorkflowDemo } from "@/components/workflow/EnhancedWorkflowDemo";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { FileSpreadsheet, Users, Settings, Wand2, TrendingUp, Clock } from "lucide-react";
+import { FileSpreadsheet, Users, Settings } from "lucide-react";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -16,7 +14,7 @@ const Dashboard = () => {
       icon: FileSpreadsheet,
       title: "Générer des Annonces",
       description: "Traiter un Google Sheet et générer du contenu",
-      action: () => navigate("/campaigns"),
+      action: () => navigate("/projects"),
       color: "from-blue-600 to-blue-700"
     },
     {
@@ -35,128 +33,44 @@ const Dashboard = () => {
     }
   ];
 
-  const stats = [
-    {
-      icon: TrendingUp,
-      title: "Sheets Traités",
-      value: "0",
-      description: "Projets de génération"
-    },
-    {
-      icon: Wand2,
-      title: "Contenus Générés",
-      value: "0",
-      description: "Annonces créées avec l'IA"
-    },
-    {
-      icon: Clock,
-      title: "Dernière Activité",
-      value: "Aujourd'hui",
-      description: "Connexion récente"
-    }
-  ];
-
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">
+    <div className="container mx-auto py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header simplifié */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-4">
             Tableau de bord
           </h1>
-          <p className="text-gray-600">
+          <p className="text-lg text-muted-foreground">
             Bienvenue {user?.email?.split('@')[0] || 'utilisateur'}, générez du contenu publicitaire optimisé
           </p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {stats.map((stat, index) => {
-            const IconComponent = stat.icon;
+        {/* Actions rapides centrées */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {quickActions.map((action, index) => {
+            const IconComponent = action.icon;
             return (
-              <Card key={index}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                  <IconComponent className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground">{stat.description}</p>
+              <Card 
+                key={index} 
+                className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105" 
+                onClick={action.action}
+              >
+                <div className={`bg-gradient-to-br ${action.color} p-6`}>
+                  <div className="flex items-center text-white">
+                    <IconComponent className="w-8 h-8 mr-4" />
+                    <CardTitle className="text-xl">{action.title}</CardTitle>
+                  </div>
+                </div>
+                <CardContent className="p-6">
+                  <p className="text-muted-foreground">{action.description}</p>
                 </CardContent>
               </Card>
             );
           })}
         </div>
-
-        {/* Actions rapides */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Actions rapides</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {quickActions.map((action, index) => {
-              const IconComponent = action.icon;
-              return (
-                <Card key={index} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={action.action}>
-                  <div className={`bg-gradient-to-br ${action.color} p-4`}>
-                    <div className="flex items-center text-white">
-                      <IconComponent className="w-6 h-6 mr-3" />
-                      <CardTitle className="text-lg">{action.title}</CardTitle>
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <p className="text-slate-600 text-sm">{action.description}</p>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Enhanced Workflow Demo */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Workflow Interactif</h2>
-          <EnhancedWorkflowDemo />
-        </div>
-
-        {/* Guide de démarrage */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Guide de démarrage</CardTitle>
-            <CardDescription>
-              Suivez ces étapes pour générer vos premières annonces
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-start space-x-3">
-              <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold">1</div>
-              <div>
-                <h4 className="font-medium">Configurez vos clés API</h4>
-                <p className="text-sm text-gray-600">Ajoutez vos clés OpenAI ou Anthropic dans les paramètres</p>
-                <Button variant="outline" size="sm" className="mt-2" onClick={() => navigate("/settings")}>
-                  Configurer
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3">
-              <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold">2</div>
-              <div>
-                <h4 className="font-medium">Ajoutez vos clients</h4>
-                <p className="text-sm text-gray-600">Créez des profils clients avec leur contexte métier</p>
-                <Button variant="outline" size="sm" className="mt-2" onClick={() => navigate("/clients")}>
-                  Ajouter un client
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3">
-              <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold">3</div>
-              <div>
-                <h4 className="font-medium">Générez vos premières annonces</h4>
-                <p className="text-sm text-gray-600">Importez un Google Sheet et générez du contenu optimisé</p>
-                <Button variant="outline" size="sm" className="mt-2" onClick={() => navigate("/campaigns")}>
-                  Commencer la génération
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
+    </div>
   );
 };
 
