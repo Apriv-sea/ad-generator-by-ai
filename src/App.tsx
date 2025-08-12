@@ -7,6 +7,10 @@ import { GoogleSheetsProvider } from "@/contexts/GoogleSheetsContext";
 import GlobalErrorBoundary from "@/components/GlobalErrorBoundary";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ProjectErrorBoundary } from "@/components/error/ProjectErrorBoundary";
+import { ClientErrorBoundary } from "@/components/error/ClientErrorBoundary";
+import { GenerationErrorBoundary } from "@/components/error/GenerationErrorBoundary";
+import { errorMonitoringService } from "@/services/monitoring/ErrorMonitoringService";
 
 // Pages
 import Index from "@/pages/Index";
@@ -81,7 +85,9 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <AppLayout>
-          <Projects />
+          <ProjectErrorBoundary>
+            <Projects />
+          </ProjectErrorBoundary>
         </AppLayout>
       </ProtectedRoute>
     ),
@@ -91,7 +97,9 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <AppLayout>
-          <Campaigns />
+          <GenerationErrorBoundary>
+            <Campaigns />
+          </GenerationErrorBoundary>
         </AppLayout>
       </ProtectedRoute>
     ),
@@ -101,7 +109,9 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <AppLayout>
-          <Clients />
+          <ClientErrorBoundary>
+            <Clients />
+          </ClientErrorBoundary>
         </AppLayout>
       </ProtectedRoute>
     ),
