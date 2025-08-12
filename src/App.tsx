@@ -14,6 +14,7 @@ import Auth from "@/pages/Auth";
 import AuthCallback from "@/pages/AuthCallback";
 import GoogleAuthCallback from "@/pages/GoogleAuthCallback";
 import Dashboard from "@/pages/Dashboard";
+import Projects from "@/pages/Projects";
 import Campaigns from "@/pages/Campaigns";
 import Clients from "@/pages/Clients";
 import Settings from "@/pages/Settings";
@@ -71,6 +72,16 @@ const router = createBrowserRouter([
       <ProtectedRoute>
         <AppLayout>
           <Dashboard />
+        </AppLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/projects", 
+    element: (
+      <ProtectedRoute>
+        <AppLayout>
+          <Projects />
         </AppLayout>
       </ProtectedRoute>
     ),
