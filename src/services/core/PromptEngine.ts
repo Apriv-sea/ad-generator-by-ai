@@ -6,6 +6,7 @@ import {
   ValidationResult, ServiceResponse, IndustryConfig, LogEntry 
 } from '@/types/unified';
 import { Logger } from './Logger';
+import { CacheManager } from './CacheManager';
 
 // ==================== INDUSTRY CONFIGURATIONS ====================
 
@@ -48,59 +49,13 @@ const INDUSTRY_CONFIGS: Record<string, IndustryConfig> = {
   }
 };
 
-// ==================== CACHE SYSTEM ====================
-
-interface CacheEntry {
-  key: string;
-  data: any;
-  timestamp: number;
-  ttl: number;
-}
-
-class PromptCache {
-  private cache = new Map<string, CacheEntry>();
-  private readonly DEFAULT_TTL = 1000 * 60 * 30; // 30 minutes
-
-  generateKey(options: GenerationOptions): string {
-    const { model, client, campaign, adGroup } = options;
-    return `${model}-${client.industry || 'default'}-${campaign.id}-${adGroup.id}-${JSON.stringify(adGroup.keywords).slice(0, 50)}`;
-  }
-
-  get(key: string): any | null {
-    const entry = this.cache.get(key);
-    if (!entry || Date.now() > entry.timestamp + entry.ttl) {
-      this.cache.delete(key);
-      return null;
-    }
-    return entry.data;
-  }
-
-  set(key: string, data: any, ttl = this.DEFAULT_TTL): void {
-    this.cache.set(key, {
-      key,
-      data,
-      timestamp: Date.now(),
-      ttl
-    });
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-
-  getStats() {
-    return {
-      size: this.cache.size,
-      keys: Array.from(this.cache.keys())
-    };
-  }
-}
+// Supprimer l'ancienne classe PromptCache - remplacée par CacheManager
 
 // ==================== MAIN ENGINE ====================
 
 export class PromptEngine {
   private static instance: PromptEngine;
-  private cache = new PromptCache();
+  private cache = CacheManager.getInstance();
   private logger = new Logger('PromptEngine');
 
   static getInstance(): PromptEngine {
@@ -114,11 +69,11 @@ export class PromptEngine {
 
   async generateContent(options: GenerationOptions): Promise<ServiceResponse<GeneratedContent>> {
     const startTime = Date.now();
-    const cacheKey = this.cache.generateKey(options);
+    const cacheKey = this.cache.generateCacheKey(options);
     
     try {
       // Check cache first
-      const cachedResult = this.cache.get(cacheKey);
+      const cachedResult = await this.cache.get(cacheKey);
       if (cachedResult) {
         this.logger.info('Cache hit', { cacheKey, client: options.client.name });
         return {
@@ -157,7 +112,7 @@ export class PromptEngine {
       };
 
       // Cache the result
-      this.cache.set(cacheKey, finalContent);
+      await this.cache.set(cacheKey, finalContent);
 
       return {
         success: true,
@@ -319,7 +274,7 @@ CRITICAL: Respecter strictement les limites de caractères.`;
   }
 
   clearCache(): void {
-    this.cache.clear();
-    this.logger.info('Cache cleared');
+    this.cache.clearAllCache();
+    this.logger.info('All caches cleared');
   }
 }

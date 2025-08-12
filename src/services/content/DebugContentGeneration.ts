@@ -1,9 +1,11 @@
 // Service de génération unifié - Nouvelle architecture optimisée
-// Remplace l'ancien DebugContentGeneration avec le nouveau PromptEngine
+// Remplace l'ancien DebugContentGeneration avec optimisations performance
 
 import { PromptEngine } from '../core/PromptEngine';
 import { Validator } from '../core/Validator';
 import { Logger } from '../core/Logger';
+import { BatchProcessor } from '../core/BatchProcessor';
+import { ClickThrottler } from '../core/ClickThrottler';
 import { 
   Client, Campaign, AdGroup, GenerationOptions, 
   ServiceResponse, GeneratedContent, LIMITS, PROTECTED_COLUMNS 
@@ -26,10 +28,149 @@ export class DebugContentGeneration {
   private static logger = new Logger('DebugContentGeneration');
   private static promptEngine = PromptEngine.getInstance();
   private static validator = new Validator();
+  private static batchProcessor = BatchProcessor.getInstance();
+  private static clickThrottler = ClickThrottler.getInstance();
 
-  // ==================== MAIN GENERATION METHOD ====================
+  // ==================== NOUVEAU: TRAITEMENT PAR LOT ====================
+
+  static async generateContentForMultipleRows(
+    rows: Array<{
+      rowIndex: number;
+      options: LegacyContentGenerationOptions;
+    }>,
+    sheetId: string,
+    currentSheetData: string[][],
+    onProgress?: (completed: number, total: number) => void
+  ): Promise<{
+    success: boolean;
+    results: Array<{
+      rowIndex: number;
+      success: boolean;
+      updatedSheetData?: string[][];
+      error?: string;
+    }>;
+    totalTime: number;
+    cacheHits: number;
+  }> {
+    const timer = Logger.createTimer(`generateContentBatch-${rows.length}-rows`);
+    
+    try {
+      this.logger.info(`Starting batch generation for ${rows.length} rows`, { sheetId });
+
+      // Éviter les appels multiples simultanés
+      const throttleKey = `batch_${sheetId}_${rows.map(r => r.rowIndex).join('-')}`;
+      
+      return await this.clickThrottler.throttledCall(throttleKey, async () => {
+        // Analyser la structure de la feuille
+        const sheetAnalysis = this.analyzeSheetStructure(currentSheetData);
+        
+        // Convertir en jobs pour le BatchProcessor
+        const jobs = rows.map(row => ({
+          rowIndex: row.rowIndex,
+          options: this.convertToGenerationOptions(row.options, sheetAnalysis)
+        }));
+
+        // Traitement par lot
+        const batchResult = await this.batchProcessor.processBatch(jobs, onProgress);
+        
+        // Traiter les résultats et mettre à jour la feuille
+        let updatedSheetData = [...currentSheetData];
+        const results = [];
+
+        for (const job of [...batchResult.successful, ...batchResult.failed]) {
+          if (job.status === 'completed' && job.result?.success) {
+            try {
+              updatedSheetData = await this.updateSheetWithContent(
+                updatedSheetData,
+                job.rowIndex,
+                job.result.data!,
+                sheetAnalysis
+              );
+
+              results.push({
+                rowIndex: job.rowIndex,
+                success: true,
+                updatedSheetData: [...updatedSheetData]
+              });
+            } catch (error) {
+              results.push({
+                rowIndex: job.rowIndex,
+                success: false,
+                error: error.message
+              });
+            }
+          } else {
+            results.push({
+              rowIndex: job.rowIndex,
+              success: false,
+              error: job.error || job.result?.error?.message || 'Unknown error'
+            });
+          }
+        }
+
+        // Sauvegarder une seule fois (batch write)
+        if (batchResult.successful.length > 0) {
+          const saveResult = await GoogleSheetsService.saveSheetData(sheetId, updatedSheetData);
+          if (!saveResult) {
+            throw new Error('Failed to save batch results to Google Sheets');
+          }
+        }
+
+        this.logger.info(`Batch generation completed`, {
+          total: rows.length,
+          successful: batchResult.successful.length,
+          failed: batchResult.failed.length,
+          cacheHits: batchResult.cacheHits
+        });
+
+        timer();
+
+        return {
+          success: batchResult.successful.length > 0,
+          results,
+          totalTime: batchResult.totalTime,
+          cacheHits: batchResult.cacheHits
+        };
+      });
+
+    } catch (error) {
+      this.logger.error(`Batch generation failed`, { error: error.message });
+      timer();
+      
+      return {
+        success: false,
+        results: rows.map(row => ({
+          rowIndex: row.rowIndex,
+          success: false,
+          error: error.message
+        })),
+        totalTime: 0,
+        cacheHits: 0
+      };
+    }
+  }
+
+  // ==================== LEGACY: TRAITEMENT INDIVIDUEL ====================
 
   static async generateAndSaveContent(
+    options: LegacyContentGenerationOptions,
+    sheetId: string,
+    rowIndex: number,
+    currentSheetData: string[][]
+  ): Promise<{
+    success: boolean;
+    updatedSheetData?: string[][];
+    error?: string;
+  }> {
+    // Utiliser le throttler pour éviter les appels multiples
+    const throttleKey = `single_${sheetId}_${rowIndex}`;
+    
+    return await this.clickThrottler.throttledCall(throttleKey, async () => {
+      return this.executeGeneration(options, sheetId, rowIndex, currentSheetData);
+    });
+  }
+
+  private static async executeGeneration(
     options: LegacyContentGenerationOptions,
     sheetId: string,
     rowIndex: number,
