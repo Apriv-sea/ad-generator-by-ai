@@ -53,6 +53,9 @@ verify_jwt = false
 [functions.security-headers]
 verify_jwt = false
 
+[functions.secure-llm-api]
+verify_jwt = true
+
 [auth]
 enabled = true
 port = 54329

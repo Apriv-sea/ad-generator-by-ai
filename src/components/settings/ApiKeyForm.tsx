@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserId } from "@/services/utils/supabaseUtils";
 import { SecurityMonitoringService } from "@/services/security/securityMonitoringService";
+import { EncryptedApiKeyService } from "@/services/security/encryptedApiKeyService";
 
 interface ApiKeyFormProps {
   onSave: () => void;
@@ -50,51 +51,13 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({ onSave }) => {
     setIsSubmitting(true);
     
     try {
-      const userId = await getCurrentUserId();
-      if (!userId) {
-        toast.error("Vous devez être connecté pour effectuer cette action");
-        return;
-      }
+      // Use encrypted storage service
+      await EncryptedApiKeyService.storeEncrypted(service, apiKey);
+
+      // Log successful API key creation/update
+      await SecurityMonitoringService.logApiKeyEvent('created', service);
       
-      // Check if a key already exists for this service
-      const { data: existingKey, error: fetchError } = await supabase
-        .from('api_keys')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('service', service)
-        .maybeSingle();
-      
-      if (fetchError) {
-        throw fetchError;
-      }
-      
-      if (existingKey) {
-        // Update existing key
-        const { error: updateError } = await supabase
-          .from('api_keys')
-          .update({ api_key: apiKey })
-          .eq('id', existingKey.id)
-          .eq('user_id', userId);
-          
-        if (updateError) throw updateError;
-        
-        await SecurityMonitoringService.logApiKeyEvent('updated', service);
-        toast.success(`Clé API pour ${service} mise à jour avec succès`);
-      } else {
-        // Insert new key
-        const { error: insertError } = await supabase
-          .from('api_keys')
-          .insert({ 
-            service, 
-            api_key: apiKey, 
-            user_id: userId 
-          });
-          
-        if (insertError) throw insertError;
-        
-        await SecurityMonitoringService.logApiKeyEvent('created', service);
-        toast.success(`Clé API pour ${service} ajoutée avec succès`);
-      }
+      toast.success(`Clé API pour ${service} sauvegardée de manière sécurisée avec chiffrement`);
       
       // Reset form
       setApiKey("");

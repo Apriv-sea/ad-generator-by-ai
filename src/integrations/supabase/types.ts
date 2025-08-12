@@ -14,25 +14,67 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_key_access_log: {
+        Row: {
+          access_type: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          ip_address: unknown | null
+          service: string
+          success: boolean | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          access_type: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          service: string
+          success?: boolean | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          access_type?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          service?: string
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       api_keys: {
         Row: {
           api_key: string
           created_at: string
+          encryption_salt: string | null
           id: string
+          is_encrypted: boolean | null
           service: string
           user_id: string
         }
         Insert: {
           api_key: string
           created_at?: string
+          encryption_salt?: string | null
           id?: string
+          is_encrypted?: boolean | null
           service: string
           user_id: string
         }
         Update: {
           api_key?: string
           created_at?: string
+          encryption_salt?: string | null
           id?: string
+          is_encrypted?: boolean | null
           service?: string
           user_id?: string
         }
@@ -45,6 +87,8 @@ export type Database = {
           id: string
           is_public: boolean | null
           name: string
+          organization_id: string | null
+          sharing_level: string | null
           template_data: Json
           updated_at: string
           usage_count: number | null
@@ -56,6 +100,8 @@ export type Database = {
           id?: string
           is_public?: boolean | null
           name: string
+          organization_id?: string | null
+          sharing_level?: string | null
           template_data: Json
           updated_at?: string
           usage_count?: number | null
@@ -67,6 +113,8 @@ export type Database = {
           id?: string
           is_public?: boolean | null
           name?: string
+          organization_id?: string | null
+          sharing_level?: string | null
           template_data?: Json
           updated_at?: string
           usage_count?: number | null
@@ -185,6 +233,36 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_access_log: {
+        Row: {
+          access_type: string
+          accessed_profile_id: string
+          accessing_user_id: string
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          user_agent: string | null
+        }
+        Insert: {
+          access_type: string
+          accessed_profile_id: string
+          accessing_user_id: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+        }
+        Update: {
+          access_type?: string
+          accessed_profile_id?: string
+          accessing_user_id?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -296,12 +374,52 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          ip_address: unknown | null
+          is_active: boolean | null
+          last_activity: string | null
+          session_token: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          session_token: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          session_token?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       cleanup_expired_backups: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      cleanup_expired_sessions: {
         Args: Record<PropertyKey, never>
         Returns: number
       }
@@ -312,6 +430,14 @@ export type Database = {
           _data_reference: string
           _backup_data: Json
         }
+        Returns: string
+      }
+      decrypt_api_key: {
+        Args: { encrypted_key: string; user_salt: string }
+        Returns: string
+      }
+      encrypt_api_key: {
+        Args: { api_key: string; user_salt?: string }
         Returns: string
       }
       has_role: {

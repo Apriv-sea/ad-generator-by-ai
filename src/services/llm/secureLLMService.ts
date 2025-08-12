@@ -71,9 +71,10 @@ export class SecureLLMService {
 
       console.log('🔒 Secure LLM request:', { provider: request.provider, model: request.model });
 
-      // Vérifier d'abord si l'utilisateur a une clé API pour ce provider
-      const hasKey = await this.hasValidAPIKey(request.provider);
-      if (!hasKey) {
+      // Get decrypted API key using secure service
+      const { EncryptedApiKeyService } = await import('@/services/security/encryptedApiKeyService');
+      const hasValidKey = await EncryptedApiKeyService.getDecrypted(request.provider);
+      if (!hasValidKey) {
         throw new Error(`Aucune clé API trouvée pour ${request.provider}. Veuillez configurer votre clé API dans les paramètres.`);
       }
 
