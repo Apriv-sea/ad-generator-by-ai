@@ -10,64 +10,99 @@ export interface UnifiedContentGenerationOptions {
 
 export class UnifiedPromptService {
   /**
-   * Prompt unifié et optimisé pour générer titres ET descriptions
+   * Construit le prompt unifié optimisé pour la génération Google Ads
    */
   static buildUnifiedPrompt(options: UnifiedContentGenerationOptions): string {
-    const industryContext = options.industry ? `SECTEUR D'ACTIVITÉ: ${options.industry}` : '';
-    const personaContext = options.targetPersona ? `PUBLIC CIBLE: ${options.targetPersona}` : '';
+    const industry = options.industry || 'général';
+    const targetPersona = options.targetPersona || 'clients potentiels';
     
-    return `Tu es un expert en rédaction publicitaire Google Ads avec 10 ans d'expérience, spécialisé dans l'optimisation du CTR et des conversions. Tu maîtrises parfaitement la psychologie des consommateurs et les techniques de persuasion.
+    // Déterminer la stratégie spécifique au secteur
+    const industryStrategy = this.getIndustryStrategy(industry);
+    const keywordStrategy = this.getKeywordStrategy(options.keywords);
+    
+    return `Tu es un expert en rédaction publicitaire Google Ads avec une expertise pointue en conversion.
 
-INFORMATIONS CLIENT:
+═══════════════════════════════════════════════════════════════
+📊 ANALYSE DU CONTEXTE
+═══════════════════════════════════════════════════════════════
+
+🏢 ENTREPRISE :
 ${options.clientContext}
 
-${industryContext}
-${personaContext}
+🎯 SECTEUR : ${industry}
+${industryStrategy}
 
-CONTEXTE CAMPAGNE:
-Campagne: ${options.campaignContext}
-Groupe d'annonces: ${options.adGroupContext}
-Mots-clés principaux: ${options.keywords.join(', ')}
+👥 CIBLE : ${targetPersona}
 
-MISSION:
-Génère EXACTEMENT 15 titres et 4 descriptions Google Ads ultra-percutants qui maximisent le CTR.
+🚀 CAMPAGNE : ${options.campaignContext}
+📱 GROUPE : ${options.adGroupContext}
+🔑 MOTS-CLÉS : ${options.keywords.join(' • ')}
 
-CONTRAINTES TECHNIQUES STRICTES:
-✅ Titres: EXACTEMENT 15 titres, maximum 30 caractères chacun
-✅ Descriptions: EXACTEMENT 4 descriptions, minimum 55 caractères et maximum 90 caractères chacune
-✅ Inclure naturellement les mots-clés dans chaque élément
-✅ Respecter le secteur d'activité et le public cible
+${keywordStrategy}
 
-STRATÉGIES DE RÉDACTION AVANCÉES:
-🎯 URGENCE & EXCLUSIVITÉ: "Derniers jours", "Offre limitée", "Exclusif"
-🎯 BÉNÉFICES CONCRETS: Mettre en avant la valeur ajoutée mesurable
-🎯 ÉMOTIONS: Susciter désir, confiance, FOMO (Fear of Missing Out)
-🎯 DIFFÉRENCIATION: Se démarquer de la concurrence du secteur
-🎯 APPELS À L'ACTION PUISSANTS: "Découvrez", "Profitez", "Obtenez", "Transformez"
+═══════════════════════════════════════════════════════════════
+🎯 MISSION CRITIQUE
+═══════════════════════════════════════════════════════════════
 
-ADAPTATION SECTORIELLE:
-${options.industry ? `- Utilise le vocabulaire et codes spécifiques au secteur ${options.industry}
-- Adapte le niveau de technicité au public ${options.targetPersona || 'cible'}
-- Intègre les pain points typiques de ce secteur` : '- Adapte le ton au contexte business fourni'}
+Génère du contenu publicitaire ULTRA-PERFORMANT qui CONVERTIT :
 
-EXEMPLES DE PATTERNS GAGNANTS:
-- "[Bénéfice] en [Délai] | [Mots-clés]"
-- "[Action] votre [Objectif] | [USP]"
-- "[Résultat] garantis | [CTA]"
+📝 15 TITRES (max 30 caractères chacun)
+📄 4 DESCRIPTIONS (55-90 caractères chacune)
 
-FORMAT DE RÉPONSE (JSON STRICT):
+═══════════════════════════════════════════════════════════════
+⚡ STRATÉGIES OBLIGATOIRES
+═══════════════════════════════════════════════════════════════
+
+🔥 TITRES - Mix obligatoire :
+• 3 titres BÉNÉFICES directs (ex: "Économisez 50% Maintenant")
+• 3 titres URGENCE/EXCLUSIVITÉ (ex: "Offre Limitée - 48h")  
+• 3 titres PREUVE SOCIALE (ex: "+10,000 Clients Satisfaits")
+• 3 titres AUTORITÉ/EXPERTISE (ex: "Expert Certifié #1")
+• 3 titres EMOTION/DÉSIR (ex: "Transformez Votre Vie")
+
+💎 DESCRIPTIONS - Formules gagnantes :
+• Desc 1: [PROBLÈME] → [SOLUTION] → [CTA]
+• Desc 2: [BÉNÉFICE] → [PREUVE] → [URGENCE] 
+• Desc 3: [AUTORITÉ] → [RÉSULTAT] → [ACTION]
+• Desc 4: [ÉMOTION] → [TRANSFORMATION] → [CONTACT]
+
+═══════════════════════════════════════════════════════════════
+📏 CONTRAINTES TECHNIQUES
+═══════════════════════════════════════════════════════════════
+
+✅ TITRES : Exactement 30 caractères MAX
+✅ DESCRIPTIONS : Entre 55-90 caractères (optimal 80-85)
+✅ Intégration naturelle des mots-clés (pas de bourrage)
+✅ Chaque élément UNIQUE et VARIÉ
+✅ Ton approprié au secteur
+✅ Appels à l'action puissants
+✅ Sans caractères spéciaux problématiques
+
+═══════════════════════════════════════════════════════════════
+🎭 TON ET STYLE
+═══════════════════════════════════════════════════════════════
+
+${this.getToneGuideline(industry)}
+
+═══════════════════════════════════════════════════════════════
+📊 FORMAT DE RÉPONSE (JSON STRICT)
+═══════════════════════════════════════════════════════════════
+
 {
-  "titles": ["Titre 1", "Titre 2", "Titre 3", "Titre 4", "Titre 5", "Titre 6", "Titre 7", "Titre 8", "Titre 9", "Titre 10", "Titre 11", "Titre 12", "Titre 13", "Titre 14", "Titre 15"],
-  "descriptions": ["Description 1", "Description 2", "Description 3", "Description 4"]
+  "titles": [
+    "15 titres uniques de max 30 caractères",
+    "Mélange des 5 stratégies obligatoires",
+    "..."
+  ],
+  "descriptions": [
+    "Description 1: Formule problème→solution→CTA (55-90 car.)",
+    "Description 2: Formule bénéfice→preuve→urgence (55-90 car.)",  
+    "Description 3: Formule autorité→résultat→action (55-90 car.)",
+    "Description 4: Formule émotion→transformation→contact (55-90 car.)"
+  ]
 }
 
-CRITÈRES DE QUALITÉ:
-- Chaque titre doit être unique et accrocheur
-- Chaque description doit inclure un bénéfice ET un appel à l'action
-- Varier les approches: émotionnel, rationnel, urgent, réassurance
-- Optimiser pour les différents moments du parcours client
-
-IMPORTANT: Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire.`;
+⚠️ CRITIQUE : Réponds UNIQUEMENT avec le JSON, aucun texte avant/après !`;
   }
 
   /**
@@ -159,5 +194,99 @@ IMPORTANT: Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire.`;
            description.length >= 55 && 
            description.length <= 90 &&
            !description.includes('\n');
+  }
+
+  /**
+   * Stratégies spécifiques par secteur d'activité
+   */
+  private static getIndustryStrategy(industry: string): string {
+    const strategies = {
+      'e-commerce': `
+🛒 SPÉCIFICITÉS E-COMMERCE :
+• Mettre en avant les promotions/réductions
+• Insister sur la livraison gratuite/rapide
+• Rassurer sur la sécurité/garanties
+• Créer urgence sur stock limité`,
+
+      'services': `
+🔧 SPÉCIFICITÉS SERVICES :
+• Mettre en avant l'expertise/certifications
+• Proposer consultation/devis gratuit
+• Rassurer avec témoignages clients
+• Créer urgence sur disponibilités`,
+
+      'technologie': `
+💻 SPÉCIFICITÉS TECH :
+• Mettre en avant l'innovation/performance
+• Insister sur la facilité d'utilisation
+• Rassurer avec sécurité/conformité
+• Créer urgence sur versions limitées`,
+
+      'immobilier': `
+🏡 SPÉCIFICITÉS IMMOBILIER :
+• Mettre en avant localisation premium
+• Insister sur opportunité unique
+• Rassurer avec expertise locale
+• Créer urgence sur marché tendu`,
+
+      'santé': `
+⚕️ SPÉCIFICITÉS SANTÉ :
+• Mettre en avant résultats/efficacité
+• Insister sur sécurité/certifications
+• Rassurer avec témoignages médicaux
+• Créer urgence sur bien-être immédiat`,
+
+      'formation': `
+🎓 SPÉCIFICITÉS FORMATION :
+• Mettre en avant certification/diplôme
+• Insister sur employabilité/salaires
+• Rassurer avec taux de réussite
+• Créer urgence sur places limitées`,
+
+      'default': `
+🎯 APPROCHE GÉNÉRALE :
+• Mettre en avant bénéfices concrets
+• Insister sur rapport qualité/prix
+• Rassurer avec garanties/avis
+• Créer urgence avec offres limitées`
+    };
+
+    return strategies[industry.toLowerCase()] || strategies['default'];
+  }
+
+  /**
+   * Stratégie d'intégration des mots-clés
+   */
+  private static getKeywordStrategy(keywords: string[]): string {
+    if (!keywords || keywords.length === 0) {
+      return `🔑 MOTS-CLÉS : Aucun mot-clé spécifique fourni`;
+    }
+
+    const mainKeyword = keywords[0];
+    const secondaryKeywords = keywords.slice(1, 3);
+
+    return `
+🔍 STRATÉGIE MOTS-CLÉS :
+• MOT-CLÉ PRINCIPAL : "${mainKeyword}" → À intégrer dans 60% des titres
+• MOTS-CLÉS SECONDAIRES : ${secondaryKeywords.map(k => `"${k}"`).join(', ')}
+• RÈGLE : Intégration naturelle sans bourrage
+• VARIANTES : Utiliser synonymes et reformulations`;
+  }
+
+  /**
+   * Guidelines de ton selon le secteur
+   */
+  private static getToneGuideline(industry: string): string {
+    const tones = {
+      'e-commerce': 'TON : Dynamique, commercial, orienté promotion',
+      'services': 'TON : Professionnel, rassurant, orienté expertise',
+      'technologie': 'TON : Innovant, moderne, orienté performance',
+      'immobilier': 'TON : Premium, exclusif, orienté opportunité',
+      'santé': 'TON : Rassurant, scientifique, orienté résultats',
+      'formation': 'TON : Motivant, aspirationnel, orienté avenir',
+      'default': 'TON : Professionnel, persuasif, orienté bénéfices'
+    };
+
+    return tones[industry.toLowerCase()] || tones['default'];
   }
 }
