@@ -181,13 +181,21 @@ Soyez précis et basez-vous uniquement sur le contenu fourni.
     console.log('🔍 Recherche sectorielle pour:', businessName, 'dans', industry);
     
     try {
-      // Recherche avec Perplexity via edge function
+      // Recherche avec market-research edge function
+      console.log('📡 Appel du market-research pour:', businessName, 'dans', industry);
       const { data: researchData, error: researchError } = await supabase.functions.invoke('market-research', {
         body: { 
           businessName,
           industry,
           query: `Analyse du marché ${industry} - concurrents, tendances, opportunités et défis pour ${businessName}`
         }
+      });
+
+      console.log('📡 Réponse du market-research:', { 
+        hasData: !!researchData, 
+        hasError: !!researchError,
+        dataKeys: researchData ? Object.keys(researchData) : [],
+        error: researchError 
       });
 
       if (researchError) {
@@ -217,6 +225,8 @@ Soyez précis et actionnable pour une stratégie marketing.
       const [provider, model] = selectedModel.includes(':') 
         ? selectedModel.split(':') 
         : ['openai', selectedModel];
+
+      console.log('🤖 Appel du service LLM avec:', { provider, model, contentLength: analysisPrompt.length });
 
       const { data, error } = await supabase.functions.invoke('secure-llm-api', {
         body: {
