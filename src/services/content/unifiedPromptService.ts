@@ -1,3 +1,5 @@
+import { EditorialConstraints, EditorialConstraintsService } from './editorialConstraintsService';
+
 export interface UnifiedContentGenerationOptions {
   clientContext: string;
   industry?: string;
@@ -6,6 +8,7 @@ export interface UnifiedContentGenerationOptions {
   adGroupContext: string;
   keywords: string[];
   model: string;
+  editorialConstraints?: EditorialConstraints; // NOUVEAU: Contraintes éditoriales
 }
 
 export class UnifiedPromptService {
@@ -19,6 +22,11 @@ export class UnifiedPromptService {
     // Déterminer la stratégie spécifique au secteur
     const industryStrategy = this.getIndustryStrategy(industry);
     const keywordStrategy = this.getKeywordStrategy(options.keywords);
+    
+    // Générer la section des contraintes éditoriales
+    const constraintsSection = options.editorialConstraints
+      ? EditorialConstraintsService.getInstance().generateConstraintPromptSection(options.editorialConstraints)
+      : '';
     
     return `Tu es un expert en rédaction publicitaire Google Ads avec une expertise pointue en conversion.
 
@@ -39,6 +47,8 @@ ${industryStrategy}
 🔑 MOTS-CLÉS : ${options.keywords.join(' • ')}
 
 ${keywordStrategy}
+
+${constraintsSection}
 
 ═══════════════════════════════════════════════════════════════
 🎯 MISSION CRITIQUE

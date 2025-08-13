@@ -9,6 +9,11 @@ export interface Client {
   businessContext?: string;
   specifics?: string;
   editorialGuidelines?: string;
+  forbiddenTerms?: string[];        // NOUVEAU: Termes interdits
+  forbiddenPhrases?: string[];      // NOUVEAU: Expressions interdites
+  forbiddenTones?: string[];        // NOUVEAU: Tons proscrits
+  mandatoryTerms?: string[];        // NOUVEAU: Termes privilégiés
+  constraintPriority?: 'low' | 'medium' | 'high' | 'critical'; // NOUVEAU: Priorité contraintes
 }
 
 export interface ClientResponse {

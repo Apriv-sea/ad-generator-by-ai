@@ -10,6 +10,8 @@ import { Brain, Sparkles } from "lucide-react";
 import { Client } from "@/services/types";
 import { ClientContextAssistant } from "./ClientContextAssistant";
 import IndustrySelector from "./IndustrySelector";
+import { EditorialConstraintsForm } from "./EditorialConstraintsForm";
+import { EditorialConstraints } from "@/services/content/editorialConstraintsService";
 
 interface ClientFormProps {
   client: Partial<Client>;
@@ -28,6 +30,14 @@ const ClientForm: React.FC<ClientFormProps> = ({
 }) => {
   const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [website, setWebsite] = useState("");
+  
+  const handleConstraintsChange = (constraints: EditorialConstraints) => {
+    onChange("forbiddenTerms", JSON.stringify(constraints.forbiddenTerms));
+    onChange("forbiddenPhrases", JSON.stringify(constraints.forbiddenPhrases));
+    onChange("forbiddenTones", JSON.stringify(constraints.forbiddenTones));
+    onChange("mandatoryTerms", JSON.stringify(constraints.mandatoryTerms));
+    onChange("constraintPriority", constraints.constraintPriority);
+  };
 
   const handleContextGenerated = (generatedContext: any) => {
     // Appliquer le contexte généré aux champs du formulaire
@@ -158,6 +168,22 @@ const ClientForm: React.FC<ClientFormProps> = ({
           rows={3}
         />
       </div>
+
+      <Separator />
+      
+      {/* Contraintes éditoriales */}
+      <EditorialConstraintsForm
+        initialConstraints={{
+          forbiddenTerms: client.forbiddenTerms || [],
+          forbiddenPhrases: client.forbiddenPhrases || [],
+          forbiddenTones: client.forbiddenTones || [],
+          mandatoryTerms: client.mandatoryTerms || [],
+          constraintPriority: client.constraintPriority || 'high'
+        }}
+        onConstraintsChange={handleConstraintsChange}
+        industry={client.industry}
+        editorialGuidelines={client.editorialGuidelines}
+      />
 
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>Annuler</Button>

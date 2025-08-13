@@ -125,10 +125,15 @@ export type Database = {
       clients: {
         Row: {
           business_context: string | null
+          constraint_priority: string | null
           created_at: string
           editorial_guidelines: string | null
+          forbidden_phrases: string[] | null
+          forbidden_terms: string[] | null
+          forbidden_tones: string[] | null
           id: string
           industry: string | null
+          mandatory_terms: string[] | null
           name: string
           specifics: string | null
           updated_at: string
@@ -136,10 +141,15 @@ export type Database = {
         }
         Insert: {
           business_context?: string | null
+          constraint_priority?: string | null
           created_at?: string
           editorial_guidelines?: string | null
+          forbidden_phrases?: string[] | null
+          forbidden_terms?: string[] | null
+          forbidden_tones?: string[] | null
           id?: string
           industry?: string | null
+          mandatory_terms?: string[] | null
           name: string
           specifics?: string | null
           updated_at?: string
@@ -147,10 +157,15 @@ export type Database = {
         }
         Update: {
           business_context?: string | null
+          constraint_priority?: string | null
           created_at?: string
           editorial_guidelines?: string | null
+          forbidden_phrases?: string[] | null
+          forbidden_terms?: string[] | null
+          forbidden_tones?: string[] | null
           id?: string
           industry?: string | null
+          mandatory_terms?: string[] | null
           name?: string
           specifics?: string | null
           updated_at?: string
