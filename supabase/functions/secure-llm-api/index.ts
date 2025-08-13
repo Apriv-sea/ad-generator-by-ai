@@ -49,41 +49,18 @@ serve(async (req) => {
 
     console.log(`🔒 Secure LLM request for user ${user.id}: ${provider}/${model}`);
 
-    // Get encrypted API key from database
-    const { data: apiKeyData, error: keyError } = await supabaseClient
-      .from('api_keys')
-      .select('api_key, encryption_salt, is_encrypted')
-      .eq('user_id', user.id)
-      .eq('service', provider)
-      .single();
+    // Get decrypted API key using the RPC function
+    const { data: apiKey, error: keyError } = await supabaseClient
+      .rpc('get_encrypted_api_key', {
+        service_name: provider
+      });
 
-    if (keyError || !apiKeyData) {
+    if (keyError || !apiKey) {
       console.error('❌ No API key found:', keyError);
       return new Response(
         JSON.stringify({ error: `No API key found for ${provider}` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-    }
-
-    let apiKey = apiKeyData.api_key;
-
-    // Decrypt if encrypted
-    if (apiKeyData.is_encrypted && apiKeyData.encryption_salt) {
-      const { data: decryptedKey, error: decryptError } = await supabaseClient
-        .rpc('decrypt_api_key', {
-          encrypted_key: apiKeyData.api_key,
-          user_salt: apiKeyData.encryption_salt
-        });
-
-      if (decryptError || !decryptedKey) {
-        console.error('❌ Failed to decrypt API key:', decryptError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to decrypt API key' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      apiKey = decryptedKey;
     }
 
     // Log API key access

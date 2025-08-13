@@ -41,15 +41,13 @@ serve(async (req) => {
       )
     }
 
-    // Récupérer la clé API de l'utilisateur
-    const { data: apiKeyData, error: apiKeyError } = await supabaseClient
-      .from('api_keys')
-      .select('api_key')
-      .eq('service', provider)
-      .eq('user_id', user.id)
-      .single()
+    // Récupérer la clé API déchiffrée de l'utilisateur
+    const { data: apiKey, error: apiKeyError } = await supabaseClient
+      .rpc('get_encrypted_api_key', {
+        service_name: provider
+      })
 
-    if (apiKeyError || !apiKeyData) {
+    if (apiKeyError || !apiKey) {
       return new Response(
         JSON.stringify({ 
           models: [],
@@ -58,8 +56,6 @@ serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
-
-    const apiKey = apiKeyData.api_key
     let models = []
 
     try {
