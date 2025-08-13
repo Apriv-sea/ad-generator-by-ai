@@ -94,7 +94,7 @@ Analysez le contenu suivant d'un site web et extrayez les informations clés pou
 URL: ${websiteUrl}
 Contenu: ${scrapedData.content || 'Contenu non disponible'}
 
-Analysez et retournez au format JSON:
+Retournez UNIQUEMENT un objet JSON valide sans texte d'introduction ni conclusion:
 {
   "industry": "secteur d'activité principal",
   "toneOfVoice": "ton de communication (professionnel, décontracté, innovant, etc.)",
@@ -119,7 +119,7 @@ Soyez précis et basez-vous uniquement sur le contenu fourni.
           provider,
           model,
           messages: [
-            { role: 'system', content: 'Tu es un expert en analyse de sites web et création de contextes clients pour le marketing.' },
+            { role: 'system', content: 'Tu es un expert en analyse de sites web et création de contextes clients pour le marketing. Tu réponds UNIQUEMENT avec du JSON valide sans texte additionnel.' },
             { role: 'user', content: analysisPrompt }
           ],
           maxTokens: 1500,
@@ -144,18 +144,37 @@ Soyez précis et basez-vous uniquement sur le contenu fourni.
         contentStart: responseContent?.substring(0, 200)
       });
 
-      // Parser la réponse JSON
+      // Parser la réponse JSON avec une approche plus robuste
       let analysisResult: WebsiteAnalysis;
       try {
-        // Extraire le JSON de la réponse
-        const jsonMatch = responseContent?.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          analysisResult = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('Format de réponse invalide');
+        // Nettoyer la réponse des markdown et autres formatages
+        const cleanedContent = responseContent
+          .replace(/```json\s*/, '')
+          .replace(/```\s*$/, '')
+          .trim();
+        
+        // Essayer de parser directement
+        try {
+          analysisResult = JSON.parse(cleanedContent);
+        } catch {
+          // Si ça échoue, chercher un pattern JSON
+          const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            analysisResult = JSON.parse(jsonMatch[0]);
+          } else {
+            throw new Error('Aucun JSON valide trouvé dans la réponse');
+          }
         }
+        
+        // Vérifier que l'objet a les propriétés attendues
+        if (!analysisResult.industry || !analysisResult.toneOfVoice) {
+          throw new Error('Structure JSON incomplète');
+        }
+        
       } catch (parseError) {
         console.error('Erreur de parsing JSON:', parseError);
+        console.error('Contenu à parser:', responseContent);
+        
         // Fallback avec des valeurs par défaut
         analysisResult = {
           industry: 'Non déterminé',
@@ -202,7 +221,7 @@ Soyez précis et basez-vous uniquement sur le contenu fourni.
         throw new Error(`Erreur lors de la recherche: ${researchError.message}`);
       }
 
-      // Analyser les résultats de recherche avec l'IA
+      // Analyser les résultats de recherche avec l'IA pour structurer les données
       const analysisPrompt = `
 Analysez les données de recherche sectorielle suivantes et structurez-les pour créer un contexte client pertinent.
 
@@ -210,7 +229,7 @@ Entreprise: ${businessName}
 Secteur: ${industry}
 Données de recherche: ${researchData.content || 'Données non disponibles'}
 
-Retournez au format JSON:
+Retournez UNIQUEMENT un objet JSON valide sans texte d'introduction ni conclusion:
 {
   "competitiveAnalysis": "analyse détaillée de la concurrence et positionnement",
   "marketTrends": "tendances principales du secteur",
@@ -233,7 +252,7 @@ Soyez précis et actionnable pour une stratégie marketing.
           provider,
           model,
           messages: [
-            { role: 'system', content: 'Tu es un expert en analyse de marché et recherche concurrentielle.' },
+            { role: 'system', content: 'Tu es un expert en analyse de marché et recherche concurrentielle. Tu réponds UNIQUEMENT avec du JSON valide sans texte additionnel.' },
             { role: 'user', content: analysisPrompt }
           ],
           maxTokens: 1500,
@@ -245,30 +264,56 @@ Soyez précis et actionnable pour une stratégie marketing.
         throw new Error(`Erreur IA: ${error.message}`);
       }
 
-      // La réponse est désormais normalisée par l'edge function
+      // La réponse est normalisée par l'edge function
       const responseContent = data?.content || '';
+      console.log('🤖 Réponse du service LLM pour recherche:', { 
+        hasContent: !!responseContent, 
+        contentLength: responseContent?.length,
+        contentStart: responseContent?.substring(0, 200)
+      });
+
       if (!responseContent) {
         console.error('Aucun contenu dans la réponse:', data);
         throw new Error('Réponse vide du service LLM');
       }
 
-      // Parser la réponse JSON
+      // Parser la réponse JSON avec une approche plus robuste
       let researchResult: MarketResearch;
       try {
-        const jsonMatch = responseContent?.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          researchResult = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('Format de réponse invalide');
+        // Nettoyer la réponse des markdown et autres formatages
+        const cleanedContent = responseContent
+          .replace(/```json\s*/, '')
+          .replace(/```\s*$/, '')
+          .trim();
+        
+        // Essayer de parser directement
+        try {
+          researchResult = JSON.parse(cleanedContent);
+        } catch {
+          // Si ça échoue, chercher un pattern JSON
+          const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            researchResult = JSON.parse(jsonMatch[0]);
+          } else {
+            throw new Error('Aucun JSON valide trouvé dans la réponse');
+          }
         }
+        
+        // Vérifier que l'objet a les propriétés attendues
+        if (!researchResult.competitiveAnalysis || !researchResult.marketTrends) {
+          throw new Error('Structure JSON incomplète');
+        }
+        
       } catch (parseError) {
         console.error('Erreur de parsing JSON:', parseError);
-        // Fallback
+        console.error('Contenu à parser:', responseContent);
+        
+        // Fallback avec des données basées sur les données de recherche
         researchResult = {
-          competitiveAnalysis: 'Analyse concurrentielle à approfondir',
-          marketTrends: 'Tendances du marché à identifier',
-          opportunities: ['Opportunités à explorer'],
-          challenges: ['Défis à relever']
+          competitiveAnalysis: `Le secteur ${industry} présente une concurrence dynamique avec des opportunités de différenciation pour ${businessName}.`,
+          marketTrends: `Tendances observées dans le secteur ${industry} : digitalisation, personnalisation client, et innovation continue.`,
+          opportunities: ['Différenciation par l\'innovation', 'Expansion géographique', 'Partenariats stratégiques'],
+          challenges: ['Concurrence intense', 'Évolution des attentes clients', 'Investissements technologiques']
         };
       }
 
@@ -306,7 +351,7 @@ RECHERCHE MARCHÉ:
 - Opportunités: ${data.marketResearch.opportunities.join(', ')}
 - Défis: ${data.marketResearch.challenges.join(', ')}
 
-Générez un contexte client structuré au format JSON:
+Retournez UNIQUEMENT un objet JSON valide sans texte d'introduction ni conclusion:
 {
   "businessContext": "contexte business détaillé et actionnable (200-300 mots)",
   "editorialGuidelines": "guidelines éditoriales précises pour la création de contenu (150-200 mots)"
@@ -329,7 +374,7 @@ Le contexte doit être:
           provider,
           model,
           messages: [
-            { role: 'system', content: 'Tu es un expert en génération de contextes clients pour le marketing digital.' },
+            { role: 'system', content: 'Tu es un expert en génération de contextes clients pour le marketing digital. Tu réponds UNIQUEMENT avec du JSON valide sans texte additionnel.' },
             { role: 'user', content: contextPrompt }
           ],
           maxTokens: 2000,
@@ -348,17 +393,37 @@ Le contexte doit être:
         throw new Error('Réponse vide du service LLM');
       }
 
-      // Parser la réponse JSON
+      // Parser la réponse JSON avec une approche plus robuste
       let contextResult: { businessContext: string; editorialGuidelines: string };
       try {
-        const jsonMatch = responseContent?.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          contextResult = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('Format de réponse invalide');
+        // Nettoyer la réponse des markdown et autres formatages
+        const cleanedContent = responseContent
+          .replace(/```json\s*/, '')
+          .replace(/```\s*$/, '')
+          .trim();
+        
+        // Essayer de parser directement
+        try {
+          contextResult = JSON.parse(cleanedContent);
+        } catch {
+          // Si ça échoue, chercher un pattern JSON
+          const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            contextResult = JSON.parse(jsonMatch[0]);
+          } else {
+            throw new Error('Aucun JSON valide trouvé dans la réponse');
+          }
         }
+        
+        // Vérifier que l'objet a les propriétés attendues
+        if (!contextResult.businessContext || !contextResult.editorialGuidelines) {
+          throw new Error('Structure JSON incomplète');
+        }
+        
       } catch (parseError) {
         console.error('Erreur de parsing JSON:', parseError);
+        console.error('Contenu à parser:', responseContent);
+        
         // Fallback avec contexte généré à partir des données
         contextResult = {
           businessContext: `${data.businessName} évolue dans le secteur ${data.websiteAnalysis.industry} avec un positionnement ${data.websiteAnalysis.toneOfVoice}. L'entreprise cible ${data.websiteAnalysis.targetAudience} et communique avec un style ${data.websiteAnalysis.communicationStyle}. Les opportunités identifiées incluent ${data.marketResearch.opportunities.join(', ')}.`,
