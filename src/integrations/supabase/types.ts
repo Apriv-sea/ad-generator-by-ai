@@ -472,6 +472,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      armor: {
+        Args: { "": string }
+        Returns: string
+      }
       automated_session_cleanup: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -493,6 +497,10 @@ export type Database = {
         }
         Returns: string
       }
+      dearmor: {
+        Args: { "": string }
+        Returns: string
+      }
       decrypt_api_key: {
         Args: { encrypted_key: string; user_salt: string }
         Returns: string
@@ -503,6 +511,18 @@ export type Database = {
       }
       encrypt_api_key: {
         Args: { api_key: string; user_salt?: string }
+        Returns: string
+      }
+      gen_random_bytes: {
+        Args: { "": number }
+        Returns: string
+      }
+      gen_random_uuid: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      gen_salt: {
+        Args: { "": string }
         Returns: string
       }
       get_encrypted_api_key: {
@@ -542,6 +562,22 @@ export type Database = {
           _risk_level?: string
         }
         Returns: undefined
+      }
+      pgp_armor_headers: {
+        Args: { "": string }
+        Returns: Record<string, unknown>[]
+      }
+      pgp_key_id: {
+        Args: { "": string }
+        Returns: string
+      }
+      simple_decrypt_api_key: {
+        Args: { encrypted_key: string; user_salt: string }
+        Returns: string
+      }
+      simple_encrypt_api_key: {
+        Args: { api_key: string; user_salt?: string }
+        Returns: string
       }
       store_encrypted_api_key: {
         Args: { service_name: string; api_key_value: string }
