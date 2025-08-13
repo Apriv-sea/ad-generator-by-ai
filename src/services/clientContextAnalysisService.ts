@@ -114,27 +114,47 @@ Soyez précis et basez-vous uniquement sur le contenu fourni.
 
       console.log('🤖 Appel du service LLM avec:', { provider, model, contentLength: analysisPrompt.length });
 
-      const response = await SecureLLMService.generateContent([
-        { provider: provider as any, model }
-      ], {
-        clientContext: 'Website analysis for client context generation',
-        campaignContext: analysisPrompt,
-        adGroupContext: 'Website content analysis',
-        keywords: ['website', 'analysis', 'branding'],
-        model
+      const { data, error } = await supabase.functions.invoke('secure-llm-api', {
+        body: {
+          provider,
+          model,
+          messages: [
+            { role: 'system', content: 'Tu es un expert en analyse de sites web et création de contextes clients pour le marketing.' },
+            { role: 'user', content: analysisPrompt }
+          ],
+          maxTokens: 1500,
+          temperature: 0.3
+        }
       });
 
+      if (error) {
+        throw new Error(`Erreur IA: ${error.message}`);
+      }
+
+      // Parser la réponse selon le format du provider
+      let responseContent = '';
+      if (data?.content?.[0]?.text) {
+        // Format Anthropic
+        responseContent = data.content[0].text;
+      } else if (data?.choices?.[0]?.message?.content) {
+        // Format OpenAI
+        responseContent = data.choices[0].message.content;
+      } else {
+        console.error('Format de réponse inattendu:', data);
+        throw new Error('Format de réponse invalide');
+      }
+
       console.log('🤖 Réponse du service LLM:', { 
-        hasContent: !!response.content, 
-        contentLength: response.content?.length,
-        contentStart: response.content?.substring(0, 200)
+        hasContent: !!responseContent, 
+        contentLength: responseContent?.length,
+        contentStart: responseContent?.substring(0, 200)
       });
 
       // Parser la réponse JSON
       let analysisResult: WebsiteAnalysis;
       try {
         // Extraire le JSON de la réponse
-        const jsonMatch = response.content?.match(/\{[\s\S]*\}/);
+        const jsonMatch = responseContent?.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           analysisResult = JSON.parse(jsonMatch[0]);
         } else {
@@ -204,20 +224,40 @@ Soyez précis et actionnable pour une stratégie marketing.
         ? selectedModel.split(':') 
         : ['openai', selectedModel];
 
-      const response = await SecureLLMService.generateContent([
-        { provider: provider as any, model }
-      ], {
-        clientContext: 'Market research for client context generation',
-        campaignContext: analysisPrompt,
-        adGroupContext: 'Market analysis and competitive research',
-        keywords: ['market', 'research', 'competition'],
-        model
+      const { data, error } = await supabase.functions.invoke('secure-llm-api', {
+        body: {
+          provider,
+          model,
+          messages: [
+            { role: 'system', content: 'Tu es un expert en analyse de marché et recherche concurrentielle.' },
+            { role: 'user', content: analysisPrompt }
+          ],
+          maxTokens: 1500,
+          temperature: 0.3
+        }
       });
+
+      if (error) {
+        throw new Error(`Erreur IA: ${error.message}`);
+      }
+
+      // Parser la réponse selon le format du provider
+      let responseContent = '';
+      if (data?.content?.[0]?.text) {
+        // Format Anthropic
+        responseContent = data.content[0].text;
+      } else if (data?.choices?.[0]?.message?.content) {
+        // Format OpenAI
+        responseContent = data.choices[0].message.content;
+      } else {
+        console.error('Format de réponse inattendu:', data);
+        throw new Error('Format de réponse invalide');
+      }
 
       // Parser la réponse JSON
       let researchResult: MarketResearch;
       try {
-        const jsonMatch = response.content?.match(/\{[\s\S]*\}/);
+        const jsonMatch = responseContent?.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           researchResult = JSON.parse(jsonMatch[0]);
         } else {
@@ -286,20 +326,40 @@ Le contexte doit être:
         ? selectedModel.split(':') 
         : ['openai', selectedModel];
 
-      const response = await SecureLLMService.generateContent([
-        { provider: provider as any, model }
-      ], {
-        clientContext: 'Client context generation',
-        campaignContext: contextPrompt,
-        adGroupContext: 'Final context synthesis',
-        keywords: ['context', 'generation', 'marketing'],
-        model
+      const { data: llmResponse, error } = await supabase.functions.invoke('secure-llm-api', {
+        body: {
+          provider,
+          model,
+          messages: [
+            { role: 'system', content: 'Tu es un expert en génération de contextes clients pour le marketing digital.' },
+            { role: 'user', content: contextPrompt }
+          ],
+          maxTokens: 2000,
+          temperature: 0.3
+        }
       });
+
+      if (error) {
+        throw new Error(`Erreur IA: ${error.message}`);
+      }
+
+      // Parser la réponse selon le format du provider
+      let responseContent = '';
+      if (llmResponse?.content?.[0]?.text) {
+        // Format Anthropic
+        responseContent = llmResponse.content[0].text;
+      } else if (llmResponse?.choices?.[0]?.message?.content) {
+        // Format OpenAI
+        responseContent = llmResponse.choices[0].message.content;
+      } else {
+        console.error('Format de réponse inattendu:', llmResponse);
+        throw new Error('Format de réponse invalide');
+      }
 
       // Parser la réponse JSON
       let contextResult: { businessContext: string; editorialGuidelines: string };
       try {
-        const jsonMatch = response.content?.match(/\{[\s\S]*\}/);
+        const jsonMatch = responseContent?.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           contextResult = JSON.parse(jsonMatch[0]);
         } else {

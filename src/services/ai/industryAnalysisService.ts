@@ -160,8 +160,19 @@ export class IndustryAnalysisService {
         throw new Error(`Erreur IA: ${error.message}`);
       }
 
-      // Parser la réponse
-      const analysisText = data?.content?.[0]?.text || '';
+      // Parser la réponse selon le format Anthropic
+      let analysisText = '';
+      if (data?.content?.[0]?.text) {
+        // Format Anthropic
+        analysisText = data.content[0].text;
+      } else if (data?.choices?.[0]?.message?.content) {
+        // Format OpenAI
+        analysisText = data.choices[0].message.content;
+      } else {
+        console.error('Format de réponse inattendu:', data);
+        throw new Error('Format de réponse invalide');
+      }
+      
       const result = this.parseAnalysisResult(analysisText);
 
       console.log('✅ Analyse secteur terminée:', result);
