@@ -338,6 +338,45 @@ export type Database = {
         }
         Relationships: []
       }
+      security_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: unknown | null
+          resource_id: string | null
+          resource_type: string
+          risk_level: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          resource_id?: string | null
+          resource_type: string
+          risk_level?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          resource_id?: string | null
+          resource_type?: string
+          risk_level?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_analytics: {
         Row: {
           created_at: string
@@ -472,6 +511,16 @@ export type Database = {
       is_authenticated_user: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      log_security_event: {
+        Args: {
+          _action: string
+          _resource_type: string
+          _resource_id?: string
+          _details?: Json
+          _risk_level?: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
