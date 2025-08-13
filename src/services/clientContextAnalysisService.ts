@@ -62,15 +62,25 @@ export class ClientContextAnalysisService {
     console.log('🌐 Analyse du site web:', websiteUrl);
     
     // Vérifier les clés API
-    const { hasKeys } = await this.checkApiKeysAvailability();
+    const { hasKeys, providers } = await this.checkApiKeysAvailability();
+    console.log('🔑 Clés API disponibles:', { hasKeys, providers });
+    
     if (!hasKeys) {
       throw new Error('Aucune clé API configurée. Veuillez configurer vos clés API dans les paramètres.');
     }
 
     try {
       // Scraper le contenu du site avec Firecrawl via edge function
+      console.log('📡 Appel du website-scraper pour:', websiteUrl);
       const { data: scrapedData, error: scrapeError } = await supabase.functions.invoke('website-scraper', {
         body: { url: websiteUrl }
+      });
+
+      console.log('📡 Réponse du website-scraper:', { 
+        hasData: !!scrapedData, 
+        hasError: !!scrapeError,
+        dataKeys: scrapedData ? Object.keys(scrapedData) : [],
+        error: scrapeError 
       });
 
       if (scrapeError) {
@@ -102,6 +112,8 @@ Soyez précis et basez-vous uniquement sur le contenu fourni.
         ? selectedModel.split(':') 
         : ['openai', selectedModel];
 
+      console.log('🤖 Appel du service LLM avec:', { provider, model, contentLength: analysisPrompt.length });
+
       const response = await SecureLLMService.generateContent([
         { provider: provider as any, model }
       ], {
@@ -110,6 +122,12 @@ Soyez précis et basez-vous uniquement sur le contenu fourni.
         adGroupContext: 'Website content analysis',
         keywords: ['website', 'analysis', 'branding'],
         model
+      });
+
+      console.log('🤖 Réponse du service LLM:', { 
+        hasContent: !!response.content, 
+        contentLength: response.content?.length,
+        contentStart: response.content?.substring(0, 200)
       });
 
       // Parser la réponse JSON

@@ -80,55 +80,79 @@ export const ClientContextAssistant: React.FC<ClientContextAssistantProps> = ({
     setIsAnalyzing(true);
     setProgress(0);
     setAnalysisResult(null);
+    
+    // Reset all steps to pending
+    setSteps(analysisSteps.map(step => ({ ...step, status: 'pending' })));
 
     try {
+      let websiteAnalysis: any;
+      let marketResearch: any;
+
       // Étape 1: Analyse du site web
-      updateStepStatus('website-analysis', 'running');
-      setProgress(20);
-      
-      const websiteAnalysis = await ClientContextAnalysisService.analyzeWebsite(websiteUrl, selectedModel);
-      
-      updateStepStatus('website-analysis', 'completed');
-      setProgress(40);
+      try {
+        updateStepStatus('website-analysis', 'running');
+        setProgress(20);
+        
+        console.log('🌐 Début de l\'analyse du site web...');
+        websiteAnalysis = await ClientContextAnalysisService.analyzeWebsite(websiteUrl, selectedModel);
+        console.log('✅ Analyse du site web terminée:', websiteAnalysis);
+        
+        updateStepStatus('website-analysis', 'completed');
+        setProgress(40);
+      } catch (error) {
+        console.error('❌ Erreur lors de l\'analyse du site web:', error);
+        updateStepStatus('website-analysis', 'error');
+        throw new Error(`Analyse du site web échouée: ${(error as Error).message}`);
+      }
 
       // Étape 2: Recherche sectorielle
-      updateStepStatus('market-research', 'running');
-      setProgress(60);
-      
-      const marketResearch = await ClientContextAnalysisService.conductMarketResearch(
-        businessName, 
-        websiteAnalysis.industry || 'business',
-        selectedModel
-      );
-      
-      updateStepStatus('market-research', 'completed');
-      setProgress(80);
+      try {
+        updateStepStatus('market-research', 'running');
+        setProgress(60);
+        
+        console.log('🔍 Début de la recherche sectorielle...');
+        marketResearch = await ClientContextAnalysisService.conductMarketResearch(
+          businessName, 
+          websiteAnalysis.industry || 'business',
+          selectedModel
+        );
+        console.log('✅ Recherche sectorielle terminée:', marketResearch);
+        
+        updateStepStatus('market-research', 'completed');
+        setProgress(80);
+      } catch (error) {
+        console.error('❌ Erreur lors de la recherche sectorielle:', error);
+        updateStepStatus('market-research', 'error');
+        throw new Error(`Recherche sectorielle échouée: ${(error as Error).message}`);
+      }
 
       // Étape 3: Génération du contexte
-      updateStepStatus('context-generation', 'running');
-      setProgress(90);
-      
-      const generatedContext = await ClientContextAnalysisService.generateClientContext({
-        businessName,
-        websiteUrl,
-        websiteAnalysis,
-        marketResearch
-      }, selectedModel);
-      
-      updateStepStatus('context-generation', 'completed');
-      setProgress(100);
+      try {
+        updateStepStatus('context-generation', 'running');
+        setProgress(90);
+        
+        console.log('🧠 Début de la génération du contexte...');
+        const generatedContext = await ClientContextAnalysisService.generateClientContext({
+          businessName,
+          websiteUrl,
+          websiteAnalysis,
+          marketResearch
+        }, selectedModel);
+        console.log('✅ Génération du contexte terminée:', generatedContext);
+        
+        updateStepStatus('context-generation', 'completed');
+        setProgress(100);
 
-      setAnalysisResult(generatedContext);
-      toast.success('Analyse terminée avec succès !');
+        setAnalysisResult(generatedContext);
+        toast.success('Analyse terminée avec succès !');
+      } catch (error) {
+        console.error('❌ Erreur lors de la génération du contexte:', error);
+        updateStepStatus('context-generation', 'error');
+        throw new Error(`Génération du contexte échouée: ${(error as Error).message}`);
+      }
 
     } catch (error) {
-      console.error('Erreur lors de l\'analyse:', error);
-      
-      // Marquer l'étape courante comme erreur
-      if (currentStep) {
-        updateStepStatus(currentStep, 'error');
-      }
-      
+      console.error('❌ Erreur générale lors de l\'analyse:', error);
       toast.error('Erreur lors de l\'analyse: ' + (error as Error).message);
     } finally {
       setIsAnalyzing(false);
