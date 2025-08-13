@@ -10,12 +10,14 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { AtSign, Lock, UserPlus } from "lucide-react";
 
-// Schema de validation pour l'inscription
+// Schema de validation pour l'inscription avec sécurité renforcée
 const signupSchema = z.object({
   email: z.string().email({ message: "Email invalide" }),
-  password: z.string().min(6, { 
-    message: "Le mot de passe doit contenir au moins 6 caractères" 
-  }),
+  password: z.string()
+    .min(8, { message: "Le mot de passe doit contenir au moins 8 caractères" })
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
+      message: "Le mot de passe doit contenir au moins: 1 minuscule, 1 majuscule, 1 chiffre et 1 caractère spécial"
+    }),
   confirmPassword: z.string().min(1, { message: "La confirmation du mot de passe est requise" })
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Les mots de passe ne correspondent pas",

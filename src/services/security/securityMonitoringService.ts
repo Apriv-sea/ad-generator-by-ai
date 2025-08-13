@@ -42,11 +42,11 @@ export class SecurityMonitoringService {
   /**
    * Log authentication attempts
    */
-  static async logAuthEvent(eventType: 'login' | 'logout' | 'signup' | 'failed_login', details?: Record<string, any>): Promise<void> {
+  static async logAuthEvent(eventType: 'login' | 'logout' | 'signup' | 'failed_login' | 'failed_signup', details?: Record<string, any>): Promise<void> {
     await this.logSecurityEvent({
       event_type: `auth_${eventType}`,
       details,
-      risk_level: eventType === 'failed_login' ? 'medium' : 'low'
+      risk_level: (eventType === 'failed_login' || eventType === 'failed_signup') ? 'medium' : 'low'
     });
   }
 

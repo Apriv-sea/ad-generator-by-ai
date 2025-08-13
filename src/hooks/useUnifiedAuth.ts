@@ -139,16 +139,26 @@ export function useUnifiedAuth(): UseAuthReturn {
     }
   }, []);
 
-  // Signup function  
+  // Signup function with enhanced security
   const signup = useCallback(async (email: string, password: string) => {
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      // Validate password strength before sending to Supabase
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      if (!passwordRegex.test(password)) {
+        throw new Error('Le mot de passe ne respecte pas les critères de sécurité requis');
+      }
+
+      const redirectUrl = `${window.location.origin}/dashboard`;
       
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl
+          emailRedirectTo: redirectUrl,
+          data: {
+            signup_timestamp: new Date().toISOString(),
+            signup_origin: window.location.origin
+          }
         }
       });
 
@@ -156,7 +166,7 @@ export function useUnifiedAuth(): UseAuthReturn {
         throw error;
       }
 
-      toast.success('Inscription réussie ! Vérifiez vos emails.');
+      toast.success('Inscription réussie ! Vérifiez vos emails pour confirmer votre compte.');
     } catch (error: any) {
       console.error('Signup error:', error);
       const message = error.message || "Erreur d'inscription";
