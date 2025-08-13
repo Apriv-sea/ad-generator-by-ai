@@ -472,6 +472,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      automated_session_cleanup: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       cleanup_expired_backups: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -492,6 +496,10 @@ export type Database = {
       decrypt_api_key: {
         Args: { encrypted_key: string; user_salt: string }
         Returns: string
+      }
+      detect_suspicious_login_patterns: {
+        Args: { target_user_id: string }
+        Returns: boolean
       }
       encrypt_api_key: {
         Args: { api_key: string; user_salt?: string }
@@ -515,6 +523,15 @@ export type Database = {
       is_authenticated_user: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      log_api_key_access_with_validation: {
+        Args: {
+          service_name: string
+          access_type_param: string
+          success_param?: boolean
+          error_msg?: string
+        }
+        Returns: undefined
       }
       log_security_event: {
         Args: {
