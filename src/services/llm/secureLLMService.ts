@@ -207,6 +207,15 @@ export class SecureLLMService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
 
+      // Check for encrypted keys first
+      const { EncryptedApiKeyService } = await import('@/services/security/encryptedApiKeyService');
+      const decryptedKey = await EncryptedApiKeyService.getDecrypted(provider);
+      
+      if (decryptedKey) {
+        return true;
+      }
+
+      // Fallback: check for unencrypted keys (legacy)
       const { data, error } = await supabase
         .from('api_keys')
         .select('api_key')
