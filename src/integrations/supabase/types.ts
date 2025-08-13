@@ -497,6 +497,10 @@ export type Database = {
         Args: { api_key: string; user_salt?: string }
         Returns: string
       }
+      get_encrypted_api_key: {
+        Args: { service_name: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -521,6 +525,10 @@ export type Database = {
           _risk_level?: string
         }
         Returns: undefined
+      }
+      store_encrypted_api_key: {
+        Args: { service_name: string; api_key_value: string }
+        Returns: string
       }
     }
     Enums: {

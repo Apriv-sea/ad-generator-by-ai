@@ -64,87 +64,86 @@ export class EncryptedApiKeyService {
   }
 
   /**
-   * Store a new API key in encrypted format
+   * Store encrypted API key using database RPC function
    */
   static async storeEncrypted(service: string, apiKey: string): Promise<void> {
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('User not authenticated');
 
-      // Generate salt for encryption
-      const salt = crypto.randomUUID();
-      
-      // Encrypt the API key using database function
-      const { data: encryptedKey, error: encryptError } = await supabase
-        .rpc('encrypt_api_key', { 
-          api_key: apiKey,
-          user_salt: salt
-        });
+      console.log(`🔐 Storing encrypted API key for service: ${service}`);
 
-      if (encryptError) throw encryptError;
+      // Use the new RPC function
+      const { data, error } = await supabase.rpc('store_encrypted_api_key', {
+        service_name: service,
+        api_key_value: apiKey
+      });
 
-      // Store the encrypted key
-      const { error: insertError } = await supabase
-        .from('api_keys')
-        .upsert({
-          user_id: user.user.id,
-          service,
-          api_key: encryptedKey,
-          encryption_salt: salt,
-          is_encrypted: true
-        }, {
-          onConflict: 'user_id,service'
-        });
+      if (error) {
+        console.error('RPC error storing encrypted API key:', error);
+        throw new Error(`Failed to store encrypted API key: ${error.message}`);
+      }
 
-      if (insertError) throw insertError;
+      console.log('✅ API key stored successfully:', data);
 
-      // Log the creation
+      // Log successful access
       await supabase.from('api_key_access_log').insert({
         user_id: user.user.id,
         service,
-        access_type: 'created',
+        access_type: 'create',
         success: true
       });
 
     } catch (error) {
       console.error('Failed to store encrypted API key:', error);
+      
+      // Log failed access
+      const { data: user } = await supabase.auth.getUser();
+      if (user.user) {
+        await supabase.from('api_key_access_log').insert({
+          user_id: user.user.id,
+          service,
+          access_type: 'create',
+          success: false,
+          error_message: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+      
       throw error;
     }
   }
 
   /**
-   * Retrieve and decrypt API key
+   * Retrieve and decrypt API key using database RPC function
    */
   static async getDecrypted(service: string): Promise<string | null> {
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('User not authenticated');
 
-      // Get the encrypted key data
-      const { data: keyData, error: fetchError } = await supabase
-        .from('api_keys')
-        .select('*')
-        .eq('service', service)
-        .eq('is_encrypted', true)
-        .single();
+      console.log(`🔐 Retrieving decrypted API key for service: ${service}`);
 
-      if (fetchError || !keyData) {
-        // Try to find and migrate unencrypted key
-        await this.migrateToEncrypted(service);
-        
-        // Retry fetching encrypted key
-        const { data: retryKeyData, error: retryError } = await supabase
-          .from('api_keys')
-          .select('*')
-          .eq('service', service)
-          .eq('is_encrypted', true)
-          .single();
+      // Use the new RPC function
+      const { data: decryptedKey, error } = await supabase.rpc('get_encrypted_api_key', {
+        service_name: service
+      });
 
-        if (retryError || !retryKeyData) return null;
-        return this.decryptKey(retryKeyData);
+      if (error) {
+        console.error('RPC error retrieving encrypted API key:', error);
+        throw new Error(`Failed to retrieve encrypted API key: ${error.message}`);
       }
 
-      return this.decryptKey(keyData);
+      console.log(`✅ API key retrieved for ${service}:`, !!decryptedKey);
+
+      // Log successful access
+      await supabase.from('api_key_access_log').insert({
+        user_id: user.user.id,
+        service,
+        access_type: 'read',
+        success: true
+      });
+
+      return decryptedKey;
 
     } catch (error) {
       console.error('Failed to get decrypted API key:', error);
