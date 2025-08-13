@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { parseIndustryAnalysis } from '@/utils/jsonParser';
 
 export interface IndustryAnalysisResult {
   suggestedIndustry: string;
@@ -223,29 +224,19 @@ Réponds UNIQUEMENT avec le JSON, sans texte avant/après.`;
    */
   private static parseAnalysisResult(analysisText: string): IndustryAnalysisResult {
     try {
-      // Extraire le JSON
-      const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Pas de JSON trouvé dans la réponse');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
+      const parsed = parseIndustryAnalysis(analysisText);
       
-      // Valider la structure
-      if (!parsed.suggestedIndustry || typeof parsed.confidence !== 'number') {
-        throw new Error('Structure JSON invalide');
-      }
-
       // Vérifier que le secteur suggéré existe
       const industryExists = INDUSTRIES.some(ind => ind.key === parsed.suggestedIndustry);
       if (!industryExists) {
-        throw new Error(`Secteur suggéré invalide: ${parsed.suggestedIndustry}`);
+        console.warn(`Secteur suggéré invalide: ${parsed.suggestedIndustry}, utilisation du fallback`);
+        return this.fallbackKeywordAnalysis('secteur inconnu');
       }
 
       return {
         suggestedIndustry: parsed.suggestedIndustry,
         confidence: Math.min(100, Math.max(0, parsed.confidence)),
-        reasoning: parsed.reasoning || 'Analyse basée sur les mots-clés du contexte',
+        reasoning: parsed.reasoning || 'Analyse basée sur le contexte fourni',
         alternativeOptions: (parsed.alternativeOptions || []).filter(opt => 
           INDUSTRIES.some(ind => ind.key === opt)
         )
@@ -253,7 +244,8 @@ Réponds UNIQUEMENT avec le JSON, sans texte avant/après.`;
 
     } catch (error) {
       console.error('Erreur parsing analyse IA:', error);
-      throw error;
+      // Utiliser le fallback au lieu de relancer l'erreur
+      return this.fallbackKeywordAnalysis('erreur de parsing');
     }
   }
 

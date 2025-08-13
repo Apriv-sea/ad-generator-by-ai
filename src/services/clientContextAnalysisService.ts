@@ -1,5 +1,6 @@
 import { SecureLLMService } from './llm/secureLLMService';
 import { supabase } from '@/integrations/supabase/client';
+import { parseWebsiteAnalysis, parseMarketResearch, parseClientContext } from '@/utils/jsonParser';
 
 interface WebsiteAnalysis {
   industry: string;
@@ -144,47 +145,8 @@ Soyez précis et basez-vous uniquement sur le contenu fourni.
         contentStart: responseContent?.substring(0, 200)
       });
 
-      // Parser la réponse JSON avec une approche plus robuste
-      let analysisResult: WebsiteAnalysis;
-      try {
-        // Nettoyer la réponse des markdown et autres formatages
-        const cleanedContent = responseContent
-          .replace(/```json\s*/, '')
-          .replace(/```\s*$/, '')
-          .trim();
-        
-        // Essayer de parser directement
-        try {
-          analysisResult = JSON.parse(cleanedContent);
-        } catch {
-          // Si ça échoue, chercher un pattern JSON
-          const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            analysisResult = JSON.parse(jsonMatch[0]);
-          } else {
-            throw new Error('Aucun JSON valide trouvé dans la réponse');
-          }
-        }
-        
-        // Vérifier que l'objet a les propriétés attendues
-        if (!analysisResult.industry || !analysisResult.toneOfVoice) {
-          throw new Error('Structure JSON incomplète');
-        }
-        
-      } catch (parseError) {
-        console.error('Erreur de parsing JSON:', parseError);
-        console.error('Contenu à parser:', responseContent);
-        
-        // Fallback avec des valeurs par défaut
-        analysisResult = {
-          industry: 'Non déterminé',
-          toneOfVoice: 'Professionnel',
-          keyMessages: ['Message principal à définir'],
-          communicationStyle: 'Style à analyser',
-          brandValues: ['À définir'],
-          targetAudience: 'Cible à préciser'
-        };
-      }
+      // Parser la réponse JSON avec l'utilitaire robuste
+      const analysisResult = parseWebsiteAnalysis(responseContent);
 
       console.log('✅ Analyse du site terminée:', analysisResult);
       return analysisResult;
@@ -277,45 +239,8 @@ Soyez précis et actionnable pour une stratégie marketing.
         throw new Error('Réponse vide du service LLM');
       }
 
-      // Parser la réponse JSON avec une approche plus robuste
-      let researchResult: MarketResearch;
-      try {
-        // Nettoyer la réponse des markdown et autres formatages
-        const cleanedContent = responseContent
-          .replace(/```json\s*/, '')
-          .replace(/```\s*$/, '')
-          .trim();
-        
-        // Essayer de parser directement
-        try {
-          researchResult = JSON.parse(cleanedContent);
-        } catch {
-          // Si ça échoue, chercher un pattern JSON
-          const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            researchResult = JSON.parse(jsonMatch[0]);
-          } else {
-            throw new Error('Aucun JSON valide trouvé dans la réponse');
-          }
-        }
-        
-        // Vérifier que l'objet a les propriétés attendues
-        if (!researchResult.competitiveAnalysis || !researchResult.marketTrends) {
-          throw new Error('Structure JSON incomplète');
-        }
-        
-      } catch (parseError) {
-        console.error('Erreur de parsing JSON:', parseError);
-        console.error('Contenu à parser:', responseContent);
-        
-        // Fallback avec des données basées sur les données de recherche
-        researchResult = {
-          competitiveAnalysis: `Le secteur ${industry} présente une concurrence dynamique avec des opportunités de différenciation pour ${businessName}.`,
-          marketTrends: `Tendances observées dans le secteur ${industry} : digitalisation, personnalisation client, et innovation continue.`,
-          opportunities: ['Différenciation par l\'innovation', 'Expansion géographique', 'Partenariats stratégiques'],
-          challenges: ['Concurrence intense', 'Évolution des attentes clients', 'Investissements technologiques']
-        };
-      }
+      // Parser la réponse JSON avec l'utilitaire robuste
+      const researchResult = parseMarketResearch(responseContent);
 
       console.log('✅ Recherche sectorielle terminée:', researchResult);
       return researchResult;
@@ -393,43 +318,8 @@ Le contexte doit être:
         throw new Error('Réponse vide du service LLM');
       }
 
-      // Parser la réponse JSON avec une approche plus robuste
-      let contextResult: { businessContext: string; editorialGuidelines: string };
-      try {
-        // Nettoyer la réponse des markdown et autres formatages
-        const cleanedContent = responseContent
-          .replace(/```json\s*/, '')
-          .replace(/```\s*$/, '')
-          .trim();
-        
-        // Essayer de parser directement
-        try {
-          contextResult = JSON.parse(cleanedContent);
-        } catch {
-          // Si ça échoue, chercher un pattern JSON
-          const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            contextResult = JSON.parse(jsonMatch[0]);
-          } else {
-            throw new Error('Aucun JSON valide trouvé dans la réponse');
-          }
-        }
-        
-        // Vérifier que l'objet a les propriétés attendues
-        if (!contextResult.businessContext || !contextResult.editorialGuidelines) {
-          throw new Error('Structure JSON incomplète');
-        }
-        
-      } catch (parseError) {
-        console.error('Erreur de parsing JSON:', parseError);
-        console.error('Contenu à parser:', responseContent);
-        
-        // Fallback avec contexte généré à partir des données
-        contextResult = {
-          businessContext: `${data.businessName} évolue dans le secteur ${data.websiteAnalysis.industry} avec un positionnement ${data.websiteAnalysis.toneOfVoice}. L'entreprise cible ${data.websiteAnalysis.targetAudience} et communique avec un style ${data.websiteAnalysis.communicationStyle}. Les opportunités identifiées incluent ${data.marketResearch.opportunities.join(', ')}.`,
-          editorialGuidelines: `Le contenu doit adopter un ton ${data.websiteAnalysis.toneOfVoice} en respectant les valeurs de la marque : ${data.websiteAnalysis.brandValues.join(', ')}. Les messages clés à mettre en avant sont : ${data.websiteAnalysis.keyMessages.join(', ')}.`
-        };
-      }
+      // Parser la réponse JSON avec l'utilitaire robuste
+      const contextResult = parseClientContext(responseContent);
 
       // Combiner toutes les données
       const finalContext: GeneratedContext = {
