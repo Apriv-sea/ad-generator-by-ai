@@ -160,17 +160,11 @@ export class IndustryAnalysisService {
         throw new Error(`Erreur IA: ${error.message}`);
       }
 
-      // Parser la réponse selon le format Anthropic
-      let analysisText = '';
-      if (data?.content?.[0]?.text) {
-        // Format Anthropic
-        analysisText = data.content[0].text;
-      } else if (data?.choices?.[0]?.message?.content) {
-        // Format OpenAI
-        analysisText = data.choices[0].message.content;
-      } else {
-        console.error('Format de réponse inattendu:', data);
-        throw new Error('Format de réponse invalide');
+      // La réponse est désormais normalisée par l'edge function
+      const analysisText = data?.content || '';
+      if (!analysisText) {
+        console.error('Aucun contenu dans la réponse:', data);
+        throw new Error('Réponse vide du service LLM');
       }
       
       const result = this.parseAnalysisResult(analysisText);

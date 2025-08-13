@@ -90,7 +90,10 @@ serve(async (req) => {
 
     console.log('✅ LLM response received successfully');
 
-    return new Response(JSON.stringify(response), {
+    // Normaliser la réponse pour uniformiser le format
+    const normalizedResponse = normalizeResponse(provider, response);
+
+    return new Response(JSON.stringify(normalizedResponse), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
@@ -185,4 +188,55 @@ async function callGoogle(apiKey: string, model: string, messages: any[], maxTok
   }
 
   return await response.json();
+}
+
+// Fonction pour normaliser les réponses de tous les providers
+function normalizeResponse(provider: string, originalResponse: any) {
+  const normalized: any = {
+    provider: provider,
+    model: originalResponse.model || 'unknown',
+    success: true
+  };
+
+  switch (provider) {
+    case 'openai':
+      normalized.content = originalResponse.choices?.[0]?.message?.content || '';
+      normalized.usage = {
+        prompt_tokens: originalResponse.usage?.prompt_tokens || 0,
+        completion_tokens: originalResponse.usage?.completion_tokens || 0,
+        total_tokens: originalResponse.usage?.total_tokens || 0
+      };
+      normalized.finish_reason = originalResponse.choices?.[0]?.finish_reason;
+      break;
+      
+    case 'anthropic':
+      normalized.content = originalResponse.content?.[0]?.text || '';
+      normalized.usage = {
+        prompt_tokens: originalResponse.usage?.input_tokens || 0,
+        completion_tokens: originalResponse.usage?.output_tokens || 0,
+        total_tokens: (originalResponse.usage?.input_tokens || 0) + (originalResponse.usage?.output_tokens || 0)
+      };
+      normalized.stop_reason = originalResponse.stop_reason;
+      break;
+      
+    case 'google':
+      normalized.content = originalResponse.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      normalized.usage = {
+        prompt_tokens: originalResponse.usageMetadata?.promptTokenCount || 0,
+        completion_tokens: originalResponse.usageMetadata?.candidatesTokenCount || 0,
+        total_tokens: originalResponse.usageMetadata?.totalTokenCount || 0
+      };
+      normalized.finish_reason = originalResponse.candidates?.[0]?.finishReason;
+      break;
+      
+    default:
+      // Fallback - essayer de deviner le format
+      normalized.content = originalResponse.content || originalResponse.text || '';
+      normalized.usage = originalResponse.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+  }
+
+  // Ajouter les données originales pour debug si nécessaire
+  normalized.original = originalResponse;
+
+  return normalized;
 }

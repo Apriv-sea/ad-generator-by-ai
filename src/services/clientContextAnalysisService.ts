@@ -131,17 +131,11 @@ Soyez précis et basez-vous uniquement sur le contenu fourni.
         throw new Error(`Erreur IA: ${error.message}`);
       }
 
-      // Parser la réponse selon le format du provider
-      let responseContent = '';
-      if (data?.content?.[0]?.text) {
-        // Format Anthropic
-        responseContent = data.content[0].text;
-      } else if (data?.choices?.[0]?.message?.content) {
-        // Format OpenAI
-        responseContent = data.choices[0].message.content;
-      } else {
-        console.error('Format de réponse inattendu:', data);
-        throw new Error('Format de réponse invalide');
+      // La réponse est désormais normalisée par l'edge function
+      const responseContent = data?.content || '';
+      if (!responseContent) {
+        console.error('Aucun contenu dans la réponse:', data);
+        throw new Error('Réponse vide du service LLM');
       }
 
       console.log('🤖 Réponse du service LLM:', { 
@@ -241,17 +235,11 @@ Soyez précis et actionnable pour une stratégie marketing.
         throw new Error(`Erreur IA: ${error.message}`);
       }
 
-      // Parser la réponse selon le format du provider
-      let responseContent = '';
-      if (data?.content?.[0]?.text) {
-        // Format Anthropic
-        responseContent = data.content[0].text;
-      } else if (data?.choices?.[0]?.message?.content) {
-        // Format OpenAI
-        responseContent = data.choices[0].message.content;
-      } else {
-        console.error('Format de réponse inattendu:', data);
-        throw new Error('Format de réponse invalide');
+      // La réponse est désormais normalisée par l'edge function
+      const responseContent = data?.content || '';
+      if (!responseContent) {
+        console.error('Aucun contenu dans la réponse:', data);
+        throw new Error('Réponse vide du service LLM');
       }
 
       // Parser la réponse JSON
@@ -343,17 +331,11 @@ Le contexte doit être:
         throw new Error(`Erreur IA: ${error.message}`);
       }
 
-      // Parser la réponse selon le format du provider
-      let responseContent = '';
-      if (llmResponse?.content?.[0]?.text) {
-        // Format Anthropic
-        responseContent = llmResponse.content[0].text;
-      } else if (llmResponse?.choices?.[0]?.message?.content) {
-        // Format OpenAI
-        responseContent = llmResponse.choices[0].message.content;
-      } else {
-        console.error('Format de réponse inattendu:', llmResponse);
-        throw new Error('Format de réponse invalide');
+      // La réponse est désormais normalisée par l'edge function
+      const responseContent = llmResponse?.content || '';
+      if (!responseContent) {
+        console.error('Aucun contenu dans la réponse:', llmResponse);
+        throw new Error('Réponse vide du service LLM');
       }
 
       // Parser la réponse JSON

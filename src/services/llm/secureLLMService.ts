@@ -99,8 +99,13 @@ export class SecureLLMService {
 
       console.log('✅ LLM response received:', data);
 
-      // Normaliser la réponse selon le provider et extraire titles/descriptions si nécessaire
-      const normalized = this.normalizeResponse(request.provider, data);
+      // La réponse est déjà normalisée par l'edge function
+      const normalized = {
+        content: data.content || '',
+        usage: data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+        provider: data.provider || request.provider,
+        model: data.model || request.model
+      };
       
       // Si c'est pour la génération de contenu publicitaire, parser le contenu
       if (prompt) {
@@ -157,45 +162,6 @@ export class SecureLLMService {
         provider,
         error: error instanceof Error ? error.message : 'Unknown error'
       };
-    }
-  }
-
-  /**
-   * Normalise les réponses des différents providers
-   */
-  private static normalizeResponse(provider: string, data: any): SecureLLMResponse {
-    switch (provider) {
-      case 'openai':
-        return {
-          content: data.choices?.[0]?.message?.content || '',
-          usage: data.usage
-        };
-        
-      case 'anthropic':
-        return {
-          content: data.content?.[0]?.text || '',
-          usage: {
-            prompt_tokens: data.usage?.input_tokens || 0,
-            completion_tokens: data.usage?.output_tokens || 0,
-            total_tokens: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0)
-          }
-        };
-        
-      case 'google':
-        return {
-          content: data.candidates?.[0]?.content?.parts?.[0]?.text || '',
-          usage: {
-            prompt_tokens: data.usageMetadata?.promptTokenCount || 0,
-            completion_tokens: data.usageMetadata?.candidatesTokenCount || 0,
-            total_tokens: data.usageMetadata?.totalTokenCount || 0
-          }
-        };
-        
-      default:
-        return {
-          content: data.content || '',
-          usage: data.usage
-        };
     }
   }
 
