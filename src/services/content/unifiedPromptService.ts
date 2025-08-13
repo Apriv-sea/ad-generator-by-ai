@@ -197,58 +197,129 @@ ${this.getToneGuideline(industry)}
   }
 
   /**
-   * Stratégies spécifiques par secteur d'activité
+   * Stratégies spécifiques par secteur d'activité (version étendue)
    */
   private static getIndustryStrategy(industry: string): string {
     const strategies = {
       'e-commerce': `
 🛒 SPÉCIFICITÉS E-COMMERCE :
-• Mettre en avant les promotions/réductions
-• Insister sur la livraison gratuite/rapide
-• Rassurer sur la sécurité/garanties
-• Créer urgence sur stock limité`,
+• Mettre en avant les promotions/réductions (-X%, PROMO, SOLDES)
+• Insister sur la livraison (gratuite, rapide, 24h, express)
+• Rassurer sur la sécurité (paiement sécurisé, garanties, retours)
+• Créer urgence sur stock (limité, dernières pièces, rupture)
+• Valeur ajoutée (avis clients, bestseller, nouveauté)`,
 
-      'services': `
-🔧 SPÉCIFICITÉS SERVICES :
-• Mettre en avant l'expertise/certifications
-• Proposer consultation/devis gratuit
-• Rassurer avec témoignages clients
-• Créer urgence sur disponibilités`,
+      'services-professionnels': `
+🔧 SPÉCIFICITÉS SERVICES PROFESSIONNELS :
+• Mettre en avant l'expertise (certifié, expert, spécialiste, +X ans)
+• Proposer consultation (devis gratuit, audit, conseil, analyse)
+• Rassurer avec témoignages (clients satisfaits, références, cas clients)
+• Créer urgence sur disponibilités (planning, créneaux, intervention)
+• Résultats mesurables (ROI, performance, optimisation)`,
 
       'technologie': `
-💻 SPÉCIFICITÉS TECH :
-• Mettre en avant l'innovation/performance
-• Insister sur la facilité d'utilisation
-• Rassurer avec sécurité/conformité
-• Créer urgence sur versions limitées`,
+💻 SPÉCIFICITÉS TECHNOLOGIE :
+• Mettre en avant l'innovation (dernière génération, IA, automatisé)
+• Insister sur la performance (rapide, efficace, optimisé, stable)
+• Rassurer avec sécurité (conformité, protection, crypté, RGPD)
+• Facilité d'usage (intuitif, simple, plug&play, no-code)
+• Support technique (24/7, formation, accompagnement)`,
 
       'immobilier': `
 🏡 SPÉCIFICITÉS IMMOBILIER :
-• Mettre en avant localisation premium
-• Insister sur opportunité unique
-• Rassurer avec expertise locale
-• Créer urgence sur marché tendu`,
+• Mettre en avant localisation (premium, centre-ville, proche transports)
+• Insister sur opportunité (rare, exceptionnel, investissement)
+• Rassurer avec expertise (local, négociateur, conseiller)
+• Créer urgence sur marché (tendu, demande forte, prix attractif)
+• Services inclus (estimation, visite virtuelle, accompagnement)`,
 
-      'santé': `
-⚕️ SPÉCIFICITÉS SANTÉ :
-• Mettre en avant résultats/efficacité
-• Insister sur sécurité/certifications
-• Rassurer avec témoignages médicaux
-• Créer urgence sur bien-être immédiat`,
+      'sante-bien-etre': `
+⚕️ SPÉCIFICITÉS SANTÉ & BIEN-ÊTRE :
+• Mettre en avant résultats (efficacité, amélioration, guérison)
+• Insister sur sécurité (certifié, professionnel, sans risque)
+• Rassurer avec témoignages (patients, transformations, avis)
+• Urgence bien-être (douleur, inconfort, qualité de vie)
+• Approche personnalisée (sur-mesure, adapté, individualisé)`,
 
-      'formation': `
-🎓 SPÉCIFICITÉS FORMATION :
-• Mettre en avant certification/diplôme
-• Insister sur employabilité/salaires
-• Rassurer avec taux de réussite
-• Créer urgence sur places limitées`,
+      'formation-education': `
+🎓 SPÉCIFICITÉS FORMATION & ÉDUCATION :
+• Mettre en avant certification (diplôme, titre, reconnaissance)
+• Insister sur employabilité (job, carrière, salaire, débouchés)
+• Rassurer avec taux de réussite (%, statistiques, témoignages)
+• Créer urgence sur places (limitées, inscription, session)
+• Flexibilité (en ligne, rythme, planning, modules)`,
+
+      'finance-assurance': `
+💰 SPÉCIFICITÉS FINANCE & ASSURANCE :
+• Mettre en avant avantages (taux, économies, rendement, protection)
+• Insister sur sécurité (agrément, garantie, ACPR, fiabilité)
+• Rassurer avec expertise (conseil, accompagnement, expérience)
+• Urgence opportunité (taux, offre limitée, conditions)
+• Simplicité (rapide, en ligne, sans paperasse, digital)`,
+
+      'tourisme-loisirs': `
+✈️ SPÉCIFICITÉS TOURISME & LOISIRS :
+• Mettre en avant expérience (inoubliable, unique, authentique)
+• Insister sur prix (promo, all-inclusive, rapport qualité-prix)
+• Rassurer avec services (guide, conciergerie, assistance)
+• Créer urgence saisonnière (disponibilités, haute saison)
+• Émotion et évasion (rêve, détente, découverte, aventure)`,
+
+      'automobile': `
+🚗 SPÉCIFICITÉS AUTOMOBILE :
+• Mettre en avant qualité (fiabilité, garantie, contrôlé, révisé)
+• Insister sur prix (négocié, financement, reprise, occasion)
+• Rassurer avec service (entretien, SAV, pièces, réparation)
+• Urgence stock (véhicule unique, arrivage, réservation)
+• Performance technique (consommation, puissance, équipements)`,
+
+      'restaurant-alimentation': `
+🍽️ SPÉCIFICITÉS RESTAURANT & ALIMENTATION :
+• Mettre en avant qualité (frais, local, fait maison, bio)
+• Insister sur expérience (ambiance, service, tradition, innovation)
+• Rassurer avec réputation (avis, chef, établissement, références)
+• Urgence événementielle (réservation, événement, saison)
+• Spécialités uniques (signature, exclusivité, terroir, authentique)`,
+
+      'mode-beaute': `
+👗 SPÉCIFICITÉS MODE & BEAUTÉ :
+• Mettre en avant tendance (nouveau, collection, style, tendance)
+• Insister sur qualité (premium, luxe, authentique, durable)
+• Rassurer avec expertise (conseils, styliste, personnalisé)
+• Urgence mode (limité, exclusif, avant tout le monde)
+• Transformation (nouveau look, confiance, élégance, beauté)`,
+
+      'construction-renovation': `
+🔨 SPÉCIFICITÉS CONSTRUCTION & RÉNOVATION :
+• Mettre en avant expertise (artisan, professionnel, qualifié, RGE)
+• Insister sur qualité (durabilité, matériaux, finitions, normes)
+• Rassurer avec garanties (décennale, assurance, références)
+• Urgence projet (devis, planning, saison, disponibilité)
+• Économies long terme (isolation, énergie, plus-value, confort)`,
+
+      'sport-fitness': `
+💪 SPÉCIFICITÉS SPORT & FITNESS :
+• Mettre en avant résultats (transformation, performance, objectifs)
+• Insister sur accompagnement (coach, suivi, programme, motivation)
+• Rassurer avec méthodes (prouvées, scientifiques, adaptées)
+• Urgence forme (été, événement, défi, nouvelle année)
+• Bien-être global (santé, confiance, énergie, lifestyle)`,
+
+      'juridique': `
+⚖️ SPÉCIFICITÉS JURIDIQUE :
+• Mettre en avant expertise (spécialisé, expérience, barreau)
+• Insister sur résultats (défense, protection, gain, solution)
+• Rassurer avec confidentialité (discrétion, éthique, déontologie)
+• Urgence procédure (délais, prescription, urgence, temps)
+• Accompagnement humain (écoute, conseil, soutien, proximité)`,
 
       'default': `
 🎯 APPROCHE GÉNÉRALE :
-• Mettre en avant bénéfices concrets
-• Insister sur rapport qualité/prix
-• Rassurer avec garanties/avis
-• Créer urgence avec offres limitées`
+• Mettre en avant bénéfices concrets (gain, économie, amélioration)
+• Insister sur rapport qualité/prix (valeur, compétitif, avantageux)
+• Rassurer avec garanties (satisfaction, remboursement, sécurité)
+• Créer urgence avec offres limitées (temps, quantité, conditions)
+• Différenciation (unique, exclusif, spécialisé, leader)`
     };
 
     return strategies[industry.toLowerCase()] || strategies['default'];
@@ -274,17 +345,25 @@ ${this.getToneGuideline(industry)}
   }
 
   /**
-   * Guidelines de ton selon le secteur
+   * Guidelines de ton selon le secteur (version étendue)
    */
   private static getToneGuideline(industry: string): string {
     const tones = {
-      'e-commerce': 'TON : Dynamique, commercial, orienté promotion',
-      'services': 'TON : Professionnel, rassurant, orienté expertise',
-      'technologie': 'TON : Innovant, moderne, orienté performance',
-      'immobilier': 'TON : Premium, exclusif, orienté opportunité',
-      'santé': 'TON : Rassurant, scientifique, orienté résultats',
-      'formation': 'TON : Motivant, aspirationnel, orienté avenir',
-      'default': 'TON : Professionnel, persuasif, orienté bénéfices'
+      'e-commerce': 'TON : Dynamique, commercial, orienté conversion et promotion',
+      'services-professionnels': 'TON : Professionnel, rassurant, orienté expertise et résultats',
+      'technologie': 'TON : Innovant, moderne, orienté performance et simplicité',
+      'immobilier': 'TON : Premium, confiance, orienté opportunité et conseil',
+      'sante-bien-etre': 'TON : Rassurant, bienveillant, orienté amélioration et sécurité',
+      'formation-education': 'TON : Motivant, aspirationnel, orienté avenir et réussite',
+      'finance-assurance': 'TON : Sérieux, sécurisant, orienté protection et avantage',
+      'tourisme-loisirs': 'TON : Enthousiaste, évocateur, orienté émotion et évasion',
+      'automobile': 'TON : Technique, rassurant, orienté performance et fiabilité',
+      'restaurant-alimentation': 'TON : Chaleureux, gourmand, orienté plaisir et qualité',
+      'mode-beaute': 'TON : Élégant, inspirant, orienté style et transformation',
+      'construction-renovation': 'TON : Solide, fiable, orienté durabilité et qualité',
+      'sport-fitness': 'TON : Énergique, motivant, orienté dépassement et bien-être',
+      'juridique': 'TON : Sérieux, protecteur, orienté solution et accompagnement',
+      'default': 'TON : Professionnel, persuasif, orienté bénéfices et confiance'
     };
 
     return tones[industry.toLowerCase()] || tones['default'];

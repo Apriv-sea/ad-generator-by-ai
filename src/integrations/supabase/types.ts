@@ -128,6 +128,7 @@ export type Database = {
           created_at: string
           editorial_guidelines: string | null
           id: string
+          industry: string | null
           name: string
           specifics: string | null
           updated_at: string
@@ -138,6 +139,7 @@ export type Database = {
           created_at?: string
           editorial_guidelines?: string | null
           id?: string
+          industry?: string | null
           name: string
           specifics?: string | null
           updated_at?: string
@@ -148,6 +150,7 @@ export type Database = {
           created_at?: string
           editorial_guidelines?: string | null
           id?: string
+          industry?: string | null
           name?: string
           specifics?: string | null
           updated_at?: string

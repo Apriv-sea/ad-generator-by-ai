@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Brain, Sparkles } from "lucide-react";
 import { Client } from "@/services/types";
 import { ClientContextAssistant } from "./ClientContextAssistant";
+import IndustrySelector from "./IndustrySelector";
 
 interface ClientFormProps {
   client: Partial<Client>;
@@ -37,6 +38,10 @@ const ClientForm: React.FC<ClientFormProps> = ({
     onChange("specifics", `Secteur: ${generatedContext.industry}\nTon: ${generatedContext.toneOfVoice}\nCible: ${generatedContext.targetAudience}\nValeurs: ${generatedContext.brandValues.join(', ')}`);
     
     setShowAIAssistant(false);
+  };
+
+  const handleIndustryChange = (industry: string) => {
+    onChange("industry", industry);
   };
 
   return (
@@ -89,32 +94,27 @@ const ClientForm: React.FC<ClientFormProps> = ({
         </>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="industry" className="flex items-center gap-2">
-            Secteur d'activité
-            {showAIAssistant && <Sparkles className="h-4 w-4 text-blue-500" />}
-          </Label>
-          <Input
-            id="industry"
-            placeholder="Ex: E-commerce, SaaS, Immobilier..."
-            value={client.industry || ""}
-            onChange={(e) => onChange("industry", e.target.value)}
-          />
-        </div>
+      {/* Sélecteur de secteur intelligent */}
+      <IndustrySelector
+        selectedIndustry={client.industry}
+        onIndustryChange={handleIndustryChange}
+        businessContext={client.businessContext || ""}
+        clientName={client.name || ""}
+        showPromptPreview={true}
+        required={true}
+      />
 
-        <div className="space-y-2">
-          <Label htmlFor="target-persona" className="flex items-center gap-2">
-            Public cible / Persona
-            {showAIAssistant && <Sparkles className="h-4 w-4 text-blue-500" />}
-          </Label>
-          <Input
-            id="target-persona"
-            placeholder="Ex: PME, Particuliers 25-45 ans..."
-            value={client.targetPersona || ""}
-            onChange={(e) => onChange("targetPersona", e.target.value)}
-          />
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="target-persona" className="flex items-center gap-2">
+          Public cible / Persona
+          {showAIAssistant && <Sparkles className="h-4 w-4 text-blue-500" />}
+        </Label>
+        <Input
+          id="target-persona"
+          placeholder="Ex: PME, Particuliers 25-45 ans, Dirigeants..."
+          value={client.targetPersona || ""}
+          onChange={(e) => onChange("targetPersona", e.target.value)}
+        />
       </div>
 
       <div className="space-y-2">
@@ -161,7 +161,10 @@ const ClientForm: React.FC<ClientFormProps> = ({
 
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>Annuler</Button>
-        <Button onClick={onSubmit}>
+        <Button 
+          onClick={onSubmit}
+          disabled={!client.name || !client.industry || !client.businessContext}
+        >
           {isEditing ? "Enregistrer" : "Ajouter"}
         </Button>
       </DialogFooter>
