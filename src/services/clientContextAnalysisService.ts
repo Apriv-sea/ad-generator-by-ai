@@ -133,19 +133,29 @@ Soyez précis et basez-vous uniquement sur le contenu fourni.
       }
 
       // La réponse est désormais normalisée par l'edge function
-      const responseContent = data?.content || data?.message?.content || '';
-      console.log('🤖 Réponse complète du service LLM:', JSON.stringify(data, null, 2));
+      console.log('🔍 Debug - Réponse brute de l\'edge function:', data);
+      
+      // Extraire le contenu avec plusieurs fallbacks possibles
+      const responseContent = 
+        data?.content || 
+        data?.message?.content || 
+        data?.choices?.[0]?.message?.content ||
+        data?.original?.content?.[0]?.text ||
+        '';
+        
       console.log('🤖 Contenu extrait:', { 
         hasContent: !!responseContent, 
         contentLength: responseContent?.length,
-        contentStart: responseContent?.substring(0, 200),
-        dataKeys: data ? Object.keys(data) : [],
-        rawData: data
+        contentPreview: responseContent?.substring(0, 300),
+        extractionPath: data?.content ? 'data.content' : 
+                       data?.message?.content ? 'data.message.content' :
+                       data?.choices?.[0]?.message?.content ? 'data.choices[0].message.content' :
+                       data?.original?.content?.[0]?.text ? 'data.original.content[0].text' : 'NONE'
       });
 
       if (!responseContent) {
-        console.error('Aucun contenu dans la réponse:', data);
-        throw new Error('Réponse vide du service LLM');
+        console.error('🚨 Aucun contenu trouvé - Structure complète:', JSON.stringify(data, null, 2));
+        throw new Error('Réponse vide du service LLM - aucun contenu extractible');
       }
 
       // Parser la réponse JSON avec l'utilitaire robuste
