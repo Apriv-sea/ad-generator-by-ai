@@ -1,6 +1,6 @@
 import { SecureLLMService } from './llm/secureLLMService';
 import { supabase } from '@/integrations/supabase/client';
-import { parseWebsiteAnalysis, parseMarketResearch, parseClientContext } from '@/utils/jsonParser';
+import { parseWebsiteAnalysis, parseMarketResearch, parseClientContext, extractJsonFromLLMResponse } from '@/utils/jsonParser';
 
 interface WebsiteAnalysis {
   industry: string;
@@ -239,8 +239,24 @@ Soyez précis et actionnable pour une stratégie marketing.
         throw new Error('Réponse vide du service LLM');
       }
 
-      // Parser la réponse JSON avec l'utilitaire robuste
-      const researchResult = parseMarketResearch(responseContent);
+      // Parser la réponse JSON avec l'utilitaire ultra-robuste
+      let researchResult;
+      try {
+        researchResult = parseMarketResearch(responseContent);
+      } catch (parseError) {
+        console.warn('❌ Échec du parsing standard, tentative avec extracteur ultra-robuste');
+        const extracted = extractJsonFromLLMResponse(responseContent);
+        if (extracted) {
+          researchResult = {
+            competitiveAnalysis: extracted.competitiveAnalysis || 'Analyse concurrentielle non disponible',
+            marketTrends: extracted.marketTrends || 'Tendances de marché non disponibles',
+            opportunities: extracted.opportunities || ['Opportunités à explorer'],
+            challenges: extracted.challenges || ['Défis à identifier']
+          };
+        } else {
+          throw new Error('Impossible de parser la réponse JSON');
+        }
+      }
 
       console.log('✅ Recherche sectorielle terminée:', researchResult);
       return researchResult;

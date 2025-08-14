@@ -10,6 +10,75 @@ export interface ParseOptions {
 }
 
 /**
+ * Version ultra-robuste pour les réponses LLM problématiques
+ */
+export function extractJsonFromLLMResponse<T = any>(content: string): T | null {
+  if (!content || typeof content !== 'string') {
+    return null;
+  }
+
+  // Essayer de trouver du JSON valide avec différentes stratégies
+  const strategies = [
+    // Stratégie 1: Chercher entre { et } en équilibrant les accolades
+    () => {
+      let braceCount = 0;
+      let startIndex = -1;
+      let endIndex = -1;
+      
+      for (let i = 0; i < content.length; i++) {
+        if (content[i] === '{') {
+          if (startIndex === -1) startIndex = i;
+          braceCount++;
+        } else if (content[i] === '}') {
+          braceCount--;
+          if (braceCount === 0 && startIndex !== -1) {
+            endIndex = i;
+            break;
+          }
+        }
+      }
+      
+      if (startIndex !== -1 && endIndex !== -1) {
+        return content.substring(startIndex, endIndex + 1);
+      }
+      return null;
+    },
+    
+    // Stratégie 2: Chercher avec regex plus agressive
+    () => {
+      const match = content.match(/\{[\s\S]*?\}/);
+      return match ? match[0] : null;
+    },
+    
+    // Stratégie 3: Nettoyer puis chercher
+    () => {
+      const cleaned = content
+        .replace(/.*?(?=\{)/s, '')
+        .replace(/\}.*$/s, '}')
+        .replace(/```json|```/gi, '')
+        .trim();
+      return cleaned.startsWith('{') && cleaned.endsWith('}') ? cleaned : null;
+    }
+  ];
+
+  for (const strategy of strategies) {
+    try {
+      const extracted = strategy();
+      if (extracted) {
+        const parsed = JSON.parse(extracted);
+        if (parsed && typeof parsed === 'object') {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      continue;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Parse une réponse de LLM qui peut contenir du JSON avec du texte additionnel
  */
 export function parseJsonFromLLMResponse<T = any>(
