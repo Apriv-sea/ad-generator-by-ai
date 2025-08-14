@@ -161,13 +161,15 @@ function fixCommonJsonErrors(content: string): string {
     // Corriger les virgules en trop avant }
     .replace(/,\s*}/g, '}')
     .replace(/,\s*]/g, ']')
-    // Corriger les propriétés sans guillemets
-    .replace(/(\w+):/g, '"$1":')
+    // Corriger les propriétés sans guillemets (plus précis)
+    .replace(/(\w+)(\s*:\s*)/g, '"$1"$2')
     // Supprimer les commentaires
     .replace(/\/\/.*$/gm, '')
-    .replace(/\/\*[\s\S]*?\*\//g, '');
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    // Nettoyer les espaces et retours à la ligne excessifs
+    .replace(/\s+/g, ' ')
+    .trim();
 }
-
 /**
  * Utilitaire spécialisé pour les analyses d'industrie
  */
