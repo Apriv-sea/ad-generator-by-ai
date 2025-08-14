@@ -89,9 +89,12 @@ serve(async (req) => {
     }
 
     console.log('✅ LLM response received successfully');
+    console.log('🔍 Raw response from provider:', JSON.stringify(response, null, 2));
 
     // Normaliser la réponse pour uniformiser le format
     const normalizedResponse = normalizeResponse(provider, response);
+    
+    console.log('🔍 Final response being sent to client:', JSON.stringify(normalizedResponse, null, 2));
 
     return new Response(JSON.stringify(normalizedResponse), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
