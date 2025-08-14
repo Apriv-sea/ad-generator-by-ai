@@ -192,6 +192,8 @@ async function callGoogle(apiKey: string, model: string, messages: any[], maxTok
 
 // Fonction pour normaliser les réponses de tous les providers
 function normalizeResponse(provider: string, originalResponse: any) {
+  console.log(`🔍 Normalizing response from ${provider}:`, JSON.stringify(originalResponse, null, 2));
+  
   const normalized: any = {
     provider: provider,
     model: originalResponse.model || 'unknown',
@@ -210,7 +212,11 @@ function normalizeResponse(provider: string, originalResponse: any) {
       break;
       
     case 'anthropic':
-      normalized.content = originalResponse.content?.[0]?.text || '';
+      // Pour Anthropic, le contenu est dans content[0].text
+      const anthropicContent = originalResponse.content?.[0]?.text || '';
+      normalized.content = anthropicContent;
+      console.log(`🔍 Anthropic content extracted: "${anthropicContent}"`);
+      
       normalized.usage = {
         prompt_tokens: originalResponse.usage?.input_tokens || 0,
         completion_tokens: originalResponse.usage?.output_tokens || 0,
@@ -235,8 +241,17 @@ function normalizeResponse(provider: string, originalResponse: any) {
       normalized.usage = originalResponse.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
   }
 
+  // Vérifier que le contenu a été extrait
+  if (!normalized.content) {
+    console.error(`❌ No content extracted from ${provider} response:`, originalResponse);
+  } else {
+    console.log(`✅ Content extracted from ${provider}: "${normalized.content.substring(0, 100)}..."`);
+  }
+
   // Ajouter les données originales pour debug si nécessaire
   normalized.original = originalResponse;
 
+  console.log(`🔍 Final normalized response:`, JSON.stringify(normalized, null, 2));
+  
   return normalized;
 }
