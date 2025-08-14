@@ -29,11 +29,13 @@ export function parseJsonFromLLMResponse<T = any>(
   }
 
   try {
-    // Étape 1: Nettoyer le contenu des marqueurs markdown
+    // Étape 1: Nettoyer le contenu des marqueurs markdown et texte superflu
     let cleanedContent = content
       .replace(/```json\s*/gi, '')
       .replace(/```\s*$/gi, '')
       .replace(/^```\s*/gi, '')
+      .replace(/^.*?(?=\{)/s, '') // Supprimer tout avant le premier {
+      .replace(/\}.*$/s, '}') // Supprimer tout après le dernier }
       .trim();
 
     // Étape 2: Essayer de parser directement le contenu nettoyé
