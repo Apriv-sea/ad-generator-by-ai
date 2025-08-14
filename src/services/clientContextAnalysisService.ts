@@ -133,17 +133,20 @@ Soyez précis et basez-vous uniquement sur le contenu fourni.
       }
 
       // La réponse est désormais normalisée par l'edge function
-      const responseContent = data?.content || '';
+      const responseContent = data?.content || data?.message?.content || '';
+      console.log('🤖 Réponse complète du service LLM:', JSON.stringify(data, null, 2));
+      console.log('🤖 Contenu extrait:', { 
+        hasContent: !!responseContent, 
+        contentLength: responseContent?.length,
+        contentStart: responseContent?.substring(0, 200),
+        dataKeys: data ? Object.keys(data) : [],
+        rawData: data
+      });
+
       if (!responseContent) {
         console.error('Aucun contenu dans la réponse:', data);
         throw new Error('Réponse vide du service LLM');
       }
-
-      console.log('🤖 Réponse du service LLM:', { 
-        hasContent: !!responseContent, 
-        contentLength: responseContent?.length,
-        contentStart: responseContent?.substring(0, 200)
-      });
 
       // Parser la réponse JSON avec l'utilitaire robuste
       const analysisResult = parseWebsiteAnalysis(responseContent);
