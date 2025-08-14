@@ -132,30 +132,49 @@ Soyez précis et basez-vous uniquement sur le contenu fourni.
         throw new Error(`Erreur IA: ${error.message}`);
       }
 
-      // La réponse est désormais normalisée par l'edge function
-      console.log('🔍 Debug - Réponse brute de l\'edge function:', data);
+      // Debug de la réponse de l'edge function
+      console.log('🔍 Debug - Réponse brute complète:', data);
+      console.log('🔍 Type de data:', typeof data);
+      console.log('🔍 Keys de data:', data ? Object.keys(data) : 'N/A');
       
-      // Extraire le contenu avec plusieurs fallbacks possibles
-      const responseContent = 
-        data?.content || 
-        data?.message?.content || 
-        data?.choices?.[0]?.message?.content ||
-        data?.original?.content?.[0]?.text ||
-        '';
-        
-      console.log('🤖 Contenu extrait:', { 
+      // Essayer plusieurs chemins d'extraction
+      let responseContent = '';
+      if (data) {
+        if (typeof data === 'string') {
+          responseContent = data;
+        } else if (data.content) {
+          responseContent = data.content;
+        } else if (data.message?.content) {
+          responseContent = data.message.content;
+        } else if (data.choices?.[0]?.message?.content) {
+          responseContent = data.choices[0].message.content;
+        } else if (data.original?.content?.[0]?.text) {
+          responseContent = data.original.content[0].text;
+        } else {
+          // Chercher récursivement dans l'objet
+          const findContent = (obj: any): string => {
+            if (typeof obj === 'string' && obj.includes('industry')) return obj;
+            if (typeof obj === 'object' && obj !== null) {
+              for (const key in obj) {
+                const result = findContent(obj[key]);
+                if (result) return result;
+              }
+            }
+            return '';
+          };
+          responseContent = findContent(data);
+        }
+      }
+      
+      console.log('🤖 Contenu final extrait:', { 
         hasContent: !!responseContent, 
         contentLength: responseContent?.length,
-        contentPreview: responseContent?.substring(0, 300),
-        extractionPath: data?.content ? 'data.content' : 
-                       data?.message?.content ? 'data.message.content' :
-                       data?.choices?.[0]?.message?.content ? 'data.choices[0].message.content' :
-                       data?.original?.content?.[0]?.text ? 'data.original.content[0].text' : 'NONE'
+        contentPreview: responseContent?.substring(0, 300)
       });
 
       if (!responseContent) {
-        console.error('🚨 Aucun contenu trouvé - Structure complète:', JSON.stringify(data, null, 2));
-        throw new Error('Réponse vide du service LLM - aucun contenu extractible');
+        console.error('🚨 ÉCHEC EXTRACTION - Dump complet:', JSON.stringify(data, null, 2));
+        throw new Error('Impossible d\'extraire le contenu de la réponse LLM');
       }
 
       // Parser la réponse JSON avec l'utilitaire robuste
