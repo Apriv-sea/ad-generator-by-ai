@@ -83,35 +83,60 @@ class GoogleSheetsCoreService {
   }
 
   async initiateAuth(): Promise<string> {
+    console.log('🚀 Début initiateAuth - hostname:', window.location.hostname);
+    console.log('🔧 isLovablePreview:', this.isLovablePreview());
+    
     // En mode preview Lovable, on retourne une URL de démonstration
     if (this.isLovablePreview()) {
       throw new Error('Les fonctionnalités Google Sheets ne sont pas disponibles en mode preview. Déployez votre application pour les utiliser.');
     }
     
     try {
+      const redirectUri = this.getRedirectUri();
+      console.log('🔗 RedirectUri:', redirectUri);
+      console.log('🌐 API URL:', GoogleSheetsCoreService.API_BASE_URL);
+      
+      const requestBody = { 
+        action: 'auth',
+        redirectUri: redirectUri
+      };
+      console.log('📤 Request body:', requestBody);
+      
       const response = await fetch(GoogleSheetsCoreService.API_BASE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          action: 'auth',
-          redirectUri: this.getRedirectUri()
-        })
+        body: JSON.stringify(requestBody)
       });
 
+      console.log('📡 Response status:', response.status, response.statusText);
+      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Erreur serveur (${response.status}): ${error}`);
+        const errorText = await response.text();
+        console.error('❌ Response error:', errorText);
+        throw new Error(`Erreur serveur (${response.status}): ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('✅ Response data:', data);
+      
       if (!data.authUrl) {
         throw new Error('URL d\'authentification manquante');
       }
 
       return data.authUrl;
     } catch (error) {
-      console.error('Erreur initiateAuth:', error);
-      throw new Error('Service Google Sheets temporairement indisponible. Veuillez réessayer plus tard.');
+      console.error('❌ Erreur initiateAuth complète:', error);
+      console.error('❌ Erreur stack:', error.stack);
+      console.error('❌ Erreur type:', typeof error);
+      console.error('❌ Erreur message:', error.message);
+      
+      // Re-lancer l'erreur originale pour plus de détails
+      if (error.message.includes('fetch')) {
+        throw new Error(`Erreur réseau: ${error.message}. Vérifiez votre connexion internet.`);
+      }
+      
+      throw error; // Re-lancer l'erreur originale au lieu du message générique
     }
   }
 
