@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
+import { EnhancedTokenSecurity } from '@/services/security/enhancedTokenSecurity';
 
 interface AuthState {
   user: User | null;
@@ -35,9 +36,20 @@ export function useUnifiedAuth(): UseAuthReturn {
   const mountedRef = useRef(true);
   const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
 
-  // Optimized auth state updater
+  // Optimized auth state updater with secure token storage
   const updateAuthState = useCallback((session: Session | null) => {
     if (!mountedRef.current) return;
+    
+    // Secure token management
+    if (session) {
+      EnhancedTokenSecurity.storeTokens({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      });
+      EnhancedTokenSecurity.storeSessionData(session);
+    } else {
+      EnhancedTokenSecurity.clearAllTokens();
+    }
     
     setAuthState(prev => ({
       ...prev,
@@ -175,7 +187,7 @@ export function useUnifiedAuth(): UseAuthReturn {
     }
   }, []);
 
-  // Sign out function
+  // Sign out function with enhanced security cleanup
   const signOut = useCallback(async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -184,9 +196,25 @@ export function useUnifiedAuth(): UseAuthReturn {
         throw error;
       }
 
-      // Clear all local storage
+      // Enhanced secure cleanup
+      EnhancedTokenSecurity.clearAllTokens();
+      
+      // Clear other sensitive data but preserve UI preferences
+      const keysToPreserve = ['theme', 'language', 'ui_preferences'];
+      const localStorageBackup: Record<string, string> = {};
+      
+      keysToPreserve.forEach(key => {
+        const value = localStorage.getItem(key);
+        if (value) localStorageBackup[key] = value;
+      });
+      
       localStorage.clear();
       sessionStorage.clear();
+      
+      // Restore preserved settings
+      Object.entries(localStorageBackup).forEach(([key, value]) => {
+        localStorage.setItem(key, value);
+      });
       
       toast.success('Déconnexion réussie');
     } catch (error: any) {

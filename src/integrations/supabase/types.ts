@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -490,10 +490,10 @@ export type Database = {
       }
       create_automatic_backup: {
         Args: {
-          _user_id: string
+          _backup_data: Json
           _backup_type: string
           _data_reference: string
-          _backup_data: Json
+          _user_id: string
         }
         Returns: string
       }
@@ -505,11 +505,19 @@ export type Database = {
         Args: { encrypted_key: string; user_salt: string }
         Returns: string
       }
+      decrypt_api_key_secure: {
+        Args: { encrypted_key: string; user_salt: string }
+        Returns: string
+      }
       detect_suspicious_login_patterns: {
         Args: { target_user_id: string }
         Returns: boolean
       }
       encrypt_api_key: {
+        Args: { api_key: string; user_salt?: string }
+        Returns: string
+      }
+      encrypt_api_key_secure: {
         Args: { api_key: string; user_salt?: string }
         Returns: string
       }
@@ -531,8 +539,8 @@ export type Database = {
       }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["user_role"]
+          _user_id: string
         }
         Returns: boolean
       }
@@ -546,19 +554,19 @@ export type Database = {
       }
       log_api_key_access_with_validation: {
         Args: {
-          service_name: string
           access_type_param: string
-          success_param?: boolean
           error_msg?: string
+          service_name: string
+          success_param?: boolean
         }
         Returns: undefined
       }
       log_security_event: {
         Args: {
           _action: string
-          _resource_type: string
-          _resource_id?: string
           _details?: Json
+          _resource_id?: string
+          _resource_type: string
           _risk_level?: string
         }
         Returns: undefined
@@ -571,16 +579,8 @@ export type Database = {
         Args: { "": string }
         Returns: string
       }
-      simple_decrypt_api_key: {
-        Args: { encrypted_key: string; user_salt: string }
-        Returns: string
-      }
-      simple_encrypt_api_key: {
-        Args: { api_key: string; user_salt?: string }
-        Returns: string
-      }
       store_encrypted_api_key: {
-        Args: { service_name: string; api_key_value: string }
+        Args: { api_key_value: string; service_name: string }
         Returns: string
       }
     }

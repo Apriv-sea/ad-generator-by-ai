@@ -2,9 +2,12 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
+// Restrictive CORS headers for security
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://lbmfkppvzimklebisefm.lovableproject.com',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '86400'
 };
 
 interface LLMRequest {
@@ -89,12 +92,9 @@ serve(async (req) => {
     }
 
     console.log('✅ LLM response received successfully');
-    console.log('🔍 Raw response from provider:', JSON.stringify(response, null, 2));
 
-    // Normaliser la réponse pour uniformiser le format
+    // Normalize response format
     const normalizedResponse = normalizeResponse(provider, response);
-    
-    console.log('🔍 Final response being sent to client:', JSON.stringify(normalizedResponse, null, 2));
 
     return new Response(JSON.stringify(normalizedResponse), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -193,10 +193,8 @@ async function callGoogle(apiKey: string, model: string, messages: any[], maxTok
   return await response.json();
 }
 
-// Fonction pour normaliser les réponses de tous les providers
+// Function to normalize responses from all providers
 function normalizeResponse(provider: string, originalResponse: any) {
-  console.log(`🔍 Normalizing response from ${provider}:`, JSON.stringify(originalResponse, null, 2));
-  
   const normalized: any = {
     provider: provider,
     model: originalResponse.model || 'unknown',
@@ -215,11 +213,8 @@ function normalizeResponse(provider: string, originalResponse: any) {
       break;
       
     case 'anthropic':
-      // Pour Anthropic, le contenu est dans content[0].text
-      const anthropicContent = originalResponse.content?.[0]?.text || '';
-      normalized.content = anthropicContent;
-      console.log(`🔍 Anthropic content extracted: "${anthropicContent}"`);
-      
+      // For Anthropic, content is in content[0].text
+      normalized.content = originalResponse.content?.[0]?.text || '';
       normalized.usage = {
         prompt_tokens: originalResponse.usage?.input_tokens || 0,
         completion_tokens: originalResponse.usage?.output_tokens || 0,
@@ -239,22 +234,15 @@ function normalizeResponse(provider: string, originalResponse: any) {
       break;
       
     default:
-      // Fallback - essayer de deviner le format
+      // Fallback - try to guess format
       normalized.content = originalResponse.content || originalResponse.text || '';
       normalized.usage = originalResponse.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
   }
 
-  // Vérifier que le contenu a été extrait
+  // Verify content was extracted
   if (!normalized.content) {
-    console.error(`❌ No content extracted from ${provider} response:`, originalResponse);
-  } else {
-    console.log(`✅ Content extracted from ${provider}: "${normalized.content.substring(0, 100)}..."`);
+    console.error(`❌ No content extracted from ${provider} response`);
   }
-
-  // Ajouter les données originales pour debug si nécessaire
-  normalized.original = originalResponse;
-
-  console.log(`🔍 Final normalized response:`, JSON.stringify(normalized, null, 2));
   
   return normalized;
 }

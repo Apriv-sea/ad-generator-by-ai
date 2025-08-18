@@ -37,10 +37,11 @@ class SecureStorageService {
       const serialized = JSON.stringify(data);
       const finalValue = options.encrypt ? this.encrypt(serialized) : serialized;
       
-      // Use sessionStorage for sensitive OAuth state data
-      if (key.includes('oauth') || key.includes('auth_state')) {
+      // Use sessionStorage for ALL sensitive data including tokens
+      if (key.includes('oauth') || key.includes('auth_state') || key.includes('token') || key.includes('session')) {
         sessionStorage.setItem(key, finalValue);
       } else {
+        // Only use localStorage for non-sensitive UI preferences
         localStorage.setItem(key, finalValue);
       }
     } catch (error) {

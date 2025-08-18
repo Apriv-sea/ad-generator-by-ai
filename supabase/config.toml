@@ -38,18 +38,20 @@ port = 54325
 pop3_port = 54326
 smtp_port = 54327
 
+# Secure edge function configurations - enable JWT for authenticated endpoints
 [functions.google-sheets-api]
-verify_jwt = false
+verify_jwt = true
 
 [functions.discover-models]
-verify_jwt = false
+verify_jwt = true
 
 [functions.llm-generation]
-verify_jwt = false
+verify_jwt = true
 
 [functions.test-api-key]
-verify_jwt = false
+verify_jwt = true
 
+# Public endpoints - keep JWT disabled but with restrictive CORS
 [functions.security-headers]
 verify_jwt = false
 
