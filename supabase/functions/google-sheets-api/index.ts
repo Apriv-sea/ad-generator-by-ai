@@ -33,7 +33,7 @@ serve(async (req) => {
     const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID');
     const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET');
     
-    console.log('🔑 Diagnostic complet des variables d\'environnement:');
+    console.log('🔑 Diagnostic complet des variables d\'environnement [' + new Date().toISOString() + ']:');
     console.log('📋 Toutes les variables Deno.env disponibles:', Object.keys(Deno.env.toObject()));
     console.log('🔍 Variables Google spécifiques:');
     console.log('  - GOOGLE_SHEETS_CLIENT_ID:', !!clientId ? 'TROUVÉ' : 'MANQUANT');
