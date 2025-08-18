@@ -33,15 +33,24 @@ serve(async (req) => {
     const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID');
     const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET');
     
-    console.log('🔑 Diagnostic des variables d\'environnement:', {
-      hasClientId: !!clientId,
-      hasClientSecret: !!clientSecret,
-      clientIdPrefix: clientId ? clientId.substring(0, 20) + '...' : 'MANQUANT',
-      clientSecretPrefix: clientSecret ? clientSecret.substring(0, 20) + '...' : 'MANQUANT'
-    });
+    console.log('🔑 Diagnostic complet des variables d\'environnement:');
+    console.log('📋 Toutes les variables Deno.env disponibles:', Object.keys(Deno.env.toObject()));
+    console.log('🔍 Variables Google spécifiques:');
+    console.log('  - GOOGLE_SHEETS_CLIENT_ID:', !!clientId ? 'TROUVÉ' : 'MANQUANT');
+    console.log('  - GOOGLE_SHEETS_CLIENT_SECRET:', !!clientSecret ? 'TROUVÉ' : 'MANQUANT');
+    
+    if (clientId) {
+      console.log('📝 CLIENT_ID (20 premiers chars):', clientId.substring(0, 20) + '...');
+    }
+    if (clientSecret) {
+      console.log('📝 CLIENT_SECRET (20 premiers chars):', clientSecret.substring(0, 20) + '...');
+    }
 
     if (!clientId || !clientSecret) {
-      throw new Error('Configuration manquante: Variables Google Sheets non définies');
+      console.error('❌ Variables manquantes - Détail:');
+      console.error('  CLIENT_ID présent:', !!clientId);
+      console.error('  CLIENT_SECRET présent:', !!clientSecret);
+      throw new Error('Configuration manquante: Variables Google Sheets non définies. Vérifiez la configuration des secrets dans Supabase.');
     }
 
     let requestBody;
