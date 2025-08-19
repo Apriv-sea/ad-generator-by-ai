@@ -27,6 +27,7 @@ import HowItWorks from "@/pages/HowItWorks";
 import NotFound from "@/pages/NotFound";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import LocalhostRedirect from "@/pages/LocalhostRedirect";
+import GoogleSheetsDebugPage from "@/pages/GoogleSheetsDebug";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -157,6 +158,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute requireAuth={false}>
         <LocalhostRedirect />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/debug/google-sheets",
+    element: (
+      <ProtectedRoute requireAuth={false}>
+        <GoogleSheetsDebugPage />
       </ProtectedRoute>
     ),
   },

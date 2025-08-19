@@ -22,14 +22,10 @@ export interface AuthTokens {
 
 class GoogleSheetsCoreService {
   private static readonly STORAGE_KEY = 'google_sheets_auth';
-  private static readonly API_BASE_URL = 'https://lbmfkppvzimklebisefm.supabase.co/functions/v1/google-sheets-api';
   
-  // Détection si on est dans l'environnement de preview Lovable (pas l'app déployée)
-  private isLovablePreview(): boolean {
-    return window.location.hostname.includes('localhost') || 
-           window.location.hostname.includes('127.0.0.1') ||
-           window.location.hostname.includes('lovable.dev') ||
-           window.location.hostname.includes('preview.lovable');
+  private getApiBaseUrl(): string {
+    // Utiliser l'URL Supabase dynamiquement selon l'environnement
+    return 'https://lbmfkppvzimklebisefm.supabase.co/functions/v1/google-sheets-api';
   }
 
   // =============== AUTHENTIFICATION ===============
@@ -41,11 +37,6 @@ class GoogleSheetsCoreService {
   }
 
   isAuthenticated(): boolean {
-    // En mode preview, on simule l'authentification
-    if (this.isLovablePreview()) {
-      return false; // Désactiver les fonctionnalités Google Sheets en preview
-    }
-    
     const tokens = this.getStoredTokens();
     if (!tokens?.access_token) return false;
     
@@ -84,17 +75,12 @@ class GoogleSheetsCoreService {
 
   async initiateAuth(): Promise<string> {
     console.log('🚀 Début initiateAuth - hostname:', window.location.hostname);
-    console.log('🔧 isLovablePreview:', this.isLovablePreview());
-    
-    // En mode preview Lovable, on retourne une URL de démonstration
-    if (this.isLovablePreview()) {
-      throw new Error('Les fonctionnalités Google Sheets ne sont pas disponibles en mode preview. Déployez votre application pour les utiliser.');
-    }
     
     try {
       const redirectUri = this.getRedirectUri();
+      const apiUrl = this.getApiBaseUrl();
       console.log('🔗 RedirectUri:', redirectUri);
-      console.log('🌐 API URL:', GoogleSheetsCoreService.API_BASE_URL);
+      console.log('🌐 API URL:', apiUrl);
       
       const requestBody = { 
         action: 'auth',
@@ -102,7 +88,7 @@ class GoogleSheetsCoreService {
       };
       console.log('📤 Request body:', requestBody);
       
-      const response = await fetch(GoogleSheetsCoreService.API_BASE_URL, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
@@ -141,7 +127,7 @@ class GoogleSheetsCoreService {
   }
 
   async completeAuth(code: string): Promise<void> {
-    const response = await fetch(GoogleSheetsCoreService.API_BASE_URL, {
+    const response = await fetch(this.getApiBaseUrl(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -184,14 +170,6 @@ class GoogleSheetsCoreService {
     }
 
     try {
-      // En mode preview, on retourne des données de démonstration
-      if (this.isLovablePreview()) {
-        return {
-          title: 'Feuille de démonstration (Preview)',
-          values: [this.getStandardHeaders()]
-        };
-      }
-      
       if (this.isAuthenticated()) {
         return await this.readSheetViaAPI(sheetId, range);
       }
@@ -207,7 +185,7 @@ class GoogleSheetsCoreService {
 
   private async readSheetViaAPI(sheetId: string, range: string): Promise<GoogleSheetsData> {
     const tokens = this.getStoredTokens();
-    const response = await fetch(GoogleSheetsCoreService.API_BASE_URL, {
+    const response = await fetch(this.getApiBaseUrl(), {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -253,7 +231,7 @@ class GoogleSheetsCoreService {
     }
 
     const tokens = this.getStoredTokens();
-    const response = await fetch(GoogleSheetsCoreService.API_BASE_URL, {
+    const response = await fetch(this.getApiBaseUrl(), {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
