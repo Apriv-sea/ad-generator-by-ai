@@ -4,7 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 // Restrictive CORS headers for security - only allow production domain
 const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://lbmfkppvzimklebisefm.lovable.app',
+  'Access-Control-Allow-Origin': 'https://ad-content-generator.lovable.app',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Max-Age': '86400'
