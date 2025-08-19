@@ -99,9 +99,9 @@ serve(async (req) => {
 })
 
 async function handleInitiateAuth(supabase: any, userId: string) {
-  const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID')
+  const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
   if (!clientId) {
-    throw new Error('Google Sheets Client ID not configured')
+    throw new Error('Google Client ID not configured')
   }
 
   // Generate secure state
@@ -163,11 +163,11 @@ async function handleTokenExchange(supabase: any, userId: string, code: string, 
     .delete()
     .eq('id', stateData.id)
 
-  const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID')
-  const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET')
+  const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
+  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')
   
   if (!clientId || !clientSecret) {
-    throw new Error('Google Sheets configuration not complete')
+    throw new Error('Google OAuth configuration not complete')
   }
 
   const redirectUri = 'https://d7debcc3-21f6-4b31-89a2-e1398213d7ee.lovableproject.com/auth/callback/google'
@@ -292,8 +292,8 @@ async function handleGoogleSheetsOperation(supabase: any, userId: string, body: 
 }
 
 async function refreshAccessToken(supabase: any, userId: string, refreshToken: string): Promise<string | null> {
-  const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID')
-  const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET')
+  const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
+  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')
 
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
