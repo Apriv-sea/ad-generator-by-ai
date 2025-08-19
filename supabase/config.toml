@@ -40,7 +40,7 @@ smtp_port = 54327
 
 # Secure edge function configurations - enable JWT for authenticated endpoints
 [functions.google-sheets-api]
-verify_jwt = false
+verify_jwt = true
 
 [functions.discover-models]
 verify_jwt = true

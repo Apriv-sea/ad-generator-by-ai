@@ -36,7 +36,7 @@ export const sheetService = {
   // Authentification
   isAuthenticated: () => googleSheetsCoreService.isAuthenticated(),
   initiateAuth: () => googleSheetsCoreService.initiateAuth(),
-  completeAuth: (code: string) => googleSheetsCoreService.completeAuth(code),
+  completeAuth: (code: string, state?: string) => googleSheetsCoreService.completeAuth(code, state || ''),
   logout: () => googleSheetsCoreService.logout(),
   
   // Manipulation des feuilles

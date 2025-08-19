@@ -12,7 +12,7 @@ interface GoogleSheetsContextType {
   
   // Actions
   initiateAuth: () => Promise<string>;
-  completeAuth: (code: string) => Promise<void>;
+  completeAuth: (code: string, state?: string) => Promise<void>;
   connectToSheet: (sheetId: string) => Promise<void>;
   saveSheetData: (data: string[][]) => Promise<boolean>;
   logout: () => void;
@@ -33,14 +33,18 @@ export const GoogleSheetsProvider: React.FC<GoogleSheetsProviderProps> = ({ chil
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      const authenticated = googleSheetsCoreService.isAuthenticated();
-      console.log('État d\'authentification initial:', authenticated);
-      setIsAuthenticated(authenticated);
-    } catch (error) {
-      console.error('Erreur lors de la vérification auth:', error);
-      setIsAuthenticated(false);
-    }
+    const checkAuth = async () => {
+      try {
+        const authenticated = await googleSheetsCoreService.isAuthenticated();
+        console.log('État d\'authentification initial:', authenticated);
+        setIsAuthenticated(authenticated);
+      } catch (error) {
+        console.error('Erreur lors de la vérification auth:', error);
+        setIsAuthenticated(false);
+      }
+    };
+    
+    checkAuth();
   }, []);
 
   const initiateAuth = async (): Promise<string> => {
@@ -63,16 +67,17 @@ export const GoogleSheetsProvider: React.FC<GoogleSheetsProviderProps> = ({ chil
     }
   };
 
-  const completeAuth = async (code: string): Promise<void> => {
+  const completeAuth = async (code: string, state?: string): Promise<void> => {
     setIsLoading(true);
     setError(null);
     
     try {
       console.log('Completion de l\'authentification avec le code:', code);
-      await googleSheetsCoreService.completeAuth(code);
+      // Use empty state if not provided for backward compatibility
+      await googleSheetsCoreService.completeAuth(code, state || '');
       
       // Vérifier l'état d'authentification après completion
-      const authenticated = googleSheetsCoreService.isAuthenticated();
+      const authenticated = await googleSheetsCoreService.isAuthenticated();
       console.log('État d\'authentification après completion:', authenticated);
       
       setIsAuthenticated(authenticated);

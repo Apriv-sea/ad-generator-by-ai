@@ -90,7 +90,7 @@ const GoogleSheetsIdInput: React.FC<GoogleSheetsIdInputProps> = ({ onSheetLoaded
       if (errorMessage.includes('401') || errorMessage.includes('Token') || errorMessage.includes('authentification')) {
         userMessage = "Votre session Google Sheets a expiré. Veuillez vous reconnecter dans l'onglet 'Authentification'.";
         // Nettoyer automatiquement les tokens expirés
-        googleSheetsCoreService.clearTokens();
+        googleSheetsCoreService.logout();
       } else if (errorMessage.includes('403')) {
         userMessage = "Accès refusé à la feuille. Vérifiez que la feuille est partagée publiquement ou que vous avez les permissions.";
       } else if (errorMessage.includes('404')) {

@@ -1,6 +1,6 @@
 /**
- * Service Google Sheets unifié et optimisé
- * Centralise toute la logique Google Sheets en un seul service cohérent
+ * Service Google Sheets unifié et sécurisé
+ * Utilise uniquement des tokens server-side pour la sécurité
  */
 
 import { supabase } from "@/integrations/supabase/client";
@@ -21,132 +21,71 @@ export interface AuthTokens {
 }
 
 class GoogleSheetsCoreService {
-  private static readonly STORAGE_KEY = 'google_sheets_auth';
-  
-  private getApiBaseUrl(): string {
-    // Utiliser l'URL Supabase dynamiquement selon l'environnement
-    return 'https://lbmfkppvzimklebisefm.supabase.co/functions/v1/google-sheets-api';
-  }
-
   // =============== AUTHENTIFICATION ===============
 
-  private getRedirectUri(): string {
-    const origin = window.location.origin;
-    const redirectPath = '/auth/google';
-    return `${origin}${redirectPath}`;
-  }
-
-  isAuthenticated(): boolean {
-    const tokens = this.getStoredTokens();
-    if (!tokens?.access_token) return false;
-    
-    if (tokens.expires_at && Date.now() > tokens.expires_at) {
-      this.clearTokens();
+  // Check if authenticated via server-side token validation
+  async isAuthenticated(): Promise<boolean> {
+    try {
+      const response = await supabase.functions.invoke('google-sheets-api', {
+        body: { action: 'check_auth' }
+      });
+      return response.data?.authenticated === true;
+    } catch {
       return false;
     }
-    
-    return true;
   }
 
-  private getStoredTokens(): AuthTokens | null {
-    try {
-      const stored = localStorage.getItem(GoogleSheetsCoreService.STORAGE_KEY);
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  private storeTokens(tokens: AuthTokens): void {
-    try {
-      if (tokens.expires_in && !tokens.expires_at) {
-        tokens.expires_at = Date.now() + (tokens.expires_in * 1000);
-      }
-      localStorage.setItem(GoogleSheetsCoreService.STORAGE_KEY, JSON.stringify(tokens));
-    } catch (error) {
-      console.error('Erreur stockage tokens:', error);
-      toast.error('Impossible de sauvegarder l\'authentification');
-    }
-  }
-
-  clearTokens(): void {
-    localStorage.removeItem(GoogleSheetsCoreService.STORAGE_KEY);
-  }
-
+  // Initiate Google Sheets authentication flow via secure edge function
   async initiateAuth(): Promise<string> {
-    console.log('🚀 Début initiateAuth - hostname:', window.location.hostname);
-    
     try {
-      const redirectUri = this.getRedirectUri();
-      const apiUrl = this.getApiBaseUrl();
-      console.log('🔗 RedirectUri:', redirectUri);
-      console.log('🌐 API URL:', apiUrl);
-      
-      const requestBody = { 
-        action: 'auth',
-        redirectUri: redirectUri
-      };
-      console.log('📤 Request body:', requestBody);
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
+      const response = await supabase.functions.invoke('google-sheets-api', {
+        body: { action: 'initiate_auth' }
       });
-
-      console.log('📡 Response status:', response.status, response.statusText);
-      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Response error:', errorText);
-        throw new Error(`Erreur serveur (${response.status}): ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log('✅ Response data:', data);
       
-      if (!data.authUrl) {
-        throw new Error('URL d\'authentification manquante');
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to initiate authentication');
       }
-
-      return data.authUrl;
+      
+      return response.data.authUrl;
     } catch (error) {
-      console.error('❌ Erreur initiateAuth complète:', error);
-      console.error('❌ Erreur stack:', error.stack);
-      console.error('❌ Erreur type:', typeof error);
-      console.error('❌ Erreur message:', error.message);
-      
-      // Re-lancer l'erreur originale pour plus de détails
-      if (error.message.includes('fetch')) {
-        throw new Error(`Erreur réseau: ${error.message}. Vérifiez votre connexion internet.`);
-      }
-      
-      throw error; // Re-lancer l'erreur originale au lieu du message générique
+      console.error('Authentication initiation failed:', error);
+      throw error;
     }
   }
 
-  async completeAuth(code: string): Promise<void> {
-    const response = await fetch(this.getApiBaseUrl(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        action: 'auth', 
-        code,
-        redirectUri: this.getRedirectUri()
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Erreur serveur completion (${response.status})`);
+  // Complete authentication with authorization code via secure edge function
+  async completeAuth(code: string, state: string): Promise<void> {
+    try {
+      const response = await supabase.functions.invoke('google-sheets-api', {
+        body: { 
+          action: 'exchange_token',
+          code,
+          state
+        }
+      });
+      
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to complete authentication');
+      }
+      
+      console.log('Authentication completed successfully');
+    } catch (error) {
+      console.error('Authentication completion failed:', error);
+      throw error;
     }
+  }
 
-    const tokens = await response.json();
-    if (!tokens.access_token) {
-      throw new Error('Token d\'accès manquant');
+  // Logout and clear server-side tokens
+  async logout(): Promise<void> {
+    try {
+      await supabase.functions.invoke('google-sheets-api', {
+        body: { action: 'logout' }
+      });
+      toast.info('Déconnecté de Google Sheets');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      toast.error('Erreur lors de la déconnexion');
     }
-
-    this.storeTokens(tokens);
   }
 
   // =============== OPERATIONS SHEETS ===============
@@ -164,16 +103,21 @@ class GoogleSheetsCoreService {
     return /^[a-zA-Z0-9-_]+$/.test(sheetId) && sheetId.length > 10;
   }
 
-  async getSheetData(sheetId: string, range: string = 'A:AZ'): Promise<GoogleSheetsData> {
+  // Get data from Google Sheets via secure edge function
+  async getSheetData(sheetId: string, range?: string): Promise<GoogleSheetsData> {
     if (!this.validateSheetId(sheetId)) {
       throw new Error('ID de feuille Google Sheets invalide');
     }
 
     try {
-      if (this.isAuthenticated()) {
+      const isAuth = await this.isAuthenticated();
+      
+      if (isAuth) {
         return await this.readSheetViaAPI(sheetId, range);
+      } else {
+        // Fall back to CSV export (limited functionality)
+        return await this.getSheetDataViaCSV(sheetId);
       }
-      return await this.getSheetDataViaCSV(sheetId);
     } catch (error) {
       console.error("Erreur récupération données:", error);
       return {
@@ -183,27 +127,29 @@ class GoogleSheetsCoreService {
     }
   }
 
-  private async readSheetViaAPI(sheetId: string, range: string): Promise<GoogleSheetsData> {
-    const tokens = this.getStoredTokens();
-    const response = await fetch(this.getApiBaseUrl(), {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${tokens?.access_token}`
-      },
-      body: JSON.stringify({ action: 'read', sheetId, range })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Erreur API: ${response.status}`);
+  private async readSheetViaAPI(sheetId: string, range?: string): Promise<GoogleSheetsData> {
+    try {
+      const response = await supabase.functions.invoke('google-sheets-api', {
+        body: { 
+          action: 'read_sheet',
+          sheetId,
+          range: range || 'A:Z'
+        }
+      });
+      
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to read sheet data');
+      }
+      
+      return {
+        values: response.data.values || [],
+        title: `Sheet ${sheetId}`,
+        info: `Read ${response.data.values?.length || 0} rows`
+      };
+    } catch (error) {
+      console.error('Failed to get sheet data:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    return {
-      values: data.values || [],
-      title: data.properties?.title || 'Feuille Google Sheets',
-      info: data.properties
-    };
   }
 
   private async getSheetDataViaCSV(sheetId: string): Promise<GoogleSheetsData> {
@@ -225,26 +171,44 @@ class GoogleSheetsCoreService {
     };
   }
 
-  async saveSheetData(sheetId: string, data: string[][], range: string = 'A1'): Promise<boolean> {
-    if (!this.isAuthenticated()) {
-      throw new Error('Authentification Google requise');
+  // Save data to Google Sheets via secure edge function
+  async saveSheetData(sheetId: string, data: string[][], range?: string): Promise<boolean> {
+    try {
+      const response = await supabase.functions.invoke('google-sheets-api', {
+        body: { 
+          action: 'write_sheet',
+          sheetId,
+          data,
+          range: range || 'A1'
+        }
+      });
+      
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to save sheet data');
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to save sheet data:', error);
+      return false;
     }
+  }
 
-    const tokens = this.getStoredTokens();
-    const response = await fetch(this.getApiBaseUrl(), {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${tokens?.access_token}`
-      },
-      body: JSON.stringify({ action: 'write', sheetId, data, range })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Erreur sauvegarde: ${response.status}`);
+  async createNewSheet(): Promise<{ spreadsheetId: string; spreadsheetUrl: string } | null> {
+    try {
+      const response = await supabase.functions.invoke('google-sheets-api', {
+        body: { action: 'create_sheet' }
+      });
+      
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to create sheet');
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create sheet:', error);
+      return null;
     }
-
-    return true;
   }
 
   // =============== UTILITAIRES ===============
@@ -283,11 +247,6 @@ class GoogleSheetsCoreService {
 
   createNewSheetUrl(): string {
     return 'https://docs.google.com/spreadsheets/create';
-  }
-
-  logout(): void {
-    this.clearTokens();
-    toast.info('Déconnecté de Google Sheets');
   }
 }
 
