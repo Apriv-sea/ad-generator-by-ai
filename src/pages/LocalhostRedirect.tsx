@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, ExternalLink, CheckCircle } from 'lucide-react';
-import AuthDebugDialog from '@/components/AuthDebugDialog';
 import { toast } from 'sonner';
 
 const LocalhostRedirect = () => {
@@ -212,15 +211,10 @@ const LocalhostRedirect = () => {
             </>
           )}
 
-          <div className="flex justify-between mt-6">
+          <div className="flex justify-center mt-6">
             <Button variant="outline" onClick={() => navigate("/auth")}>
               Retour à la connexion
             </Button>
-            <AuthDebugDialog trigger={
-              <Button variant="ghost" size="sm">
-                Informations de débogage
-              </Button>
-            } />
           </div>
         </CardContent>
       </Card>

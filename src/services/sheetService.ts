@@ -5,7 +5,6 @@
 import { type Sheet, type Client, type Campaign } from "./types";
 import { googleSheetsCoreService } from "./core/googleSheetsCore";
 import { clientService } from "./clientService";
-import { contentGenerationService } from "./contentGenerationService";
 import { getClients } from "./clientQuery";
 
 export type { 
@@ -14,7 +13,7 @@ export type {
   Campaign 
 };
 
-export { getClients, contentGenerationService };
+export { getClients };
 
 // Colonnes validées pour l'extraction de campagnes
 export const VALIDATED_COLUMNS = [

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import AuthDebugDialog from '@/components/AuthDebugDialog';
 import { ArrowRight, FileSpreadsheet, Wand2, Users } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 interface HeroSectionProps {
@@ -44,14 +43,13 @@ const HeroSection: React.FC<HeroSectionProps> = ({
         Créez des annonces Google Ads performantes grâce à l'intelligence artificielle
       </p>
 
-      {authError && <Alert variant="destructive" className="mb-8 max-w-2xl mx-auto">
+      {authError && (
+        <Alert variant="destructive" className="mb-8 max-w-2xl mx-auto">
           <AlertDescription className="whitespace-pre-wrap">
             {authError}
-            <div className="mt-2">
-              <AuthDebugDialog trigger={<Button variant="outline" size="sm">Informations de débogage</Button>} />
-            </div>
           </AlertDescription>
-        </Alert>}
+        </Alert>
+      )}
 
       {/* Actions principales */}
       {!isAuthenticated && <div className="space-y-6 mb-16">

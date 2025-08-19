@@ -2,7 +2,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import AuthDebugDialog from "@/components/AuthDebugDialog";
 import AuthError from "@/components/auth/AuthError";
 import AuthLoading from "@/components/auth/AuthLoading";
 
@@ -49,14 +48,6 @@ const AuthCallbackContent: React.FC<AuthCallbackContentProps> = ({
               Rediriger vers la page d'accueil
             </Button>
           )}
-          
-          <div className="mt-4">
-            <AuthDebugDialog trigger={
-              <Button variant="link" size="sm">
-                Afficher les informations de débogage
-              </Button>
-            } />
-          </div>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Sheet, Client, sheetService } from "@/services/sheetService";
-import { DebugContentGeneration } from "@/services/content/DebugContentGeneration";
+import { enhancedContentGenerationService } from "@/services/content/enhancedContentGenerationService";
 import { googleSheetsService } from "@/services/googlesheets/googleSheetsService";
 
 interface UseContentGenerationProps {
@@ -84,32 +84,51 @@ export const useContentGeneration = ({
         // CORRECTION CRITIQUE: i correspond à l'index dans dataRows, donc i+1 correspond à l'index dans sheetData incluant les headers
         console.log(`📍 Index correction: i=${i}, rowIndex dans sheetData=${i + 1}`);
         
-        // AVANT APPEL SERVICE DEBUG
-        console.log('🚨 AVANT APPEL DebugContentGeneration.generateAndSaveContent');
-        
-        // Utiliser le service debug pour générer et sauvegarder
-        const result = await DebugContentGeneration.generateAndSaveContent(
+        // Utiliser le service principal pour générer du contenu
+        const result = await enhancedContentGenerationService.generateContent(
           {
             model: selectedModel,
             clientContext,
-            industry: clientInfo.industry,           // Nouveau champ
-            targetPersona: clientInfo.targetPersona, // Nouveau champ
+            industry: clientInfo.industry,
             campaignContext: campaign,
             adGroupContext: adGroup,
             keywords: keywords.slice(0, 3)
           },
           sheet.id,
-          i + 1, // Index dans le tableau complet (headers + données)
-          [headers, ...updatedRows] // Données complètes incluant les en-têtes
+          [headers, ...updatedRows],
+          {
+            validateContent: true,
+            saveToHistory: true,
+            createBackup: false,
+            autoCleanContent: true,
+            maxRegenerateAttempts: 2
+          }
         );
-
-        console.log('🚨 RETOUR DebugContentGeneration:', result);
         
-        if (result.success && result.updatedSheetData) {
-          console.log(`✅ Contenu généré et sauvé pour ligne ${i + 1}`);
+        console.log('✅ Retour service génération:', result);
+        
+        if (result.success && result.titles && result.descriptions) {
+          console.log(`✅ Contenu généré pour ligne ${i + 1}`);
           
-          // Mettre à jour les données de la feuille (sans les en-têtes)
-          updatedRows = result.updatedSheetData.slice(1);
+          // Intégrer le contenu généré dans la ligne
+          const titres = result.titles || [];
+          const descriptions = result.descriptions || [];
+          
+          // Mettre à jour la ligne avec le contenu généré
+          for (let titleIndex = 0; titleIndex < 15 && titleIndex < titres.length; titleIndex++) {
+            const columnIndex = 5 + titleIndex; // Commence à la colonne "Titre 1"
+            if (columnIndex < updatedRows[i].length || columnIndex === updatedRows[i].length) {
+              updatedRows[i][columnIndex] = titres[titleIndex];
+            }
+          }
+          
+          for (let descIndex = 0; descIndex < 4 && descIndex < descriptions.length; descIndex++) {
+            const columnIndex = 20 + descIndex; // Commence à la colonne "Description 1"
+            if (columnIndex < updatedRows[i].length || columnIndex === updatedRows[i].length) {
+              updatedRows[i][columnIndex] = descriptions[descIndex];
+            }
+          }
+          
           contentGeneratedCount++;
         } else {
           console.warn(`⚠️ Échec génération pour ligne ${i + 1}:`, result.error);

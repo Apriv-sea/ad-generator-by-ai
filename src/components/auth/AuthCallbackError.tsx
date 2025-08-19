@@ -1,6 +1,5 @@
 
 import React from "react";
-import AuthDebugDialog from "@/components/AuthDebugDialog";
 import { Button } from "@/components/ui/button";
 import AuthWarning from "./AuthWarning";
 
@@ -48,13 +47,6 @@ const AuthCallbackError: React.FC<AuthCallbackErrorProps> = ({ errorDetails }) =
             <li>Si vous avez activé l'option "Autoriser toutes les origines", vérifiez que cela est bien configuré</li>
             <li>Les paramètres des URL sont exactement identiques (incluant http/https)</li>
           </ul>
-          <div className="flex justify-center mt-2">
-            <AuthDebugDialog trigger={
-              <Button variant="outline" size="sm">
-                Afficher les informations de débogage détaillées
-              </Button>
-            } />
-          </div>
         </div>
       )}
     </div>
