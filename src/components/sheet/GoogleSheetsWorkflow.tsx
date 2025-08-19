@@ -41,15 +41,25 @@ const GoogleSheetsWorkflow: React.FC<GoogleSheetsWorkflowProps> = ({ sheet, clie
 
   // Vérifier l'authentification au chargement
   useEffect(() => {
-    const authenticated = googleSheetsService.isAuthenticated();
-    setIsAuthenticated(authenticated);
-    setWorkflowState(prev => ({
-      ...prev,
-      authenticated
-    }));
-
-    // Ne pas auto-naviguer vers connection si pas authentifié
-    // Laisser l'utilisateur sur l'onglet auth pour voir le statut
+    const checkAuth = async () => {
+      try {
+        const authenticated = await googleSheetsService.isAuthenticated();
+        setIsAuthenticated(authenticated);
+        setWorkflowState(prev => ({
+          ...prev,
+          authenticated
+        }));
+      } catch (error) {
+        console.error('Erreur vérification auth:', error);
+        setIsAuthenticated(false);
+        setWorkflowState(prev => ({
+          ...prev,
+          authenticated: false
+        }));
+      }
+    };
+    
+    checkAuth();
   }, []);
 
   // Restaurer l'état du workflow au chargement
