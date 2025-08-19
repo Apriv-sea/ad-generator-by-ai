@@ -122,6 +122,7 @@ async function handleInitiateAuth(supabase: any, userId: string) {
 
   // Whitelist of allowed redirect URIs
   const allowedRedirectUris = [
+    'https://ad-content-generator.lovable.app/auth/callback/google',
     'https://d7debcc3-21f6-4b31-89a2-e1398213d7ee.lovableproject.com/auth/callback/google',
     'http://localhost:3000/auth/callback/google'
   ]
@@ -170,7 +171,7 @@ async function handleTokenExchange(supabase: any, userId: string, code: string, 
     throw new Error('Google OAuth configuration not complete')
   }
 
-  const redirectUri = 'https://d7debcc3-21f6-4b31-89a2-e1398213d7ee.lovableproject.com/auth/callback/google'
+  const redirectUri = 'https://ad-content-generator.lovable.app/auth/callback/google'
 
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
