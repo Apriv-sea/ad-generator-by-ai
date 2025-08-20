@@ -159,20 +159,44 @@ async function handleInitiateAuth(supabase: any, userId: string, req: Request) {
 async function handleTokenExchange(supabase: any, userId: string, code: string, state: string, req: Request) {
   console.log('🔍 Validating OAuth state:', { userId, state })
   
-  // Validate state
+  // First, check if oauth_states table exists and what states are available
+  const { data: allStates, error: listError } = await supabase
+    .from('oauth_states')
+    .select('*')
+    .eq('user_id', userId)
+    
+  console.log('🗃️ All OAuth states for user:', { allStates, listError })
+  
+  // Validate state with more detailed logging
   const { data: stateData, error: stateError } = await supabase
     .from('oauth_states')
     .select('*')
     .eq('user_id', userId)
     .eq('state', state)
-    .gt('expires_at', new Date().toISOString())
     .single()
 
-  console.log('📊 State validation result:', { stateData, stateError })
+  console.log('📊 State validation result:', { stateData, stateError, searchedState: state })
 
-  if (stateError || !stateData) {
-    console.error('❌ State validation failed:', { stateError, stateData, userId, state })
-    throw new Error('Invalid or expired state')
+  // Check if state exists but is expired
+  if (!stateData && !stateError) {
+    console.error('❌ State not found in database')
+    throw new Error('OAuth state not found - please retry authentication')
+  }
+
+  if (stateError) {
+    console.error('❌ Database error during state validation:', stateError)
+    throw new Error('Database error during authentication')
+  }
+
+  // Check if state is expired
+  if (stateData && stateData.expires_at && new Date() >= new Date(stateData.expires_at)) {
+    console.error('❌ State has expired:', { expires_at: stateData.expires_at, now: new Date().toISOString() })
+    throw new Error('Authentication session expired - please retry')
+  }
+
+  if (!stateData) {
+    console.error('❌ State validation failed - state not found')
+    throw new Error('Invalid authentication state - please retry')
   }
 
   // Clean up used state
