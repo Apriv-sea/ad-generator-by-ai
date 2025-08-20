@@ -74,9 +74,9 @@ serve(async (req) => {
     await auditLog(supabase, user.id, body.action, body.sheetId || null, clientIP, userAgent, true)
 
     if (body.action === 'initiate_auth') {
-      return await handleInitiateAuth(supabase, user.id)
+      return await handleInitiateAuth(supabase, user.id, req)
     } else if (body.action === 'exchange_token') {
-      return await handleTokenExchange(supabase, user.id, body.code, body.state)
+      return await handleTokenExchange(supabase, user.id, body.code, body.state, req)
     } else if (body.action === 'check_auth') {
       return await handleCheckAuth(supabase, user.id)
     } else if (body.action === 'logout') {
@@ -98,7 +98,7 @@ serve(async (req) => {
   }
 })
 
-async function handleInitiateAuth(supabase: any, userId: string) {
+async function handleInitiateAuth(supabase: any, userId: string, req: Request) {
   const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
   if (!clientId) {
     throw new Error('Google Client ID not configured')
@@ -120,14 +120,26 @@ async function handleInitiateAuth(supabase: any, userId: string) {
     throw new Error('Failed to initialize authentication')
   }
 
-  // Whitelist of allowed redirect URIs
-  const allowedRedirectUris = [
-    'https://ad-content-generator.lovable.app/auth/callback/google',
-    'https://d7debcc3-21f6-4b31-89a2-e1398213d7ee.lovableproject.com/auth/callback/google',
-    'http://localhost:3000/auth/callback/google'
-  ]
+  // Get appropriate redirect URI based on request origin
+  const getRedirectUri = (origin?: string): string => {
+    const allowedRedirectUris = [
+      'https://ad-content-generator.lovable.app/auth/callback/google',
+      'https://d7debcc3-21f6-4b31-89a2-e1398213d7ee.lovableproject.com/auth/callback/google',
+      'http://localhost:3000/auth/callback/google'
+    ]
+    
+    // Return the appropriate URI based on origin
+    if (origin?.includes('localhost')) {
+      return allowedRedirectUris[2]
+    } else if (origin?.includes('lovableproject.com')) {
+      return allowedRedirectUris[1]
+    } else {
+      return allowedRedirectUris[0] // Production URI by default
+    }
+  }
 
-  const redirectUri = allowedRedirectUris[0] // Use production URI by default
+  const origin = req.headers.get('origin')
+  const redirectUri = getRedirectUri(origin)
 
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
     `client_id=${clientId}&` +
@@ -144,7 +156,9 @@ async function handleInitiateAuth(supabase: any, userId: string) {
   )
 }
 
-async function handleTokenExchange(supabase: any, userId: string, code: string, state: string) {
+async function handleTokenExchange(supabase: any, userId: string, code: string, state: string, req: Request) {
+  console.log('🔍 Validating OAuth state:', { userId, state })
+  
   // Validate state
   const { data: stateData, error: stateError } = await supabase
     .from('oauth_states')
@@ -154,7 +168,10 @@ async function handleTokenExchange(supabase: any, userId: string, code: string, 
     .gt('expires_at', new Date().toISOString())
     .single()
 
+  console.log('📊 State validation result:', { stateData, stateError })
+
   if (stateError || !stateData) {
+    console.error('❌ State validation failed:', { stateError, stateData, userId, state })
     throw new Error('Invalid or expired state')
   }
 
@@ -171,7 +188,25 @@ async function handleTokenExchange(supabase: any, userId: string, code: string, 
     throw new Error('Google OAuth configuration not complete')
   }
 
-  const redirectUri = 'https://ad-content-generator.lovable.app/auth/callback/google'
+  // Use the same redirect URI logic as in initiate auth
+  const getRedirectUri = (origin?: string): string => {
+    const allowedRedirectUris = [
+      'https://ad-content-generator.lovable.app/auth/callback/google',
+      'https://d7debcc3-21f6-4b31-89a2-e1398213d7ee.lovableproject.com/auth/callback/google',
+      'http://localhost:3000/auth/callback/google'
+    ]
+    
+    if (origin?.includes('localhost')) {
+      return allowedRedirectUris[2]
+    } else if (origin?.includes('lovableproject.com')) {
+      return allowedRedirectUris[1]
+    } else {
+      return allowedRedirectUris[0]
+    }
+  }
+
+  const origin = req.headers.get('origin')
+  const redirectUri = getRedirectUri(origin)
 
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
