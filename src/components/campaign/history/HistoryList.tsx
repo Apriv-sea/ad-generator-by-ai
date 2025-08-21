@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2 } from "lucide-react";
 import { contentHistoryService } from "@/services/history/contentHistoryService";
 import { toast } from "sonner";
-import { useMemoizedCallback } from "@/hooks/useMemoizedCallback";
+import { useCallback } from "react";
 
 interface HistoryListProps {
   history: any[];
@@ -14,7 +14,7 @@ interface HistoryListProps {
 }
 
 export const HistoryList: React.FC<HistoryListProps> = ({ history, onRefresh }) => {
-  const handleDeleteHistory = useMemoizedCallback(async (id: string) => {
+  const handleDeleteHistory = useCallback(async (id: string) => {
     if (await contentHistoryService.deleteGeneration(id)) {
       onRefresh();
       toast.success("Élément supprimé de l'historique");

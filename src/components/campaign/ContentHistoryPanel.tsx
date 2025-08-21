@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { contentHistoryService } from "@/services/history/contentHistoryService";
 import { History, RotateCcw, Trash2, Clock, Zap } from "lucide-react";
 import { toast } from "sonner";
-import { useMemoizedCallback } from "@/hooks/useMemoizedCallback";
+import { useCallback } from "react";
 import { HistoryList } from "./history/HistoryList";
 import { BackupsList } from "./history/BackupsList";
 import { HistoryStats } from "./history/HistoryStats";
@@ -24,7 +24,7 @@ const ContentHistoryPanel: React.FC<ContentHistoryPanelProps> = ({ sheetId, onRe
   const [stats, setStats] = useState<any>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const loadData = useMemoizedCallback(async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [historyData, backupsData, statsData] = await Promise.all([
@@ -48,7 +48,7 @@ const ContentHistoryPanel: React.FC<ContentHistoryPanelProps> = ({ sheetId, onRe
     loadData();
   }, [loadData]);
 
-  const handleRevert = useMemoizedCallback(async (backupId: string) => {
+  const handleRevert = useCallback(async (backupId: string) => {
     try {
       // Revert functionality not implemented yet
       const revertData = null;

@@ -173,9 +173,13 @@ export class ErrorService {
    * Récupère l'ID utilisateur actuel (si disponible)
    */
   private static getCurrentUserId(): string | undefined {
-    // TODO: Implémenter la récupération de l'ID utilisateur
-    // depuis le contexte d'authentification
-    return undefined;
+    try {
+      // Récupérer l'ID utilisateur depuis le contexte Supabase
+      const user = JSON.parse(localStorage.getItem('supabase.auth.token') || '{}')?.user;
+      return user?.id;
+    } catch {
+      return undefined;
+    }
   }
 
   /**

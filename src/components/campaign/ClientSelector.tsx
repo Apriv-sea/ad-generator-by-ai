@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,13 +7,34 @@ import { getClientShortInfo } from "@/services/clientService";
 import { toast } from "sonner";
 import { Users } from "lucide-react";
 
-interface ClientSelectorProps {
+interface ModernClientSelectorProps {
   selectedClientId?: string;
   onClientSelect: (client: Client | null) => void;
   showCreateOption?: boolean;
 }
 
-const ClientSelector: React.FC<ClientSelectorProps> = ({
+interface LegacyClientSelectorProps {
+  clients: Client[];
+  selectedClient: string | null;
+  onClientSelect: (clientId: string, client?: Client) => void;
+  isLoading?: boolean;
+  className?: string;
+}
+
+type ClientSelectorProps = ModernClientSelectorProps | LegacyClientSelectorProps;
+
+const ClientSelector: React.FC<ClientSelectorProps> = (props) => {
+  // Détection du format utilisé
+  const isLegacyFormat = 'clients' in props;
+  
+  if (isLegacyFormat) {
+    return <LegacyClientSelector {...props} />;
+  }
+  
+  return <ModernClientSelector {...props} />;
+};
+
+const ModernClientSelector: React.FC<ModernClientSelectorProps> = ({
   selectedClientId,
   onClientSelect,
   showCreateOption = true
@@ -102,6 +122,61 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
         </div>
       </CardContent>
     </Card>
+  );
+};
+
+const LegacyClientSelector: React.FC<LegacyClientSelectorProps> = ({ 
+  clients, 
+  selectedClient, 
+  onClientSelect, 
+  isLoading = false, 
+  className 
+}) => {
+  if (isLoading) {
+    return (
+      <div className={className}>
+        <Select disabled>
+          <SelectTrigger>
+            <SelectValue placeholder="Chargement des clients..." />
+          </SelectTrigger>
+        </Select>
+      </div>
+    );
+  }
+
+  if (clients.length === 0) {
+    return (
+      <div className={className}>
+        <Select disabled>
+          <SelectTrigger>
+            <SelectValue placeholder="Aucun client disponible" />
+          </SelectTrigger>
+        </Select>
+      </div>
+    );
+  }
+
+  return (
+    <div className={className}>
+      <Select
+        value={selectedClient || ""}
+        onValueChange={(value) => {
+          const selectedClientObj = clients.find(client => client.id === value);
+          onClientSelect(value, selectedClientObj);
+        }}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Sélectionnez un client" />
+        </SelectTrigger>
+        <SelectContent>
+          {clients.map((client: Client) => (
+            <SelectItem key={client.id} value={client.id}>
+              {client.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 };
 

@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 // Composants optimisés
-import ClientSelector from "../ClientSelector";
+import ClientSelector from "../campaign/ClientSelector";
 import GoogleSheetsAuth from '../auth/GoogleSheetsAuth';
 import GoogleSheetsEmbed from '../sheet/GoogleSheetsEmbed';
 import CampaignExtractorWorkflow from '../campaign/CampaignExtractorWorkflow';

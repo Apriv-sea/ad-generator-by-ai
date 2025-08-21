@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { sheetService, Client } from "@/services/sheetService";
-import ClientSelector from "./ClientSelector";
+import ClientSelector from "./campaign/ClientSelector";
 import { getClients } from "@/services/clientQuery";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
