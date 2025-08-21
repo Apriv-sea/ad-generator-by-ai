@@ -42,12 +42,21 @@ serve(async (req) => {
     }
 
     // Récupérer la clé API déchiffrée de l'utilisateur
+    console.log(`🔍 Tentative de récupération de la clé API pour ${provider}`)
+    
     const { data: apiKey, error: apiKeyError } = await supabaseClient
       .rpc('get_encrypted_api_key', {
         service_name: provider
       })
 
+    console.log(`🔍 Résultat récupération clé API pour ${provider}:`, { 
+      hasApiKey: !!apiKey, 
+      error: apiKeyError?.message,
+      userId: user.id
+    })
+
     if (apiKeyError || !apiKey) {
+      console.error(`❌ Aucune clé API trouvée pour ${provider}:`, apiKeyError)
       return new Response(
         JSON.stringify({ 
           models: [],
@@ -56,6 +65,8 @@ serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    console.log(`✅ Clé API récupérée avec succès pour ${provider}`)
     let models = []
 
     try {
