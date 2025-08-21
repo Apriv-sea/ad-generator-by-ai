@@ -74,17 +74,19 @@ const LLMProviderSetup: React.FC<LLMProviderSetupProps> = ({
       const userId = await getCurrentUserId();
       if (!userId) return;
 
-      const { data: apiKeys, error } = await supabase
-        .from('api_keys')
-        .select('service')
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
+      // Vérifier les clés pour tous les providers via RPC
+      const providers: ('openai' | 'anthropic' | 'google')[] = ['openai', 'anthropic', 'google'];
       const keyMap: Record<string, boolean> = {};
-      apiKeys?.forEach(key => {
-        keyMap[key.service] = true;
-      });
+      
+      for (const provider of providers) {
+        const { data: apiKey, error } = await supabase
+          .rpc('get_encrypted_api_key', {
+            service_name: provider
+          });
+        
+        keyMap[provider] = !error && !!apiKey;
+      }
+
       setSavedKeys(keyMap);
     } catch (error) {
       console.error('Erreur lors du chargement des clés API:', error);

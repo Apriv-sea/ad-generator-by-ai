@@ -173,25 +173,15 @@ export class SecureLLMService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
 
-      // Check for encrypted keys first
-      const { EncryptedApiKeyService } = await import('@/services/security/encryptedApiKeyService');
-      const decryptedKey = await EncryptedApiKeyService.getDecrypted(provider);
-      
-      if (decryptedKey) {
-        return true;
-      }
+      // Utiliser uniquement la fonction RPC pour récupérer les clés chiffrées
+      const { data: apiKey, error } = await supabase
+        .rpc('get_encrypted_api_key', {
+          service_name: provider
+        });
 
-      // Fallback: check for unencrypted keys (legacy)
-      const { data, error } = await supabase
-        .from('api_keys')
-        .select('api_key')
-        .eq('user_id', user.id)
-        .eq('service', provider)
-        .single();
-
-      return !error && !!data?.api_key;
+      return !error && !!apiKey;
     } catch (error) {
-      console.error('Error checking API key:', error);
+      console.error(`Error checking API key for ${provider}:`, error);
       return false;
     }
   }

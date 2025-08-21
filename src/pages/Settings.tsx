@@ -18,10 +18,12 @@ const Settings = () => {
       const userId = await getCurrentUserId();
       if (!userId) return;
 
+      // Récupérer uniquement les clés chiffrées via RPC
       const { data, error } = await supabase
         .from('api_keys')
         .select('*')
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .eq('is_encrypted', true);
 
       if (error) throw error;
       

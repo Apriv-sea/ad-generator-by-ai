@@ -42,11 +42,15 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({ apiKeys, isLoading, onA
         return;
       }
       
-      // Supprimer la clé API
+      // Supprimer la clé API (toutes les clés utilisent maintenant le chiffrement)
       const { error } = await supabase
         .from('api_keys')
         .delete()
-        .match({ id: keyId, user_id: userId });
+        .match({ 
+          id: keyId, 
+          user_id: userId,
+          is_encrypted: true 
+        });
       
       if (error) {
         throw error;
