@@ -93,23 +93,26 @@ const LLMProviderSetup: React.FC<LLMProviderSetupProps> = ({
 
   const loadApiKeyForProvider = async (provider: 'openai' | 'anthropic' | 'google') => {
     try {
-      const userId = await getCurrentUserId();
-      if (!userId) return;
+      console.log(`🔍 Chargement de la clé API pour ${provider}...`);
+      
+      // Utiliser la fonction RPC pour récupérer la clé déchiffrée
+      const { data: apiKeyValue, error } = await supabase
+        .rpc('get_encrypted_api_key', {
+          service_name: provider
+        });
 
-      const { data: apiKeyData, error } = await supabase
-        .from('api_keys')
-        .select('api_key')
-        .eq('service', provider)
-        .eq('user_id', userId)
-        .maybeSingle();
+      if (error) {
+        console.error(`❌ Erreur lors du chargement de la clé pour ${provider}:`, error);
+        throw error;
+      }
 
-      if (error) throw error;
-
-      if (apiKeyData) {
-        setApiKey(apiKeyData.api_key);
+      if (apiKeyValue) {
+        console.log(`✅ Clé API trouvée pour ${provider}`);
+        setApiKey(apiKeyValue);
         setKeyStatus('valid');
         await discoverModels(provider);
       } else {
+        console.log(`ℹ️ Aucune clé API trouvée pour ${provider}`);
         setApiKey('');
         setKeyStatus('idle');
         setAvailableModels([]);
@@ -157,24 +160,21 @@ const LLMProviderSetup: React.FC<LLMProviderSetupProps> = ({
         return;
       }
 
-      console.log(`📝 Tentative d'upsert pour utilisateur ${userId}, service ${currentProvider}`);
+      console.log(`🔐 Utilisation de store_encrypted_api_key pour ${currentProvider}`);
 
-      const { error } = await supabase
-        .from('api_keys')
-        .upsert({
-          service: currentProvider,
-          api_key: apiKey,
-          user_id: userId
-        }, {
-          onConflict: 'user_id,service'
+      // Utiliser la fonction RPC pour chiffrer et sauvegarder la clé
+      const { data, error } = await supabase
+        .rpc('store_encrypted_api_key', {
+          service_name: currentProvider,
+          api_key_value: apiKey
         });
 
       if (error) {
-        console.error('❌ Erreur lors de l\'upsert:', error);
+        console.error('❌ Erreur lors du stockage chiffré:', error);
         throw error;
       }
 
-      console.log(`✅ Clé API sauvegardée avec succès pour ${currentProvider}`);
+      console.log(`✅ Clé API chiffrée et sauvegardée avec succès pour ${currentProvider}`);
       setSavedKeys(prev => ({ ...prev, [currentProvider]: true }));
     } catch (error) {
       console.error('❌ Erreur lors de la sauvegarde de la clé API:', error);
