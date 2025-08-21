@@ -44,7 +44,7 @@ export const useGoogleAuthCallback = () => {
         
         try {
           // Compléter l'authentification
-          await completeAuth(code);
+          await completeAuth(code, state || '');
           
           console.log('Authentification complétée avec succès');
           
