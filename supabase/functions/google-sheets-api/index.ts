@@ -120,18 +120,15 @@ async function handleInitiateAuth(supabase: any, userId: string, req: Request) {
     throw new Error('Failed to initialize authentication')
   }
 
-  // Get appropriate redirect URI based on request origin
+  // Get appropriate redirect URI for production environment
   const getRedirectUri = (origin?: string): string => {
     const allowedRedirectUris = [
       'https://ad-content-generator.lovable.app/auth/callback/google',
-      'https://d7debcc3-21f6-4b31-89a2-e1398213d7ee.lovableproject.com/auth/callback/google',
-      'http://localhost:3000/auth/callback/google'
+      'https://d7debcc3-21f6-4b31-89a2-e1398213d7ee.lovableproject.com/auth/callback/google'
     ]
     
     // Return the appropriate URI based on origin
-    if (origin?.includes('localhost')) {
-      return allowedRedirectUris[2]
-    } else if (origin?.includes('lovableproject.com')) {
+    if (origin?.includes('lovableproject.com')) {
       return allowedRedirectUris[1]
     } else {
       return allowedRedirectUris[0] // Production URI by default
@@ -210,17 +207,14 @@ async function handleTokenExchange(supabase: any, userId: string, code: string, 
     throw new Error('Google OAuth configuration not complete')
   }
 
-  // Use the same redirect URI logic as in initiate auth
+  // Use the same redirect URI logic as in initiate auth - production only
   const getRedirectUri = (origin?: string): string => {
     const allowedRedirectUris = [
       'https://ad-content-generator.lovable.app/auth/callback/google',
-      'https://d7debcc3-21f6-4b31-89a2-e1398213d7ee.lovableproject.com/auth/callback/google',
-      'http://localhost:3000/auth/callback/google'
+      'https://d7debcc3-21f6-4b31-89a2-e1398213d7ee.lovableproject.com/auth/callback/google'
     ]
     
-    if (origin?.includes('localhost')) {
-      return allowedRedirectUris[2]
-    } else if (origin?.includes('lovableproject.com')) {
+    if (origin?.includes('lovableproject.com')) {
       return allowedRedirectUris[1]
     } else {
       return allowedRedirectUris[0]
