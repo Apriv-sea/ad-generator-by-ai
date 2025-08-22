@@ -61,6 +61,17 @@ export class EnhancedContentGenerationService {
       
       console.log('🎯 Provider/Modèle finaux:', { provider, model });
 
+      // Vérifier que l'utilisateur a une clé API pour ce provider
+      const { EncryptedApiKeyService } = await import('@/services/security/encryptedApiKeyService');
+      const hasValidKey = await EncryptedApiKeyService.getDecrypted(provider);
+      if (!hasValidKey) {
+        console.error(`❌ Aucune clé API trouvée pour ${provider}`);
+        return {
+          success: false,
+          error: `Aucune clé API configurée pour ${provider}. Veuillez ajouter votre clé API dans les paramètres.`
+        };
+      }
+
       // Appeler l'API de génération sécurisée avec le bon provider
       const response = await supabase.functions.invoke('secure-llm-api', {
         body: {
@@ -85,26 +96,12 @@ export class EnhancedContentGenerationService {
         };
       }
 
-      // CORRECTION CRITIQUE: Extraire le contenu selon le provider
+      // CORRECTION CRITIQUE: Extraire le contenu normalisé par l'edge function
       console.log('🔍 Structure complète de response.data:', JSON.stringify(response.data, null, 2));
       
-      let generatedContent;
-      
-      // Pour Anthropic
-      if (provider === 'anthropic') {
-        generatedContent = response.data?.content?.[0]?.text;
-        console.log('🔍 Extraction Anthropic - contenu:', generatedContent);
-      }
-      // Pour OpenAI  
-      else if (provider === 'openai') {
-        generatedContent = response.data?.choices?.[0]?.message?.content;
-        console.log('🔍 Extraction OpenAI - contenu:', generatedContent);
-      }
-      // Pour Google
-      else if (provider === 'google') {
-        generatedContent = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        console.log('🔍 Extraction Google - contenu:', generatedContent);
-      }
+      // L'edge function normalise déjà la réponse, donc on peut directement utiliser response.data.content
+      let generatedContent = response.data?.content;
+      console.log('🔍 Contenu normalisé extrait:', generatedContent);
       
       if (!generatedContent) {
         console.error('❌ Pas de contenu généré:', {
