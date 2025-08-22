@@ -25,8 +25,8 @@ const LocalhostRedirect = () => {
   const [tokenParams, setTokenParams] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if we're on localhost
-    if (window.location.hostname === 'localhost') {
+    // Check if we're on production environment
+    if (window.location.hostname !== 'ad-content-generator.lovable.app' && !window.location.hostname.includes('lovableproject.com')) {
       // First try to get the deployed URL from local storage
       const storedDeployedUrl = localStorage.getItem('deployed_url');
       if (storedDeployedUrl) {
@@ -86,7 +86,7 @@ const LocalhostRedirect = () => {
         });
       }
     } else {
-      // Not on localhost, redirect to the root
+      // On production environment, redirect to the root
       navigate('/');
     }
   }, [navigate]);
@@ -136,8 +136,8 @@ const LocalhostRedirect = () => {
         <CardHeader>
           <CardTitle>Redirection de confirmation d'email</CardTitle>
           <CardDescription>
-            Votre navigateur a été redirigé vers localhost après la confirmation de votre email. 
-            Pour terminer le processus, vous devez être redirigé vers votre application déployée.
+            Votre navigateur a été redirigé vers un environnement de développement après la confirmation de votre email. 
+            Pour terminer le processus, vous devez être redirigé vers votre application de production.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -152,8 +152,8 @@ const LocalhostRedirect = () => {
           <div className="bg-amber-50 p-4 rounded-md">
             <h3 className="font-medium mb-1">Information importante</h3>
             <p className="text-sm">
-              Vous avez été redirigé vers localhost après la confirmation de votre email.
-              Pour compléter le processus d'inscription, vous devez être redirigé vers votre application déployée.
+              Vous avez été redirigé vers un environnement de développement après la confirmation de votre email.
+              Pour compléter le processus d'inscription, vous devez être redirigé vers votre application de production.
             </p>
             {tokenInfo?.hasAccessToken && (
               <div className="mt-2 flex items-center gap-2 text-xs text-green-700">
