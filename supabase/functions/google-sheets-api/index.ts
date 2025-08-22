@@ -100,8 +100,21 @@ serve(async (req) => {
 
 async function handleInitiateAuth(supabase: any, userId: string, req: Request) {
   const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
-  if (!clientId) {
-    throw new Error('Google Client ID not configured')
+  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')
+  
+  console.log('🔍 Checking Google OAuth configuration:', {
+    hasClientId: !!clientId,
+    hasClientSecret: !!clientSecret,
+    clientIdLength: clientId?.length || 0
+  })
+  
+  if (!clientId || !clientSecret) {
+    const missing = []
+    if (!clientId) missing.push('GOOGLE_CLIENT_ID')
+    if (!clientSecret) missing.push('GOOGLE_CLIENT_SECRET')
+    
+    console.error('❌ Missing Google OAuth secrets:', missing)
+    throw new Error(`Configuration incomplète: ${missing.join(', ')} manquant(s). Veuillez configurer les secrets Google dans Supabase.`)
   }
 
   // Generate secure state
@@ -203,8 +216,18 @@ async function handleTokenExchange(supabase: any, userId: string, code: string, 
   const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')
   
+  console.log('🔍 Token exchange - checking secrets:', {
+    hasClientId: !!clientId,
+    hasClientSecret: !!clientSecret
+  })
+  
   if (!clientId || !clientSecret) {
-    throw new Error('Google OAuth configuration not complete')
+    const missing = []
+    if (!clientId) missing.push('GOOGLE_CLIENT_ID')
+    if (!clientSecret) missing.push('GOOGLE_CLIENT_SECRET')
+    
+    console.error('❌ Missing Google OAuth secrets for token exchange:', missing)
+    throw new Error(`Configuration incomplète: ${missing.join(', ')} manquant(s)`)
   }
 
   // Use the same redirect URI logic as in initiate auth - production only
