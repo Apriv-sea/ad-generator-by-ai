@@ -99,10 +99,10 @@ serve(async (req) => {
 })
 
 async function handleInitiateAuth(supabase: any, userId: string, req: Request) {
-  const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
-  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')
+  const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID')
+  const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET')
   
-  console.log('🔍 Checking Google OAuth configuration:', {
+  console.log('🔍 Checking Google Sheets OAuth configuration:', {
     hasClientId: !!clientId,
     hasClientSecret: !!clientSecret,
     clientIdLength: clientId?.length || 0
@@ -110,11 +110,11 @@ async function handleInitiateAuth(supabase: any, userId: string, req: Request) {
   
   if (!clientId || !clientSecret) {
     const missing = []
-    if (!clientId) missing.push('GOOGLE_CLIENT_ID')
-    if (!clientSecret) missing.push('GOOGLE_CLIENT_SECRET')
+    if (!clientId) missing.push('GOOGLE_SHEETS_CLIENT_ID')
+    if (!clientSecret) missing.push('GOOGLE_SHEETS_CLIENT_SECRET')
     
-    console.error('❌ Missing Google OAuth secrets:', missing)
-    throw new Error(`Configuration incomplète: ${missing.join(', ')} manquant(s). Veuillez configurer les secrets Google dans Supabase.`)
+    console.error('❌ Missing Google Sheets OAuth secrets:', missing)
+    throw new Error(`Configuration incomplète: ${missing.join(', ')} manquant(s). Veuillez configurer les secrets Google Sheets dans Supabase.`)
   }
 
   // Generate secure state
@@ -213,8 +213,8 @@ async function handleTokenExchange(supabase: any, userId: string, code: string, 
     .delete()
     .eq('id', stateData.id)
 
-  const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
-  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')
+  const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID')
+  const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET')
   
   console.log('🔍 Token exchange - checking secrets:', {
     hasClientId: !!clientId,
@@ -223,10 +223,10 @@ async function handleTokenExchange(supabase: any, userId: string, code: string, 
   
   if (!clientId || !clientSecret) {
     const missing = []
-    if (!clientId) missing.push('GOOGLE_CLIENT_ID')
-    if (!clientSecret) missing.push('GOOGLE_CLIENT_SECRET')
+    if (!clientId) missing.push('GOOGLE_SHEETS_CLIENT_ID')
+    if (!clientSecret) missing.push('GOOGLE_SHEETS_CLIENT_SECRET')
     
-    console.error('❌ Missing Google OAuth secrets for token exchange:', missing)
+    console.error('❌ Missing Google Sheets OAuth secrets for token exchange:', missing)
     throw new Error(`Configuration incomplète: ${missing.join(', ')} manquant(s)`)
   }
 
@@ -367,8 +367,8 @@ async function handleGoogleSheetsOperation(supabase: any, userId: string, body: 
 }
 
 async function refreshAccessToken(supabase: any, userId: string, refreshToken: string): Promise<string | null> {
-  const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
-  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')
+  const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID')
+  const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET')
 
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
