@@ -105,7 +105,9 @@ async function handleInitiateAuth(supabase: any, userId: string, req: Request) {
   console.log('🔍 Checking Google Sheets OAuth configuration:', {
     hasClientId: !!clientId,
     hasClientSecret: !!clientSecret,
-    clientIdLength: clientId?.length || 0
+    clientIdLength: clientId?.length || 0,
+    clientSecretLength: clientSecret?.length || 0,
+    availableEnvVars: Object.keys(Deno.env.toObject()).filter(key => key.includes('GOOGLE'))
   })
   
   if (!clientId || !clientSecret) {
