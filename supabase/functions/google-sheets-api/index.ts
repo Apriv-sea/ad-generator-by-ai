@@ -134,17 +134,8 @@ async function handleInitiateAuth(supabase: any, userId: string, req: Request) {
   }
 
   // Get appropriate redirect URI for production environment
-  const getRedirectUri = (origin?: string): string => {
-    const allowedRedirectUris = [
-      'https://ad-content-generator.lovable.app/auth/callback/google',
-    ]
-    
-    // Return the appropriate URI based on origin
-    if (origin?.includes('lovableproject.com')) {
-      return allowedRedirectUris[1]
-    } else {
-      return allowedRedirectUris[0] // Production URI by default
-    }
+  const getRedirectUri = (): string => {
+    return 'https://ad-content-generator.lovable.app/auth/callback/google'
   }
 
   const origin = req.headers.get('origin')
@@ -230,16 +221,8 @@ async function handleTokenExchange(supabase: any, userId: string, code: string, 
   }
 
   // Use the same redirect URI logic as in initiate auth - production only
-  const getRedirectUri = (origin?: string): string => {
-    const allowedRedirectUris = [
-      'https://ad-content-generator.lovable.app/auth/callback/google',
-    ]
-    
-    if (origin?.includes('lovableproject.com')) {
-      return allowedRedirectUris[1]
-    } else {
-      return allowedRedirectUris[0]
-    }
+  const getRedirectUri = (): string => {
+    return 'https://ad-content-generator.lovable.app/auth/callback/google'
   }
 
   const origin = req.headers.get('origin')
