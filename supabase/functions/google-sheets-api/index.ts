@@ -41,16 +41,22 @@ serve(async (req) => {
   )
 
   try {
-    // Try to get authenticated user, but allow anonymous usage
-    const { data: { user } } = await supabase.auth.getUser()
-    const effectiveUserId = user?.id || '00000000-0000-0000-0000-000000000000'
+    // Verify JWT token and get user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      console.log('Authentication failed')
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Rate limiting check - max 100 requests per user per hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
     const { count } = await supabase
       .from('google_sheets_audit_log')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', effectiveUserId)
+      .eq('user_id', user.id)
       .gte('created_at', oneHourAgo)
 
     if (count && count > 100) {
@@ -65,18 +71,18 @@ serve(async (req) => {
     const userAgent = req.headers.get('user-agent') || 'unknown'
 
     // Log the request
-    await auditLog(supabase, effectiveUserId, body.action, body.sheetId || null, clientIP, userAgent, true)
+    await auditLog(supabase, user.id, body.action, body.sheetId || null, clientIP, userAgent, true)
 
     if (body.action === 'initiate_auth') {
-      return await handleInitiateAuth(supabase, effectiveUserId, req)
+      return await handleInitiateAuth(supabase, user.id, req)
     } else if (body.action === 'exchange_token') {
-      return await handleTokenExchange(supabase, effectiveUserId, body.code, body.state, req)
+      return await handleTokenExchange(supabase, user.id, body.code, body.state, req)
     } else if (body.action === 'check_auth') {
-      return await handleCheckAuth(supabase, effectiveUserId)
+      return await handleCheckAuth(supabase, user.id)
     } else if (body.action === 'logout') {
-      return await handleLogout(supabase, effectiveUserId)
+      return await handleLogout(supabase, user.id)
     } else if (['read_sheet', 'write_sheet', 'create_sheet'].includes(body.action)) {
-      return await handleGoogleSheetsOperation(supabase, effectiveUserId, body, clientIP, userAgent)
+      return await handleGoogleSheetsOperation(supabase, user.id, body, clientIP, userAgent)
     } else {
       return new Response(
         JSON.stringify({ error: 'Invalid action' }),
