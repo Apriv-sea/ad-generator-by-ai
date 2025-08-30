@@ -99,15 +99,17 @@ serve(async (req) => {
 })
 
 async function handleInitiateAuth(supabase: any, userId: string, req: Request) {
-  const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID')
-  const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET')
+  // Try multiple environment variable names for Google OAuth
+  const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID') || Deno.env.get('GOOGLE_CLIENT_ID')
+  const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET') || Deno.env.get('GOOGLE_CLIENT_SECRET')
   
   console.log('🔍 Checking Google Sheets OAuth configuration:', {
     hasClientId: !!clientId,
     hasClientSecret: !!clientSecret,
     clientIdLength: clientId?.length || 0,
     clientSecretLength: clientSecret?.length || 0,
-    availableEnvVars: Object.keys(Deno.env.toObject()).filter(key => key.includes('GOOGLE'))
+    availableEnvVars: Object.keys(Deno.env.toObject()).filter(key => key.includes('GOOGLE')),
+    allEnvVars: Object.keys(Deno.env.toObject())
   })
   
   if (!clientId || !clientSecret) {
@@ -205,8 +207,8 @@ async function handleTokenExchange(supabase: any, userId: string, code: string, 
     .delete()
     .eq('id', stateData.id)
 
-  const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID')
-  const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET')
+  const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID') || Deno.env.get('GOOGLE_CLIENT_ID')
+  const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET') || Deno.env.get('GOOGLE_CLIENT_SECRET')
   
   console.log('🔍 Token exchange - checking secrets:', {
     hasClientId: !!clientId,
@@ -350,8 +352,8 @@ async function handleGoogleSheetsOperation(supabase: any, userId: string, body: 
 }
 
 async function refreshAccessToken(supabase: any, userId: string, refreshToken: string): Promise<string | null> {
-  const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID')
-  const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET')
+  const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID') || Deno.env.get('GOOGLE_CLIENT_ID')
+  const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET') || Deno.env.get('GOOGLE_CLIENT_SECRET')
 
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
