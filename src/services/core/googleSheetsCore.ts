@@ -38,17 +38,40 @@ class GoogleSheetsCoreService {
   // Initiate Google Sheets authentication flow via secure edge function
   async initiateAuth(): Promise<string> {
     try {
+      console.log('🔍 Début de initiateAuth()');
+      
       const response = await supabase.functions.invoke('google-sheets-api', {
         body: { action: 'initiate_auth' }
       });
       
+      console.log('📡 Réponse complète de l\'edge function:', {
+        data: response.data,
+        error: response.error
+      });
+      
       if (response.error) {
-        throw new Error(response.error.message || 'Failed to initiate authentication');
+        console.error('❌ Erreur dans la réponse:', response.error);
+        throw new Error(response.error.message || `Edge Function error: ${JSON.stringify(response.error)}`);
       }
       
+      if (!response.data) {
+        console.error('❌ Pas de données dans la réponse');
+        throw new Error('Aucune donnée reçue de l\'edge function');
+      }
+      
+      if (!response.data.authUrl) {
+        console.error('❌ authUrl manquant dans les données:', response.data);
+        throw new Error('URL d\'authentification manquante dans la réponse');
+      }
+      
+      console.log('✅ URL d\'authentification récupérée:', response.data.authUrl);
       return response.data.authUrl;
     } catch (error) {
-      console.error('Authentication initiation failed:', error);
+      console.error('❌ Authentication initiation failed:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       throw error;
     }
   }

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Loader, AlertTriangle } from "lucide-react";
 import { googleSheetsCoreService } from '@/services/core/googleSheetsCore';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface GoogleSheetsAuthButtonProps {
   onAuthStart?: () => void;
@@ -15,6 +16,7 @@ const GoogleSheetsAuthButton: React.FC<GoogleSheetsAuthButtonProps> = ({
   disabled = false 
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const { isAuthenticated, user, session } = useAuth();
 
   const handleAuth = async () => {
     if (disabled) return;
@@ -23,6 +25,17 @@ const GoogleSheetsAuthButton: React.FC<GoogleSheetsAuthButtonProps> = ({
     
     try {
       console.log('🚀 === CLIC BOUTON AUTHENTIFICATION ===');
+      console.log('🔐 État d\'authentification Supabase:', {
+        isAuthenticated,
+        hasUser: !!user,
+        hasSession: !!session,
+        userId: user?.id
+      });
+      
+      if (!isAuthenticated || !user) {
+        throw new Error('Vous devez être connecté à l\'application avant de vous connecter à Google Sheets');
+      }
+      
       console.log('🌐 Contexte:', {
         userAgent: navigator.userAgent,
         url: window.location.href,
