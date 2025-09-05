@@ -40,6 +40,15 @@ class GoogleSheetsCoreService {
     try {
       console.log('🔍 Début de initiateAuth()');
       
+      // Vérifier l'état de l'authentification côté client
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('🔐 Session côté client:', {
+        hasSession: !!session,
+        hasAccessToken: !!session?.access_token,
+        userId: session?.user?.id,
+        sessionError: sessionError?.message
+      });
+      
       const response = await supabase.functions.invoke('google-sheets-api', {
         body: { action: 'initiate_auth' }
       });

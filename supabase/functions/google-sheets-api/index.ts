@@ -30,21 +30,36 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Debug: Log all headers to understand what's being sent
+  console.log('🔍 Request headers:', Object.fromEntries(req.headers.entries()));
+  
+  const authHeader = req.headers.get('Authorization');
+  console.log('🔐 Authorization header:', authHeader ? `Bearer ${authHeader.substring(0, 20)}...` : 'MISSING');
+
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     {
       global: {
-        headers: { Authorization: req.headers.get('Authorization')! },
+        headers: { Authorization: authHeader! },
       },
     }
   )
 
   try {
     // Verify JWT token and get user
+    console.log('🔐 Attempting to get user from JWT...');
     const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    console.log('🔐 User verification result:', {
+      hasUser: !!user,
+      userId: user?.id,
+      userEmail: user?.email,
+      error: userError?.message
+    });
+    
     if (userError || !user) {
-      console.log('Authentication failed')
+      console.log('❌ Authentication failed:', userError?.message || 'No user found')
       return new Response(
         JSON.stringify({ error: 'Authentication required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
