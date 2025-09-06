@@ -66,7 +66,11 @@ serve(async (req) => {
     if (userError || !user) {
       console.log('❌ Authentication failed:', userError?.message || 'No user found')
       return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
+        JSON.stringify({ 
+          error: 'Authentication required', 
+          message: 'Vous devez être connecté à l\'application pour utiliser Google Sheets',
+          code: 'AUTH_REQUIRED'
+        }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
