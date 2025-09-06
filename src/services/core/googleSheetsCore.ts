@@ -48,6 +48,10 @@ class GoogleSheetsCoreService {
         userId: session?.user?.id,
         sessionError: sessionError?.message
       });
+
+      if (!session?.access_token) {
+        throw new Error('Vous devez vous connecter à l\'application avant d\'utiliser Google Sheets. Cliquez sur "Connexion" dans l\'en-tête.');
+      }
       
       const response = await supabase.functions.invoke('google-sheets-api', {
         body: { action: 'initiate_auth' },
