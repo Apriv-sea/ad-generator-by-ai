@@ -36,12 +36,18 @@ serve(async (req) => {
   const authHeader = req.headers.get('Authorization');
   console.log('🔐 Authorization header:', authHeader ? `Bearer ${authHeader.substring(0, 20)}...` : 'MISSING');
 
+  // Extract the JWT token from the Authorization header
+  const jwtToken = authHeader?.replace('Bearer ', '');
+  
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     {
       global: {
-        headers: { Authorization: authHeader! },
+        headers: { 
+          Authorization: `Bearer ${jwtToken}`,
+          apikey: Deno.env.get('SUPABASE_ANON_KEY')!
+        },
       },
     }
   )
