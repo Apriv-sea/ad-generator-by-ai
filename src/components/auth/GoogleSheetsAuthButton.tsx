@@ -33,7 +33,8 @@ const GoogleSheetsAuthButton: React.FC<GoogleSheetsAuthButtonProps> = ({
       });
       
       if (!isAuthenticated || !user) {
-        throw new Error('Vous devez être connecté à l\'application avant de vous connecter à Google Sheets');
+        toast.error('Vous devez d\'abord vous connecter à l\'application via le bouton "Connexion" dans l\'en-tête');
+        throw new Error('Authentication required: Please log in to the application first');
       }
       
       console.log('🌐 Contexte:', {
