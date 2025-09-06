@@ -45,8 +45,7 @@ serve(async (req) => {
     {
       global: {
         headers: { 
-          Authorization: `Bearer ${jwtToken}`,
-          apikey: Deno.env.get('SUPABASE_ANON_KEY')!
+          Authorization: authHeader!
         },
       },
     }

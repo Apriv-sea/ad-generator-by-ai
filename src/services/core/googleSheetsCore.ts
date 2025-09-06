@@ -54,11 +54,7 @@ class GoogleSheetsCoreService {
       }
       
       const response = await supabase.functions.invoke('google-sheets-api', {
-        body: { action: 'initiate_auth' },
-        headers: {
-          'Authorization': `Bearer ${session?.access_token}`,
-          'Content-Type': 'application/json'
-        }
+        body: { action: 'initiate_auth' }
       });
       
       console.log('📡 Réponse complète de l\'edge function:', {
