@@ -6,6 +6,7 @@ import { Client } from "@/services/types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Composants optimisés
 import ClientSelector from "../campaign/ClientSelector";
@@ -24,6 +25,9 @@ interface WorkflowStepsProps {
 }
 
 const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ onWorkflowComplete }) => {
+  // Vérification d'authentification
+  const { isAuthenticated, user } = useAuth();
+  
   // Hook centralisé pour la gestion d'état
   const {
     workflowState,
@@ -131,6 +135,17 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ onWorkflowComplete }) => 
 
   return (
     <div className="space-y-8">
+      {/* Alerte d'authentification si nécessaire */}
+      {!isAuthenticated && (
+        <Alert className="border-red-200 bg-red-50">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-700">
+            <strong>Authentification requise :</strong> Vous devez être connecté à l'application pour utiliser cette fonctionnalité. 
+            Cliquez sur "Connexion" dans l'en-tête pour vous connecter.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {/* Indicateur de progression */}
       <WorkflowStepIndicator steps={stepConfigs} />
 

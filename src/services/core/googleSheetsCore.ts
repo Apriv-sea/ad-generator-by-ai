@@ -42,15 +42,31 @@ class GoogleSheetsCoreService {
       
       // Vérifier l'état de l'authentification côté client
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('🔐 Session côté client:', {
+      console.log('🔐 Session côté client complète:', {
         hasSession: !!session,
         hasAccessToken: !!session?.access_token,
+        accessTokenPreview: session?.access_token?.substring(0, 50) + '...',
         userId: session?.user?.id,
-        sessionError: sessionError?.message
+        userEmail: session?.user?.email,
+        sessionError: sessionError?.message,
+        tokenType: session?.token_type,
+        expiresAt: session?.expires_at
       });
 
       if (!session?.access_token) {
         throw new Error('Vous devez vous connecter à l\'application avant d\'utiliser Google Sheets. Cliquez sur "Connexion" dans l\'en-tête.');
+      }
+      
+      // Get the user to ensure the token is valid
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      console.log('🔐 Vérification utilisateur:', {
+        hasUser: !!user,
+        userId: user?.id,
+        userError: userError?.message
+      });
+      
+      if (userError || !user) {
+        throw new Error('Session invalide. Veuillez vous reconnecter à l\'application.');
       }
       
       const response = await supabase.functions.invoke('google-sheets-api', {

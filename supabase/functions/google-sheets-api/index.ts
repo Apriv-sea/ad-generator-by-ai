@@ -52,6 +52,20 @@ serve(async (req) => {
     );
   }
   
+  // Check if token is the anon key (this should not be used for user auth)
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  if (jwtToken === anonKey) {
+    console.log('❌ Received anon key instead of user session token');
+    return new Response(
+      JSON.stringify({ 
+        error: 'Authentication required', 
+        message: 'Token d\'accès utilisateur requis. Veuillez vous reconnecter.',
+        code: 'INVALID_TOKEN_TYPE'
+      }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+  
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_ANON_KEY') ?? '',
