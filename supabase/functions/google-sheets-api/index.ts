@@ -39,6 +39,19 @@ serve(async (req) => {
   // Extract the JWT token from the Authorization header
   const jwtToken = authHeader?.replace('Bearer ', '');
   
+  // If no auth header, return proper error immediately
+  if (!authHeader || !jwtToken) {
+    console.log('❌ No authorization header found');
+    return new Response(
+      JSON.stringify({ 
+        error: 'Authentication required', 
+        message: 'Token d\'authentification manquant. Veuillez vous reconnecter.',
+        code: 'MISSING_AUTH_HEADER'
+      }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+  
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -54,22 +67,35 @@ serve(async (req) => {
   try {
     // Verify JWT token and get user
     console.log('🔐 Attempting to get user from JWT...');
+    console.log('🔐 Using JWT token:', jwtToken?.substring(0, 50) + '...');
+    
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
     console.log('🔐 User verification result:', {
       hasUser: !!user,
       userId: user?.id,
       userEmail: user?.email,
-      error: userError?.message
+      error: userError?.message,
+      jwtTokenPresent: !!jwtToken
     });
     
     if (userError || !user) {
       console.log('❌ Authentication failed:', userError?.message || 'No user found')
+      
+      // Log more debugging info
+      console.log('🔍 Debug info:', {
+        authHeaderExists: !!authHeader,
+        jwtTokenLength: jwtToken?.length || 0,
+        supabaseUrl: Deno.env.get('SUPABASE_URL'),
+        hasAnonKey: !!Deno.env.get('SUPABASE_ANON_KEY')
+      });
+      
       return new Response(
         JSON.stringify({ 
           error: 'Authentication required', 
-          message: 'Vous devez être connecté à l\'application pour utiliser Google Sheets',
-          code: 'AUTH_REQUIRED'
+          message: 'Erreur d\'authentification. Veuillez vous reconnecter à l\'application.',
+          code: 'AUTH_FAILED',
+          details: userError?.message
         }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
