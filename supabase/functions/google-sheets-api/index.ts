@@ -167,6 +167,17 @@ async function handleInitiateAuth(supabase: any, userId: string, req: Request) {
   const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID') || Deno.env.get('GOOGLE_CLIENT_ID')
   const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET') || Deno.env.get('GOOGLE_CLIENT_SECRET')
   
+  // Force refresh and detailed debugging - Jan 9, 2025
+  const envDebug = {
+    timestamp: new Date().toISOString(),
+    allSecrets: Object.keys(Deno.env.toObject()),
+    googleSecrets: Object.keys(Deno.env.toObject()).filter(key => key.includes('GOOGLE')),
+    clientIdValue: clientId ? `${clientId.substring(0, 10)}...` : 'MISSING',
+    clientSecretValue: clientSecret ? `${clientSecret.substring(0, 10)}...` : 'MISSING'
+  };
+  
+  console.log('🔍 Environment debugging:', envDebug);
+  
   console.log('🔍 Checking Google Sheets OAuth configuration:', {
     hasClientId: !!clientId,
     hasClientSecret: !!clientSecret,
