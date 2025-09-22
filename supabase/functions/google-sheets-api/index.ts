@@ -115,7 +115,21 @@ serve(async (req) => {
         );
       }
     } else if (body.action === 'exchange_token') {
-      return await handleTokenExchange(supabase, user.id, body.code, body.state, req)
+      console.log('🔍 Handling token exchange request');
+      try {
+        return await handleTokenExchange(supabase, user.id, body.code, body.state, req)
+      } catch (error) {
+        console.error('❌ Token exchange failed:', error.message);
+        console.error('❌ Full error details:', error);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Token exchange failed', 
+            message: error.message,
+            details: error.stack
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     } else if (body.action === 'check_auth') {
       return await handleCheckAuth(supabase, user.id)
     } else if (body.action === 'logout') {
@@ -310,6 +324,7 @@ async function handleTokenExchange(supabase: any, userId: string, code: string, 
   }
 
   const tokens = await tokenResponse.json()
+  console.log('✅ Successfully received tokens from Google')
 
   // Store tokens securely in database
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString()
