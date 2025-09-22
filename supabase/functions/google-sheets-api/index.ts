@@ -34,38 +34,9 @@ serve(async (req) => {
   console.log('🔍 Request headers:', Object.fromEntries(req.headers.entries()));
   
   const authHeader = req.headers.get('Authorization');
-  console.log('🔐 Authorization header:', authHeader ? `Bearer ${authHeader.substring(0, 20)}...` : 'MISSING');
+  console.log('🔐 Authorization header:', authHeader ? `${authHeader.substring(0, 20)}...` : 'MISSING');
 
-  // Extract the JWT token from the Authorization header
-  const jwtToken = authHeader?.replace('Bearer ', '');
-  
-  // If no auth header, return proper error immediately
-  if (!authHeader || !jwtToken) {
-    console.log('❌ No authorization header found');
-    return new Response(
-      JSON.stringify({ 
-        error: 'Authentication required', 
-        message: 'Token d\'authentification manquant. Veuillez vous reconnecter.',
-        code: 'MISSING_AUTH_HEADER'
-      }),
-      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-  
-  // Check if token is the anon key (this should not be used for user auth)
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
-  if (jwtToken === anonKey) {
-    console.log('❌ Received anon key instead of user session token');
-    return new Response(
-      JSON.stringify({ 
-        error: 'Authentication required', 
-        message: 'Token d\'accès utilisateur requis. Veuillez vous reconnecter.',
-        code: 'INVALID_TOKEN_TYPE'
-      }),
-      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-  
+  // Create Supabase client with Auth context from the request
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -81,7 +52,6 @@ serve(async (req) => {
   try {
     // Verify JWT token and get user
     console.log('🔐 Attempting to get user from JWT...');
-    console.log('🔐 Using JWT token:', jwtToken?.substring(0, 50) + '...');
     
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
@@ -89,20 +59,11 @@ serve(async (req) => {
       hasUser: !!user,
       userId: user?.id,
       userEmail: user?.email,
-      error: userError?.message,
-      jwtTokenPresent: !!jwtToken
+      error: userError?.message
     });
     
     if (userError || !user) {
       console.log('❌ Authentication failed:', userError?.message || 'No user found')
-      
-      // Log more debugging info
-      console.log('🔍 Debug info:', {
-        authHeaderExists: !!authHeader,
-        jwtTokenLength: jwtToken?.length || 0,
-        supabaseUrl: Deno.env.get('SUPABASE_URL'),
-        hasAnonKey: !!Deno.env.get('SUPABASE_ANON_KEY')
-      });
       
       return new Response(
         JSON.stringify({ 
