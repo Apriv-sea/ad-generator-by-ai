@@ -217,62 +217,33 @@ async function handleInitiateAuth(supabase: any, userId: string, req: Request) {
     }
 
     console.log('✅ OAuth state stored successfully');
-  
-  console.log('🔍 Checking Google Sheets OAuth configuration:', {
-    hasClientId: !!clientId,
-    hasClientSecret: !!clientSecret,
-    clientIdLength: clientId?.length || 0,
-    clientSecretLength: clientSecret?.length || 0,
-    availableEnvVars: Object.keys(Deno.env.toObject()).filter(key => key.includes('GOOGLE')),
-    allEnvVars: Object.keys(Deno.env.toObject())
-  })
-  
-  if (!clientId || !clientSecret) {
-    const missing = []
-    if (!clientId) missing.push('GOOGLE_SHEETS_CLIENT_ID')
-    if (!clientSecret) missing.push('GOOGLE_SHEETS_CLIENT_SECRET')
-    
-    console.error('❌ Missing Google Sheets OAuth secrets:', missing)
-    throw new Error(`Configuration incomplète: ${missing.join(', ')} manquant(s). Veuillez configurer les secrets Google Sheets dans Supabase.`)
+
+    // Get appropriate redirect URI for production environment
+    const getRedirectUri = (): string => {
+      return 'https://ad-content-generator.lovable.app/auth/callback/google'
+    }
+
+    const redirectUri = getRedirectUri()
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${clientId}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `scope=https://www.googleapis.com/auth/spreadsheets&` +
+      `response_type=code&` +
+      `access_type=offline&` +
+      `state=${state}&` +
+      `prompt=consent`
+
+    console.log('✅ Auth URL generated successfully');
+
+    return new Response(
+      JSON.stringify({ authUrl }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  } catch (error) {
+    console.error('❌ Error in handleInitiateAuth:', error);
+    throw error;
   }
-
-  // Generate secure state
-  const state = crypto.randomUUID()
-  
-  // Store state in database with expiry
-  const { error } = await supabase
-    .from('oauth_states')
-    .insert({
-      user_id: userId,
-      state: state,
-    })
-
-  if (error) {
-    console.error('Failed to store OAuth state:', error)
-    throw new Error('Failed to initialize authentication')
-  }
-
-  // Get appropriate redirect URI for production environment
-  const getRedirectUri = (): string => {
-    return 'https://ad-content-generator.lovable.app/auth/callback/google'
-  }
-
-  const origin = req.headers.get('origin')
-  const redirectUri = getRedirectUri(origin)
-
-  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-    `client_id=${clientId}&` +
-    `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-    `scope=https://www.googleapis.com/auth/spreadsheets&` +
-    `response_type=code&` +
-    `access_type=offline&` +
-    `state=${state}&` +
-    `prompt=consent`
-
-  return new Response(
-    JSON.stringify({ authUrl }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  )
 }
 
 async function handleTokenExchange(supabase: any, userId: string, code: string, state: string, req: Request) {
@@ -344,8 +315,7 @@ async function handleTokenExchange(supabase: any, userId: string, code: string, 
     return 'https://ad-content-generator.lovable.app/auth/callback/google'
   }
 
-  const origin = req.headers.get('origin')
-  const redirectUri = getRedirectUri(origin)
+  const redirectUri = getRedirectUri()
 
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
