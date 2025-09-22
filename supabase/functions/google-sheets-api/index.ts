@@ -167,16 +167,21 @@ async function handleInitiateAuth(supabase: any, userId: string, req: Request) {
   const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID') || Deno.env.get('GOOGLE_CLIENT_ID')
   const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET') || Deno.env.get('GOOGLE_CLIENT_SECRET')
   
-  // Force refresh and detailed debugging - Jan 9, 2025
+  // Enhanced debugging with explicit checks for both secret names
+  const allEnvVars = Deno.env.toObject()
   const envDebug = {
     timestamp: new Date().toISOString(),
-    allSecrets: Object.keys(Deno.env.toObject()),
-    googleSecrets: Object.keys(Deno.env.toObject()).filter(key => key.includes('GOOGLE')),
+    hasGoogleSheetsClientId: 'GOOGLE_SHEETS_CLIENT_ID' in allEnvVars,
+    hasGoogleClientId: 'GOOGLE_CLIENT_ID' in allEnvVars,
+    hasGoogleSheetsClientSecret: 'GOOGLE_SHEETS_CLIENT_SECRET' in allEnvVars,
+    hasGoogleClientSecret: 'GOOGLE_CLIENT_SECRET' in allEnvVars,
     clientIdValue: clientId ? `${clientId.substring(0, 10)}...` : 'MISSING',
-    clientSecretValue: clientSecret ? `${clientSecret.substring(0, 10)}...` : 'MISSING'
+    clientSecretValue: clientSecret ? `${clientSecret.substring(0, 10)}...` : 'MISSING',
+    // List all available environment variables for debugging
+    availableSecrets: Object.keys(allEnvVars).filter(key => key.includes('GOOGLE'))
   };
   
-  console.log('🔍 Environment debugging:', envDebug);
+  console.log('🔍 Detailed environment debugging:', envDebug);
   
   console.log('🔍 Checking Google Sheets OAuth configuration:', {
     hasClientId: !!clientId,
