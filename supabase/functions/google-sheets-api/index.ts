@@ -167,11 +167,11 @@ async function handleInitiateAuth(supabase: any, userId: string, req: Request) {
     });
     
     if (!clientId) {
-      throw new Error('GOOGLE_SHEETS_CLIENT_ID or GOOGLE_CLIENT_ID not configured');
+      throw new Error('GOOGLE_CLIENT_ID not configured');
     }
     
     if (!clientSecret) {
-      throw new Error('GOOGLE_SHEETS_CLIENT_SECRET or GOOGLE_CLIENT_SECRET not configured');
+      throw new Error('GOOGLE_CLIENT_SECRET not configured');
     }
 
     // Generate secure state
@@ -280,10 +280,10 @@ async function handleTokenExchange(supabase: any, userId: string, code: string, 
   
   if (!clientId || !clientSecret) {
     const missing = []
-    if (!clientId) missing.push('GOOGLE_SHEETS_CLIENT_ID')
-    if (!clientSecret) missing.push('GOOGLE_SHEETS_CLIENT_SECRET')
+    if (!clientId) missing.push('GOOGLE_CLIENT_ID')
+    if (!clientSecret) missing.push('GOOGLE_CLIENT_SECRET')
     
-    console.error('❌ Missing Google Sheets OAuth secrets for token exchange:', missing)
+    console.error('❌ Missing Google OAuth secrets for token exchange:', missing)
     throw new Error(`Configuration incomplète: ${missing.join(', ')} manquant(s)`)
   }
 
