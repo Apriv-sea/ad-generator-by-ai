@@ -259,7 +259,9 @@ async function handleTokenExchange(supabase: any, userId: string, code: string, 
   
   console.log('🔍 Token exchange - checking secrets:', {
     hasClientId: !!clientId,
-    hasClientSecret: !!clientSecret
+    hasClientSecret: !!clientSecret,
+    clientIdPreview: clientId ? clientId.substring(0, 20) + '...' : 'MISSING',
+    clientSecretPreview: clientSecret ? clientSecret.substring(0, 10) + '...' : 'MISSING'
   })
   
   if (!clientId || !clientSecret) {
@@ -278,6 +280,12 @@ async function handleTokenExchange(supabase: any, userId: string, code: string, 
 
   const redirectUri = getRedirectUri()
 
+  console.log('🔍 About to exchange token with Google:', {
+    redirectUri,
+    hasCode: !!code,
+    clientIdUsed: clientId ? clientId.substring(0, 20) + '...' : 'MISSING'
+  })
+
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -290,8 +298,15 @@ async function handleTokenExchange(supabase: any, userId: string, code: string, 
     }),
   })
 
+  console.log('🔍 Google token response status:', tokenResponse.status)
+
   if (!tokenResponse.ok) {
-    throw new Error('Failed to exchange authorization code for tokens')
+    const errorText = await tokenResponse.text()
+    console.error('❌ Google token exchange error:', {
+      status: tokenResponse.status,
+      error: errorText
+    })
+    throw new Error(`Failed to exchange authorization code for tokens: ${tokenResponse.status} - ${errorText}`)
   }
 
   const tokens = await tokenResponse.json()
