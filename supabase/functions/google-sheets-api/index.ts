@@ -50,6 +50,13 @@ serve(async (req) => {
   )
 
   try {
+    console.log('🔍 Full request details:', {
+      method: req.method,
+      url: req.url,
+      hasAuth: !!authHeader,
+      contentType: req.headers.get('content-type')
+    });
+
     // Verify JWT token and get user
     console.log('🔐 Attempting to get user from JWT...');
     
@@ -92,6 +99,8 @@ serve(async (req) => {
     }
 
     const body = await req.json()
+    console.log('📋 Request body:', { action: body.action, hasSheetId: !!body.sheetId });
+    
     const clientIP = req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || 'unknown'
     const userAgent = req.headers.get('user-agent') || 'unknown'
 
@@ -143,9 +152,17 @@ serve(async (req) => {
       )
     }
   } catch (error) {
-    console.error('Error in Google Sheets API:', error.message)
+    console.error('❌ Critical error in Google Sheets API:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    })
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ 
+        error: 'Internal server error',
+        details: error.message,
+        timestamp: new Date().toISOString()
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
