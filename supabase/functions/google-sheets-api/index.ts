@@ -138,7 +138,21 @@ serve(async (req) => {
     await auditLog(supabase, user.id, body.action, body.sheetId || null, clientIP, userAgent, true)
 
     if (body.action === 'initiate_auth') {
-      return await handleInitiateAuth(supabase, user.id, req)
+      console.log('🔍 Handling initiate_auth request');
+      try {
+        return await handleInitiateAuth(supabase, user.id, req);
+      } catch (error) {
+        console.error('❌ Error in handleInitiateAuth:', error.message);
+        console.error('❌ Full error details:', error);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Authentication initiation failed', 
+            message: error.message,
+            details: error.stack
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     } else if (body.action === 'exchange_token') {
       return await handleTokenExchange(supabase, user.id, body.code, body.state, req)
     } else if (body.action === 'check_auth') {
@@ -163,25 +177,46 @@ serve(async (req) => {
 })
 
 async function handleInitiateAuth(supabase: any, userId: string, req: Request) {
-  // Try multiple environment variable names for Google OAuth
-  const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID') || Deno.env.get('GOOGLE_CLIENT_ID')
-  const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET') || Deno.env.get('GOOGLE_CLIENT_SECRET')
+  console.log('🔍 Starting handleInitiateAuth for user:', userId);
   
-  // Enhanced debugging with explicit checks for both secret names
-  const allEnvVars = Deno.env.toObject()
-  const envDebug = {
-    timestamp: new Date().toISOString(),
-    hasGoogleSheetsClientId: 'GOOGLE_SHEETS_CLIENT_ID' in allEnvVars,
-    hasGoogleClientId: 'GOOGLE_CLIENT_ID' in allEnvVars,
-    hasGoogleSheetsClientSecret: 'GOOGLE_SHEETS_CLIENT_SECRET' in allEnvVars,
-    hasGoogleClientSecret: 'GOOGLE_CLIENT_SECRET' in allEnvVars,
-    clientIdValue: clientId ? `${clientId.substring(0, 10)}...` : 'MISSING',
-    clientSecretValue: clientSecret ? `${clientSecret.substring(0, 10)}...` : 'MISSING',
-    // List all available environment variables for debugging
-    availableSecrets: Object.keys(allEnvVars).filter(key => key.includes('GOOGLE'))
-  };
-  
-  console.log('🔍 Detailed environment debugging:', envDebug);
+  try {
+    // Try multiple environment variable names for Google OAuth
+    const clientId = Deno.env.get('GOOGLE_SHEETS_CLIENT_ID') || Deno.env.get('GOOGLE_CLIENT_ID')
+    const clientSecret = Deno.env.get('GOOGLE_SHEETS_CLIENT_SECRET') || Deno.env.get('GOOGLE_CLIENT_SECRET')
+    
+    console.log('🔍 Environment check:', {
+      hasClientId: !!clientId,
+      hasClientSecret: !!clientSecret,
+      clientIdPreview: clientId ? clientId.substring(0, 15) + '...' : 'MISSING',
+      clientSecretPreview: clientSecret ? clientSecret.substring(0, 15) + '...' : 'MISSING'
+    });
+    
+    if (!clientId) {
+      throw new Error('GOOGLE_SHEETS_CLIENT_ID or GOOGLE_CLIENT_ID not configured');
+    }
+    
+    if (!clientSecret) {
+      throw new Error('GOOGLE_SHEETS_CLIENT_SECRET or GOOGLE_CLIENT_SECRET not configured');
+    }
+
+    // Generate secure state
+    const state = crypto.randomUUID()
+    console.log('🔍 Generated state:', state);
+    
+    // Store state in database with expiry
+    const { error } = await supabase
+      .from('oauth_states')
+      .insert({
+        user_id: userId,
+        state: state,
+      })
+
+    if (error) {
+      console.error('❌ Failed to store OAuth state:', error)
+      throw new Error('Failed to initialize authentication: ' + error.message)
+    }
+
+    console.log('✅ OAuth state stored successfully');
   
   console.log('🔍 Checking Google Sheets OAuth configuration:', {
     hasClientId: !!clientId,
