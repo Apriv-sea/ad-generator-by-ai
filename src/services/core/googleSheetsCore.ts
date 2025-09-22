@@ -23,8 +23,8 @@ export interface AuthTokens {
 
 class GoogleSheetsCoreService {
   
-  // Vérifier que l'utilisateur est authentifié avant toute requête
-  private async ensureAuthenticated() {
+  // Faire une requête authentifiée vers l'Edge Function
+  private async makeAuthenticatedRequest(action: string, data?: any) {
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error || !session?.access_token) {
@@ -36,6 +36,16 @@ class GoogleSheetsCoreService {
       userId: session.user?.id,
       tokenLength: session.access_token.length
     });
+
+    // Utiliser supabase.functions.invoke avec les headers explicites
+    const response = await supabase.functions.invoke('google-sheets-api', {
+      body: { action, ...data },
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      }
+    });
+    
+    return response;
   }
 
   // =============== AUTHENTIFICATION ===============
@@ -43,10 +53,7 @@ class GoogleSheetsCoreService {
   // Check if authenticated via server-side token validation
   async isAuthenticated(): Promise<boolean> {
     try {
-      await this.ensureAuthenticated();
-      const response = await supabase.functions.invoke('google-sheets-api', {
-        body: { action: 'check_auth' }
-      });
+      const response = await this.makeAuthenticatedRequest('check_auth');
       return response.data?.authenticated === true;
     } catch {
       return false;
@@ -87,10 +94,7 @@ class GoogleSheetsCoreService {
         throw new Error('Session invalide. Veuillez vous reconnecter à l\'application.');
       }
       
-      await this.ensureAuthenticated();
-      const response = await supabase.functions.invoke('google-sheets-api', {
-        body: { action: 'initiate_auth' }
-      });
+      const response = await this.makeAuthenticatedRequest('initiate_auth');
       
       console.log('📡 Réponse complète de l\'edge function:', {
         data: response.data,
@@ -127,13 +131,9 @@ class GoogleSheetsCoreService {
   // Complete authentication with authorization code via secure edge function
   async completeAuth(code: string, state: string): Promise<void> {
     try {
-      await this.ensureAuthenticated();
-      const response = await supabase.functions.invoke('google-sheets-api', {
-        body: { 
-          action: 'exchange_token',
-          code,
-          state
-        }
+      const response = await this.makeAuthenticatedRequest('exchange_token', {
+        code,
+        state
       });
       
       if (response.error) {
@@ -150,10 +150,7 @@ class GoogleSheetsCoreService {
   // Logout and clear server-side tokens
   async logout(): Promise<void> {
     try {
-      await this.ensureAuthenticated();
-      await supabase.functions.invoke('google-sheets-api', {
-        body: { action: 'logout' }
-      });
+      await this.makeAuthenticatedRequest('logout');
       toast.info('Déconnecté de Google Sheets');
     } catch (error) {
       console.error('Logout failed:', error);
@@ -202,13 +199,9 @@ class GoogleSheetsCoreService {
 
   private async readSheetViaAPI(sheetId: string, range?: string): Promise<GoogleSheetsData> {
     try {
-      await this.ensureAuthenticated();
-      const response = await supabase.functions.invoke('google-sheets-api', {
-        body: { 
-          action: 'read_sheet',
-          sheetId,
-          range: range || 'A:Z'
-        }
+      const response = await this.makeAuthenticatedRequest('read_sheet', {
+        sheetId,
+        range: range || 'A:Z'
       });
       
       if (response.error) {
@@ -248,14 +241,10 @@ class GoogleSheetsCoreService {
   // Save data to Google Sheets via secure edge function
   async saveSheetData(sheetId: string, data: string[][], range?: string): Promise<boolean> {
     try {
-      await this.ensureAuthenticated();
-      const response = await supabase.functions.invoke('google-sheets-api', {
-        body: { 
-          action: 'write_sheet',
-          sheetId,
-          data,
-          range: range || 'A1'
-        }
+      const response = await this.makeAuthenticatedRequest('write_sheet', {
+        sheetId,
+        data,
+        range: range || 'A1'
       });
       
       if (response.error) {
@@ -271,10 +260,7 @@ class GoogleSheetsCoreService {
 
   async createNewSheet(): Promise<{ spreadsheetId: string; spreadsheetUrl: string } | null> {
     try {
-      await this.ensureAuthenticated();
-      const response = await supabase.functions.invoke('google-sheets-api', {
-        body: { action: 'create_sheet' }
-      });
+      const response = await this.makeAuthenticatedRequest('create_sheet');
       
       if (response.error) {
         throw new Error(response.error.message || 'Failed to create sheet');
